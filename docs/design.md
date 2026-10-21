@@ -35,7 +35,7 @@ Dark mode is the default.
 
 ## Skins
 
-A skin is a view over the same system model. It receives the model and its updates and decides how to draw them, and it never talks to the device itself. Two are planned. The default is minimal and technical. The second is an engineering-console terminal that shows the battery as a glowing vertical core whose light and pulse follow its charge and power. All of its artwork is original.
+A skin is a view over the same system model. It receives the model and its updates and decides how to draw them, and it never talks to the device itself. Two are planned. The default is minimal and technical. The second, Sci-Fi FOF (short for Form Over Function), is an engineering-console terminal that shows the battery as a glowing vertical core whose light and pulse follow its charge and power. All of its artwork is original.
 
 ## Control and users
 
