@@ -245,7 +245,7 @@
   align-items: center;
   /* Rows part by the screen's height and columns by its width, so a wide,
      short screen does not spend its height on gaps. */
-  gap: clamp(1em, 3vh, 5em) clamp(3em, 7vw, 9em);
+  gap: clamp(1em, 2.5vh, 5em) clamp(3em, 7vw, 9em);
 }
 
 .fof-diagram [data-part="grid"] { grid-area: grid; }
@@ -843,6 +843,16 @@
   0%, 60%, 100% { opacity: 0; }
   25% { opacity: 0.75; }
 }
+
+/* The charge, with the battery's state under it. */
+.fof-core-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.fof-core-side > .fof-state-line { margin: 0; }
 
 .fof-core-figure {
   margin: 0;

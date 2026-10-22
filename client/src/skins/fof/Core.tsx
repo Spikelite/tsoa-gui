@@ -3,7 +3,7 @@ import { useId, type CSSProperties } from "react";
 import type { Battery } from "../../model/system";
 import { batteryState } from "../describe";
 import { Eased } from "../Eased";
-import * as f from "../format";
+import { batteryReadings, isWorded, type Reading } from "../readings";
 import { StatusWords } from "./StatusPill";
 
 // Ten cells, so each is a tenth of the charge, the share people read at a glance.
@@ -16,8 +16,8 @@ const CELLS = CELLS_PER_ROW * ROWS;
 const FILL = [2, 1, 3, 0, 4];
 
 // The battery as one block: two rows of five cells held between a single pair
-// of end caps, with its name above its left end, its charge beside its right
-// end and its state and readings below. Its light follows the charge, a
+// of end caps, with its name above its left end, its charge and state beside
+// its right end and its readings below. Its light follows the charge, a
 // tenth of it to each cell, the last one partly, filling from the top row's
 // middle as FILL orders it. Its pulse follows the power: a wave of light runs
 // through the lit cells forward while the battery charges and backward while
@@ -30,6 +30,7 @@ export function Core({ battery }: { battery: Battery }) {
   const charge = Math.max(0, Math.min(100, soc ?? 0));
   const lit = (charge / 100) * CELLS;
   const offline = battery.status === "offline";
+  const readings = batteryReadings(battery);
 
   // The order the cells light in: each cell's place in it, top row first.
   const ranks = Array.from({ length: ROWS }, (_, row) =>
@@ -72,36 +73,44 @@ export function Core({ battery }: { battery: Battery }) {
           </div>
           <span className="fof-bank-cap" aria-hidden="true" />
         </div>
-        {!offline && (
-          <p className="fof-core-figure">
-            <Eased value={soc} format={f.percent} />
-          </p>
-        )}
+        <div className="fof-core-side">
+          {!offline && (
+            <p className="fof-core-figure">
+              <Eased value={readings.headline.value} format={readings.headline.format} />
+            </p>
+          )}
+          <p className="fof-state-line">{offline ? "Not reporting" : batteryState(battery)}</p>
+        </div>
       </div>
-      <p className="fof-state-line">{offline ? "Not reporting" : batteryState(battery)}</p>
       {!offline && (
         <dl className="fof-rows">
-          <Row label="Power" value={battery.power_w} format={f.power} always />
-          <Row label="Voltage" value={battery.voltage_v} format={f.volts} always />
-          <Row label="Current" value={battery.current_a} format={f.amps} />
-          <Row label="Time to go" value={battery.time_to_go_s} format={f.duration} />
-          <Row label="Temperature" value={battery.temperature_c} format={f.celsius} />
+          <Rows readings={readings.details} />
         </dl>
       )}
     </section>
   );
 }
 
-export function Row(props: { label: string; value: number | null; format: f.Format; always?: boolean }) {
-  if (props.value === null && !props.always) {
-    return null;
-  }
-  return (
-    <div className="fof-row">
-      <dt>{props.label}</dt>
-      <dd>
-        <Eased value={props.value} format={props.format} />
-      </dd>
-    </div>
-  );
+export function Rows({ readings }: { readings: Reading[] }) {
+  return readings.map((reading) => {
+    if (isWorded(reading)) {
+      return (
+        <div key={reading.label} className="fof-row">
+          <dt>{reading.label}</dt>
+          <dd>{reading.text}</dd>
+        </div>
+      );
+    }
+    if (reading.value === null && !reading.always) {
+      return null;
+    }
+    return (
+      <div key={reading.label} className="fof-row">
+        <dt>{reading.label}</dt>
+        <dd>
+          <Eased value={reading.value} format={reading.format} />
+        </dd>
+      </div>
+    );
+  });
 }

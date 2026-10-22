@@ -2,12 +2,16 @@ import { useId, useLayoutEffect, useRef, type ReactNode } from "react";
 
 import { Clock } from "../../Clock";
 import type { PartName, Status, System } from "../../model/system";
-import { generatorState, gridState, inverterState, MODES, partTitle, solarState } from "../describe";
+import { generatorState, gridState, inverterState, partTitle, solarState } from "../describe";
 import { Eased } from "../Eased";
 import * as f from "../format";
+import {
+  acLoadsReadings, dcLoadsReadings, dcLoadsState, generatorReadings, gridReadings, inverterReadings, solarReadings,
+  type Readings,
+} from "../readings";
 import { Title } from "../Title";
 import { Conduits } from "./Conduits";
-import { Core, Row } from "./Core";
+import { Core, Rows } from "./Core";
 import { GeneratorCore } from "./GeneratorCore";
 import { GridTower } from "./GridTower";
 import { InverterCore } from "./InverterCore";
@@ -29,6 +33,9 @@ function hubInputs(model: System): Partial<Record<PartName, 1 | 2>> {
     ...(model.generator?.ac_input ? { generator: model.generator.ac_input } : {}),
   };
 }
+
+/** A part's readings as rows, its headline first. */
+const all = (readings: Readings) => [readings.headline, ...readings.details];
 
 function Readout(props: {
   part: PartName; title: string; status: Status; state: string; art?: ReactNode;
@@ -109,19 +116,14 @@ export function FofSkin({ model }: { model: System }) {
         {model.grid && (
           <Readout part="grid" title={partTitle("grid", model)} status={model.grid.status} state={gridState(model.grid)}
             art={<GridTower grid={model.grid} />} layout="schematic">
-            <Row label="Power" value={model.grid.power_w} format={f.power} always />
-            <Row label="Voltage" value={model.grid.voltage_v} format={f.volts} />
-            <Row label="Current" value={model.grid.current_a} format={f.amps} />
-            <Row label="Frequency" value={model.grid.frequency_hz} format={f.hertz} />
-            <Row label="Input limit" value={model.grid.input_current_limit_a} format={f.amps} />
+            <Rows readings={all(gridReadings(model.grid))} />
           </Readout>
         )}
 
         {model.generator && (
           <Readout part="generator" title="Generator" status={model.generator.status}
             state={generatorState(model.generator)} art={<GeneratorCore generator={model.generator} />} layout="schematic">
-            <Row label="Power" value={model.generator.power_w} format={f.power} always />
-            <Row label="Running for" value={model.generator.run_time_s} format={f.duration} />
+            <Rows readings={all(generatorReadings(model.generator))} />
           </Readout>
         )}
 
@@ -129,15 +131,7 @@ export function FofSkin({ model }: { model: System }) {
           <Readout part="inverter_charger" title="Inverter/charger" status={model.inverter_charger.status}
             state={inverterState(model.inverter_charger)} art={<InverterCore inverter={model.inverter_charger} />}
             layout="hub">
-            {model.inverter_charger.mode !== null && (
-              <div className="fof-row">
-                <dt>Mode</dt>
-                <dd>{MODES[model.inverter_charger.mode]}</dd>
-              </div>
-            )}
-            <Row label="AC out" value={model.inverter_charger.ac_out_power_w} format={f.power} always />
-            <Row label="AC in" value={model.inverter_charger.ac_in_power_w} format={f.power} />
-            <Row label="Charge current" value={model.inverter_charger.charge_current_a} format={f.amps} />
+            <Rows readings={all(inverterReadings(model.inverter_charger, model))} />
             {model.inverter_charger.alarms.map((alarm) => (
               <div key={alarm.name} className="fof-row fof-alarm">
                 <dt>
@@ -153,8 +147,7 @@ export function FofSkin({ model }: { model: System }) {
         {model.solar && (
           <Readout part="solar" title="Solar" status={model.solar.status} state={solarState(model.solar)}
             art={<SolarArray solar={model.solar} />} layout="schematic">
-            <Row label="Power" value={model.solar.power_w} format={f.power} always />
-            <Row label="Today" value={model.solar.yield_today_kwh} format={f.kilowattHours} />
+            <Rows readings={all(solarReadings(model.solar))} />
             {model.solar.chargers.length > 1 &&
               model.solar.chargers.map((charger) => (
                 <div key={charger.name} className="fof-row">
@@ -173,21 +166,16 @@ export function FofSkin({ model }: { model: System }) {
           <Readout part="ac_loads" title="AC loads" status={model.ac_loads.status} state="In use"
             art={<LoadPanel power={model.ac_loads.power_w} status={model.ac_loads.status} feed="inverter_charger-ac_loads" />}
             layout="lead">
-            <Row label="Power" value={model.ac_loads.power_w} format={f.power} always />
-            <Row label="Voltage" value={model.ac_loads.voltage_v} format={f.volts} />
-            <Row label="Current" value={model.ac_loads.current_a} format={f.amps} />
-            <Row label="Frequency" value={model.ac_loads.frequency_hz} format={f.hertz} />
-            <Row label="On the inverter" value={model.ac_loads.on_output_w} format={f.power} />
-            <Row label="On the supply side" value={model.ac_loads.on_input_w} format={f.power} />
+            <Rows readings={all(acLoadsReadings(model.ac_loads))} />
           </Readout>
         )}
 
         {model.dc_loads && (
           <Readout part="dc_loads" title="DC loads" status={model.dc_loads.status}
-            state={model.dc_loads.measured_by === "meter" ? "Metered" : "Calculated"}
+            state={dcLoadsState(model.dc_loads)}
             art={<LoadPanel power={model.dc_loads.power_w} status={model.dc_loads.status} feed="battery-dc_loads" />}
             layout="lead">
-            <Row label="Power" value={model.dc_loads.power_w} format={f.power} always />
+            <Rows readings={all(dcLoadsReadings(model.dc_loads))} />
           </Readout>
         )}
       </div>

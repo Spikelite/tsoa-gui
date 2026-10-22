@@ -11,9 +11,9 @@ export function MinimalSkin({ model }: { model: System }) {
   return (
     <div className="minimal">
       <Flows flows={model.flows} />
-      {model.grid && <GridPanel grid={model.grid} />}
+      {model.grid && <GridPanel grid={model.grid} model={model} />}
       {model.generator && <GeneratorPanel generator={model.generator} />}
-      {model.inverter_charger && <InverterChargerPanel inverter={model.inverter_charger} />}
+      {model.inverter_charger && <InverterChargerPanel inverter={model.inverter_charger} model={model} />}
       {model.battery && <BatteryPanel battery={model.battery} />}
       {model.solar && <SolarPanel solar={model.solar} />}
       {model.ac_loads && <AcLoadsPanel loads={model.ac_loads} />}
