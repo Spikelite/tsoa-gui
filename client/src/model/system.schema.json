@@ -1,0 +1,875 @@
+{
+  "$defs": {
+    "AcLoads": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Status"
+            }
+          ],
+          "description": "How this part is doing. Every skin gives each level the same color: good green, normal blue, attention yellow, warning orange, fault red, offline black, always paired with an icon or a label so color is never the only signal."
+        },
+        "power_w": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Total power used by AC loads."
+        },
+        "on_output_w": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Loads on the inverter/charger's AC output, which the battery keeps powered."
+        },
+        "on_input_w": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Loads on the supply side of the inverter/charger, which lose power with the supply."
+        }
+      },
+      "required": [
+        "status",
+        "power_w",
+        "on_output_w",
+        "on_input_w"
+      ],
+      "title": "AcLoads",
+      "type": "object"
+    },
+    "Alarm": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "What the alarm is about, worded for the person reading it.",
+          "type": "string"
+        },
+        "level": {
+          "enum": [
+            "warning",
+            "alarm"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "level"
+      ],
+      "title": "Alarm",
+      "type": "object"
+    },
+    "Battery": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Status"
+            }
+          ],
+          "description": "How this part is doing. Every skin gives each level the same color: good green, normal blue, attention yellow, warning orange, fault red, offline black, always paired with an icon or a label so color is never the only signal."
+        },
+        "soc_percent": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "State of charge."
+        },
+        "voltage_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "current_a": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Positive while charging, negative while discharging."
+        },
+        "power_w": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Positive while charging, negative while discharging."
+        },
+        "temperature_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "time_to_go_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Time left at the present discharge rate. Unknown while charging or idle."
+        },
+        "activity": {
+          "anyOf": [
+            {
+              "enum": [
+                "idle",
+                "charging",
+                "discharging"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_charge_voltage_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Charge voltage limit."
+        },
+        "max_charge_current_a": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Charge current limit."
+        },
+        "max_discharge_current_a": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Discharge current limit."
+        },
+        "min_cell_voltage_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Lowest cell voltage, for batteries that report their cells."
+        },
+        "max_cell_voltage_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Highest cell voltage, for batteries that report their cells."
+        }
+      },
+      "required": [
+        "status",
+        "soc_percent",
+        "voltage_v",
+        "current_a",
+        "power_w",
+        "temperature_c",
+        "time_to_go_s",
+        "activity",
+        "max_charge_voltage_v",
+        "max_charge_current_a",
+        "max_discharge_current_a",
+        "min_cell_voltage_v",
+        "max_cell_voltage_v"
+      ],
+      "title": "Battery",
+      "type": "object"
+    },
+    "ChargerState": {
+      "enum": [
+        "off",
+        "fault",
+        "bulk",
+        "absorption",
+        "float",
+        "storage",
+        "equalize",
+        "starting",
+        "external_control",
+        "other"
+      ],
+      "type": "string"
+    },
+    "DcLoads": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Status"
+            }
+          ],
+          "description": "How this part is doing. Every skin gives each level the same color: good green, normal blue, attention yellow, warning orange, fault red, offline black, always paired with an icon or a label so color is never the only signal."
+        },
+        "power_w": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Total power used by DC loads."
+        },
+        "measured_by": {
+          "anyOf": [
+            {
+              "enum": [
+                "meter",
+                "calculation"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether a DC meter measures the loads or the device works them out from other readings."
+        }
+      },
+      "required": [
+        "status",
+        "power_w",
+        "measured_by"
+      ],
+      "title": "DcLoads",
+      "type": "object"
+    },
+    "Flow": {
+      "additionalProperties": false,
+      "description": "Power moving from one part to another, drawn as animated flow between their panels.",
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/PartName"
+        },
+        "target": {
+          "$ref": "#/$defs/PartName"
+        },
+        "power_w": {
+          "description": "Power moving from source to target. Never negative.",
+          "minimum": 0.0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "source",
+        "target",
+        "power_w"
+      ],
+      "title": "Flow",
+      "type": "object"
+    },
+    "Generator": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Status"
+            }
+          ],
+          "description": "How this part is doing. Every skin gives each level the same color: good green, normal blue, attention yellow, warning orange, fault red, offline black, always paired with an icon or a label so color is never the only signal."
+        },
+        "running": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "power_w": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Power the generator supplies."
+        },
+        "run_time_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How long the generator has been running this time."
+        }
+      },
+      "required": [
+        "status",
+        "running",
+        "power_w",
+        "run_time_s"
+      ],
+      "title": "Generator",
+      "type": "object"
+    },
+    "Grid": {
+      "additionalProperties": false,
+      "description": "The AC supply the system connects to: a utility grid or shore power.",
+      "properties": {
+        "status": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Status"
+            }
+          ],
+          "description": "How this part is doing. Every skin gives each level the same color: good green, normal blue, attention yellow, warning orange, fault red, offline black, always paired with an icon or a label so color is never the only signal."
+        },
+        "kind": {
+          "description": "Whether the supply is a utility grid or shore power.",
+          "enum": [
+            "grid",
+            "shore"
+          ],
+          "type": "string"
+        },
+        "connected": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether the supply is present and connected now."
+        },
+        "power_w": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Power drawn from the supply. Negative when power is fed back into it."
+        },
+        "voltage_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "current_a": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "frequency_hz": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "input_current_limit_a": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The most current the inverter/charger will draw from the supply."
+        }
+      },
+      "required": [
+        "status",
+        "kind",
+        "connected",
+        "power_w",
+        "voltage_v",
+        "current_a",
+        "frequency_hz",
+        "input_current_limit_a"
+      ],
+      "title": "Grid",
+      "type": "object"
+    },
+    "InverterCharger": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Status"
+            }
+          ],
+          "description": "How this part is doing. Every skin gives each level the same color: good green, normal blue, attention yellow, warning orange, fault red, offline black, always paired with an icon or a label so color is never the only signal."
+        },
+        "mode": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InverterMode"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The mode it has been set to."
+        },
+        "state": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InverterState"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What it is doing now."
+        },
+        "ac_in_power_w": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Power coming in on its AC input. Negative when it feeds power back out of the input."
+        },
+        "ac_out_power_w": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Power going out of its AC output to the loads."
+        },
+        "charge_current_a": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "DC current into the battery. Negative when it draws from the battery to invert."
+        },
+        "dc_power_w": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "DC power into the battery. Negative when it draws from the battery to invert."
+        },
+        "alarms": {
+          "description": "Alarms and warnings active now.",
+          "items": {
+            "$ref": "#/$defs/Alarm"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "status",
+        "mode",
+        "state",
+        "ac_in_power_w",
+        "ac_out_power_w",
+        "charge_current_a",
+        "dc_power_w",
+        "alarms"
+      ],
+      "title": "InverterCharger",
+      "type": "object"
+    },
+    "InverterMode": {
+      "enum": [
+        "on",
+        "off",
+        "charger_only",
+        "inverter_only"
+      ],
+      "type": "string"
+    },
+    "InverterState": {
+      "enum": [
+        "off",
+        "low_power",
+        "fault",
+        "bulk",
+        "absorption",
+        "float",
+        "storage",
+        "equalize",
+        "passthrough",
+        "inverting",
+        "power_assist",
+        "power_supply",
+        "sustain",
+        "external_control",
+        "other"
+      ],
+      "type": "string"
+    },
+    "PartName": {
+      "enum": [
+        "grid",
+        "generator",
+        "inverter_charger",
+        "battery",
+        "solar",
+        "ac_loads",
+        "dc_loads"
+      ],
+      "type": "string"
+    },
+    "Solar": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Status"
+            }
+          ],
+          "description": "How this part is doing. Every skin gives each level the same color: good green, normal blue, attention yellow, warning orange, fault red, offline black, always paired with an icon or a label so color is never the only signal."
+        },
+        "power_w": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Total solar power, from every charger."
+        },
+        "yield_today_kwh": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Total energy harvested today."
+        },
+        "chargers": {
+          "items": {
+            "$ref": "#/$defs/SolarCharger"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "status",
+        "power_w",
+        "yield_today_kwh",
+        "chargers"
+      ],
+      "title": "Solar",
+      "type": "object"
+    },
+    "SolarCharger": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Status"
+            }
+          ],
+          "description": "How this part is doing. Every skin gives each level the same color: good green, normal blue, attention yellow, warning orange, fault red, offline black, always paired with an icon or a label so color is never the only signal."
+        },
+        "name": {
+          "description": "The charger's name as the device reports it.",
+          "type": "string"
+        },
+        "power_w": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "state": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ChargerState"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "yield_today_kwh": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "status",
+        "name",
+        "power_w",
+        "state",
+        "yield_today_kwh"
+      ],
+      "title": "SolarCharger",
+      "type": "object"
+    },
+    "Status": {
+      "enum": [
+        "good",
+        "normal",
+        "attention",
+        "warning",
+        "fault",
+        "offline"
+      ],
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The whole system as the browser receives it.",
+  "properties": {
+    "live": {
+      "description": "False when the server has stopped hearing from the device; every reading is then the last one known.",
+      "type": "boolean"
+    },
+    "grid": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Grid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "generator": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Generator"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "inverter_charger": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/InverterCharger"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "battery": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Battery"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "solar": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Solar"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "ac_loads": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AcLoads"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "dc_loads": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DcLoads"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "flows": {
+      "items": {
+        "$ref": "#/$defs/Flow"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "live",
+    "grid",
+    "generator",
+    "inverter_charger",
+    "battery",
+    "solar",
+    "ac_loads",
+    "dc_loads",
+    "flows"
+  ],
+  "title": "System",
+  "type": "object"
+}

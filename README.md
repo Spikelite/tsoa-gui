@@ -25,3 +25,14 @@ The browser client is in `client/` and needs Node.js 24. The server is in `serve
     python -m tsoa_gui
 
 `python -m tsoa_gui` serves the built client from `client/dist` and the API under `/api`, on port 8088. During development, run it beside `npm run dev`, which serves the client with live reload and passes `/api` through to it.
+
+## The system model
+
+Everything a skin draws comes from one structure, the system model, defined in `server/tsoa_gui/model.py`. The client's TypeScript types are generated from it. After changing it, regenerate both files the client uses; the tests on both sides fail until they match:
+
+    cd server
+    python -m tsoa_gui.schema
+    cd ../client
+    npm run model
+
+`server/tsoa_gui/mock.py` produces invented readings that run through a whole day every ten minutes, covering every status level, for developing and testing skins.
