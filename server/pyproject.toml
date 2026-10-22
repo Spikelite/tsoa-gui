@@ -1,0 +1,10 @@
+[project]
+name = "tsoa-gui-server"
+version = "0.0.0"
+description = "The tsoa-gui server"
+requires-python = ">=3.12"
+license = "PolyForm-Noncommercial-1.0.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
