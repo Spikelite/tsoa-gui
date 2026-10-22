@@ -13,25 +13,38 @@ describe("FofSkin", () => {
     expect(screen.queryByRole("region", { name: "Generator" })).not.toBeInTheDocument();
   });
 
-  it("lists every part's status with an icon and a state in words", () => {
+  it("shows every part's status with an icon and its state in words", () => {
     render(<FofSkin model={system} />);
-    const rail = screen.getByRole("list", { name: "Status" });
-    const items = within(rail).getAllByRole("listitem");
-    expect(items).toHaveLength(6);
-    const battery = items.find((item) => item.textContent?.startsWith("Battery"))!;
-    expect(within(battery).getByRole("img", { name: "Good" })).toBeInTheDocument();
-    expect(within(battery).getByText("Charging")).toBeInTheDocument();
+    const expected = {
+      "Shore power": ["Normal", "Connected"],
+      "Inverter/charger": ["Warning", "Bulk"],
+      Battery: ["Good", "Charging"],
+      Solar: ["Good", "Producing"],
+      "AC loads": ["Normal", "In use"],
+      "DC loads": ["Normal", "Calculated"],
+    };
+    for (const [name, [status, state]] of Object.entries(expected)) {
+      const part = screen.getByRole("region", { name });
+      expect(within(part).getAllByRole("img")[0]).toHaveAccessibleName(status);
+      expect(within(part).getByText(state!)).toBeInTheDocument();
+    }
   });
 
-  it("fills the core to the state of charge, and pulses it upward while charging", () => {
-    render(<FofSkin model={system} />);
-    const core = screen.getByRole("meter", { name: "State of charge" });
-    expect(core).toHaveAttribute("aria-valuenow", "64.5");
-    expect(core.style.getPropertyValue("--charge")).toBe("64.5%");
-    expect(core.className).toContain("fof-up");
+  it("lights the bank's cells to the state of charge, and runs its wave forward while charging", () => {
+    const { container } = render(<FofSkin model={system} />);
+    const bank = screen.getByRole("meter", { name: "State of charge" });
+    expect(bank).toHaveAttribute("aria-valuenow", "64.5");
+    expect(bank.className).toContain("fof-up");
+    // 64.5% of twelve cells is 7.74: seven full and the eighth mostly lit.
+    const lit = [...container.querySelectorAll<HTMLElement>(".fof-cell-lit")];
+    expect(lit).toHaveLength(8);
+    expect(lit.map((cell) => cell.style.getPropertyValue("--level")).sort()).toEqual([
+      "0.74", "1.00", "1.00", "1.00", "1.00", "1.00", "1.00", "1.00",
+    ]);
+    expect(container.querySelectorAll(".fof-cell")).toHaveLength(12);
   });
 
-  it("stills the core when the battery is idle, and runs it downward while discharging", () => {
+  it("stills the bank when the battery is idle, and runs it downward while discharging", () => {
     const { rerender } = render(<FofSkin model={{ ...system, battery: { ...system.battery!, activity: "idle" } }} />);
     expect(screen.getByRole("meter").className).toContain("fof-still");
     rerender(<FofSkin model={{ ...system, battery: { ...system.battery!, activity: "discharging" } }} />);
@@ -49,7 +62,6 @@ describe("FofSkin", () => {
     const { container } = render(<FofSkin model={system} />);
     const drawn = [...container.querySelectorAll("[data-flow]")].map((conduit) => conduit.getAttribute("data-flow"));
     expect(drawn).toEqual(system.flows.map((flow) => `${flow.source}-${flow.target}`));
-    expect(screen.getByText(/Solar\s+to\s+Battery/)).toBeInTheDocument();
   });
 
   it("shows a part that is not reporting without its readings", () => {

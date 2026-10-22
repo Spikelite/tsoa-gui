@@ -1,59 +1,38 @@
 import { useId, type ReactNode } from "react";
 
 import type { PartName, Status, System } from "../../model/system";
-import {
-  batteryState, generatorState, gridState, inverterState, MODES, partTitle, solarState,
-} from "../describe";
+import { generatorState, gridState, inverterState, MODES, partTitle, solarState } from "../describe";
 import { Eased } from "../Eased";
 import * as f from "../format";
-import { flowSpeed } from "../minimal/flowSpeed";
 import { StatusIcon } from "../StatusIcon";
 import { Title } from "../Title";
+import { Conduits } from "./Conduits";
 import { Core, Row } from "./Core";
 import "./fof.css";
 
-interface PartSummary {
-  part: PartName;
-  status: Status;
-  state: string;
-}
-
-function summaries(model: System): PartSummary[] {
-  const rows: PartSummary[] = [];
-  const add = (part: PartName, status: Status, state: string) =>
-    rows.push({ part, status, state: status === "offline" ? "Not reporting" : state });
-  if (model.grid) add("grid", model.grid.status, gridState(model.grid));
-  if (model.generator) add("generator", model.generator.status, generatorState(model.generator));
-  if (model.inverter_charger) add("inverter_charger", model.inverter_charger.status, inverterState(model.inverter_charger));
-  if (model.battery) add("battery", model.battery.status, batteryState(model.battery));
-  if (model.solar) add("solar", model.solar.status, solarState(model.solar));
-  if (model.ac_loads) add("ac_loads", model.ac_loads.status, "In use");
-  if (model.dc_loads) add("dc_loads", model.dc_loads.status, "In use");
-  return rows;
-}
-
-function Readout(props: { part: PartName; title: string; status: Status; children: ReactNode }) {
+function Readout(props: { part: PartName; title: string; status: Status; state: string; children: ReactNode }) {
   const heading = useId();
+  const offline = props.status === "offline";
   return (
     <section className={`fof-readout status-${props.status}`} data-part={props.part} aria-labelledby={heading}>
       <h2>
         <StatusIcon status={props.status} />
-        {/* The part is named by its title alone; its status is announced by the rail. */}
         <span id={heading}>
           <Title text={props.title} />
         </span>
       </h2>
-      {props.status === "offline" ? <p className="fof-quiet">Not reporting</p> : <dl className="fof-rows">{props.children}</dl>}
+      <p className="fof-state-line">{offline ? "Not reporting" : props.state}</p>
+      {!offline && <dl className="fof-rows">{props.children}</dl>}
     </section>
   );
 }
 
-// The second skin: an engineering console. A frame of rounded bars around a
-// status rail, the battery as a glowing core, readouts for every other part,
-// and the power moving between parts as conduits. All of it is drawn here in
-// CSS, with no images.
+// The second skin: the main view's layout as an engineering console. Supplies
+// on the left, the inverter/charger and the battery's glowing core in the
+// middle, loads on the right, with power moving between them through
+// conduits, all inside a frame of rounded bars. Everything is drawn in CSS
+// and SVG, with no images.
 export function FofSkin({ model }: { model: System }) {
-  const parts = summaries(model);
   return (
     <div className="fof">
       <div className="fof-top" aria-hidden="true">
@@ -66,24 +45,11 @@ export function FofSkin({ model }: { model: System }) {
         <span className="fof-cap fof-cap-right" />
       </div>
 
-      <ul className="fof-rail" aria-label="Status">
-        {parts.map((row) => (
-          <li key={row.part} className={`fof-pill status-${row.status}`}>
-            <StatusIcon status={row.status} />
-            <span className="fof-pill-name">
-              <Title text={partTitle(row.part, model)} />
-            </span>
-            <span className="fof-pill-state">{row.state}</span>
-          </li>
-        ))}
-      </ul>
+      <div className="fof-diagram">
+        <Conduits flows={model.flows} />
 
-      {model.battery && <Core battery={model.battery} />}
-
-      <div className="fof-main">
-      <div className="fof-readouts">
         {model.grid && (
-          <Readout part="grid" title={partTitle("grid", model)} status={model.grid.status}>
+          <Readout part="grid" title={partTitle("grid", model)} status={model.grid.status} state={gridState(model.grid)}>
             <Row label="Power" value={model.grid.power_w} format={f.power} always />
             <Row label="Voltage" value={model.grid.voltage_v} format={f.volts} />
             <Row label="Current" value={model.grid.current_a} format={f.amps} />
@@ -91,14 +57,18 @@ export function FofSkin({ model }: { model: System }) {
             <Row label="Input limit" value={model.grid.input_current_limit_a} format={f.amps} />
           </Readout>
         )}
+
         {model.generator && (
-          <Readout part="generator" title="Generator" status={model.generator.status}>
+          <Readout part="generator" title="Generator" status={model.generator.status}
+            state={generatorState(model.generator)}>
             <Row label="Power" value={model.generator.power_w} format={f.power} always />
             <Row label="Running for" value={model.generator.run_time_s} format={f.duration} />
           </Readout>
         )}
+
         {model.inverter_charger && (
-          <Readout part="inverter_charger" title="Inverter/charger" status={model.inverter_charger.status}>
+          <Readout part="inverter_charger" title="Inverter/charger" status={model.inverter_charger.status}
+            state={inverterState(model.inverter_charger)}>
             {model.inverter_charger.mode !== null && (
               <div className="fof-row">
                 <dt>Mode</dt>
@@ -118,8 +88,11 @@ export function FofSkin({ model }: { model: System }) {
             ))}
           </Readout>
         )}
+
+        {model.battery && <Core battery={model.battery} />}
+
         {model.solar && (
-          <Readout part="solar" title="Solar" status={model.solar.status}>
+          <Readout part="solar" title="Solar" status={model.solar.status} state={solarState(model.solar)}>
             <Row label="Power" value={model.solar.power_w} format={f.power} always />
             <Row label="Today" value={model.solar.yield_today_kwh} format={f.kilowattHours} />
             {model.solar.chargers.length > 1 &&
@@ -135,8 +108,9 @@ export function FofSkin({ model }: { model: System }) {
               ))}
           </Readout>
         )}
+
         {model.ac_loads && (
-          <Readout part="ac_loads" title="AC loads" status={model.ac_loads.status}>
+          <Readout part="ac_loads" title="AC loads" status={model.ac_loads.status} state="In use">
             <Row label="Power" value={model.ac_loads.power_w} format={f.power} always />
             <Row label="Voltage" value={model.ac_loads.voltage_v} format={f.volts} />
             <Row label="Current" value={model.ac_loads.current_a} format={f.amps} />
@@ -145,29 +119,13 @@ export function FofSkin({ model }: { model: System }) {
             <Row label="On the supply side" value={model.ac_loads.on_input_w} format={f.power} />
           </Readout>
         )}
+
         {model.dc_loads && (
-          <Readout part="dc_loads" title="DC loads" status={model.dc_loads.status}>
+          <Readout part="dc_loads" title="DC loads" status={model.dc_loads.status}
+            state={model.dc_loads.measured_by === "meter" ? "Metered" : "Calculated"}>
             <Row label="Power" value={model.dc_loads.power_w} format={f.power} always />
           </Readout>
         )}
-      </div>
-
-      <section className="fof-conduits" aria-label="Power transfer">
-        <h2>Power transfer</h2>
-        {model.flows.length === 0 && <p className="fof-quiet">No power moving</p>}
-        {model.flows.map((flow) => (
-          <div key={`${flow.source}-${flow.target}`} className={`fof-conduit fof-speed-${flowSpeed(flow.power_w)}`}
-            data-flow={`${flow.source}-${flow.target}`}>
-            <span className="fof-conduit-route">
-              <Title text={partTitle(flow.source, model)} /> to <Title text={partTitle(flow.target, model)} />
-            </span>
-            <span className="fof-conduit-bar" aria-hidden="true" />
-            <span className="fof-conduit-power">
-              <Eased value={flow.power_w} format={f.power} />
-            </span>
-          </div>
-        ))}
-      </section>
       </div>
 
       <div className="fof-bottom" aria-hidden="true">

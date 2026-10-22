@@ -174,8 +174,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* Without motion, an arrow shows each flow's direction. */
   .flow {
     animation: none;
+    marker-mid: url(#minimal-flow-arrow);
   }
 
   .charge-bar > div {

@@ -7,19 +7,29 @@ import * as f from "../format";
 import { flowSpeed } from "../minimal/flowSpeed";
 import { StatusIcon } from "../StatusIcon";
 
-// The battery as a glowing vertical core. Its light follows the charge: the
-// column fills to the state of charge and glows brighter the fuller it is.
-// Its pulse follows the power: bands move up while it charges and down while
-// it discharges, faster with every tenfold increase in power, and stand still
-// when it is idle.
+const CELLS_PER_ROW = 6;
+const ROWS = 2;
+const CELLS = CELLS_PER_ROW * ROWS;
+
+// The battery as a bank of cells between end caps, two rows of six. Its light
+// follows the charge: cells light from the bottom row's left end, one twelfth
+// of the charge each, the last one partly. Its pulse follows the power: a wave
+// of light runs through the lit cells forward while the battery charges and
+// backward while it discharges, faster with every tenfold increase in power,
+// and stands still when it is idle.
 export function Core({ battery }: { battery: Battery }) {
   const heading = useId();
   const soc = battery.soc_percent;
   const direction = battery.activity === "charging" ? "up" : battery.activity === "discharging" ? "down" : "still";
   const pulse = flowSpeed(Math.abs(battery.power_w ?? 0));
   const charge = Math.max(0, Math.min(100, soc ?? 0));
-  const vessel = { "--charge": `${charge}%`, "--glow": (0.25 + 0.75 * charge / 100).toFixed(2) } as CSSProperties;
+  const lit = (charge / 100) * CELLS;
   const offline = battery.status === "offline";
+
+  // The top row is drawn first, so it holds the later cells.
+  const rows = Array.from({ length: ROWS }, (_, row) => ROWS - 1 - row).map((row) =>
+    Array.from({ length: CELLS_PER_ROW }, (_, column) => row * CELLS_PER_ROW + column),
+  );
 
   return (
     <section className={`fof-core status-${battery.status}`} data-part="battery" aria-labelledby={heading}>
@@ -31,22 +41,31 @@ export function Core({ battery }: { battery: Battery }) {
         </p>
       </header>
       <div
-        className={`fof-vessel fof-${direction} fof-pulse-${pulse}`}
-        style={vessel}
+        className={`fof-bank fof-${direction} fof-pulse-${pulse}`}
+        style={{ "--charge": `${charge}%` } as CSSProperties}
         role="meter"
         aria-label="State of charge"
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={soc ?? undefined}
       >
-        <div className="fof-plasma">
-          <div className="fof-bands" />
-        </div>
-        <div className="fof-ticks" aria-hidden="true">
-          {[100, 75, 50, 25, 0].map((tick) => (
-            <span key={tick}>{tick}</span>
-          ))}
-        </div>
+        {rows.map((cells, index) => (
+          <div key={index} className="fof-bank-row" aria-hidden="true">
+            <span className="fof-bank-cap" />
+            {cells.map((cell) => {
+              const level = Math.max(0, Math.min(1, lit - cell));
+              const wave = direction === "down" ? CELLS - 1 - cell : cell;
+              return (
+                <span
+                  key={cell}
+                  className={`fof-cell${level > 0 ? " fof-cell-lit" : ""}`}
+                  style={{ "--level": level.toFixed(2), "--wave": wave } as CSSProperties}
+                />
+              );
+            })}
+            <span className="fof-bank-cap" />
+          </div>
+        ))}
       </div>
       {!offline && (
         <>
