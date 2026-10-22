@@ -119,6 +119,7 @@
 }
 
 .fof-link-stale { background: var(--status-attention); }
+.fof-link-lost { background: var(--status-fault); }
 
 /* Segments of the top bar that hold something: the time, and the skin
    choice, which drops its list down beside a bar as segments of their own. */

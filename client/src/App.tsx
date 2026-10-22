@@ -4,6 +4,7 @@ import { Clock } from "./Clock";
 import type { SystemStore } from "./model/store";
 import type { System } from "./model/system";
 import { useSystem } from "./model/useSystem";
+import { link, LINK_SENTENCES } from "./skins/link";
 import { addressWithSkin, chosenSkin, rememberSkin, SKINS } from "./skins/registry";
 import { SkinChoiceContext } from "./skins/skinChoice";
 
@@ -36,7 +37,8 @@ export function App({ store }: { store?: SystemStore }) {
       <header className="app-header">
         {/* A framed skin shows the name, the clock and the skin choice in its own frame, once it is drawn. */}
         {(!skin.framed || model === null) && <h1>tsoa-gui</h1>}
-        <Notice model={model} connected={connected} />
+        {/* A framed skin says how current the readings are in its own frame. */}
+        {!skin.framed && <Notice model={model} connected={connected} />}
         {!skin.framed && (
           <>
             <Clock />
@@ -59,7 +61,7 @@ export function App({ store }: { store?: SystemStore }) {
         ) : (
           <SkinChoiceContext.Provider value={choice}>
             <Suspense fallback={<p className="waiting">Loading the skin.</p>}>
-              <Skin model={model} />
+              <Skin model={model} connected={connected} />
             </Suspense>
           </SkinChoiceContext.Provider>
         )}
@@ -68,16 +70,10 @@ export function App({ store }: { store?: SystemStore }) {
   );
 }
 
-// Old readings are never passed off as current.
 function Notice({ model, connected }: { model: System | null; connected: boolean }) {
   if (model === null) {
     return null;
   }
-  if (!connected) {
-    return <p className="notice" role="status">Lost the connection to the server. These are the last readings it sent.</p>;
-  }
-  if (!model.live) {
-    return <p className="notice" role="status">The server has stopped hearing from the device. These are the last readings it had.</p>;
-  }
-  return null;
+  const state = link(model, connected);
+  return state === "live" ? null : <p className="notice" role="status">{LINK_SENTENCES[state]}</p>;
 }

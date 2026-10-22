@@ -34,6 +34,23 @@ describe("App", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Lost the connection to the server");
   });
 
+  it("says in a framed skin's own frame, not a notice, when the readings are no longer current", async () => {
+    const { store, emit } = fakeStore();
+    render(<App store={store} />);
+    emit("model", system);
+    fireEvent.change(screen.getByRole("combobox", { name: "Skin" }), { target: { value: "sci-fi-fof" } });
+    const state = await screen.findByRole("status");
+    expect(state).toHaveTextContent("Live");
+    emit("model", { ...system, live: false });
+    expect(screen.getByRole("status")).toHaveTextContent("Stale");
+    expect(screen.getByRole("status")).toHaveTextContent("stopped hearing from the device");
+    emit("error");
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+    expect(screen.getByRole("status")).toHaveTextContent("Offline");
+    expect(screen.getByRole("status")).toHaveTextContent("Lost the connection to the server");
+    expect(screen.getByRole("status").closest(".fof-top")).not.toBeNull();
+  });
+
   it("switches skins from the menu", async () => {
     const { store, emit } = fakeStore();
     render(<App store={store} />);

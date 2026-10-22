@@ -4,6 +4,7 @@ import { Clock } from "../../Clock";
 import type { PartName, Status, System } from "../../model/system";
 import { generatorState, gridState, inverterState, partTitle, solarState } from "../describe";
 import { Eased } from "../Eased";
+import { link, LINK_SENTENCES, LINK_WORDS } from "../link";
 import * as f from "../format";
 import {
   acLoadsReadings, dcLoadsReadings, dcLoadsState, generatorReadings, gridReadings, inverterReadings, solarReadings,
@@ -77,8 +78,9 @@ function Readout(props: {
 // in the middle, loads on the right, with power moving between them through
 // conduits, all inside a frame of rounded bars. Everything is drawn in CSS
 // and SVG, with no images.
-export function FofSkin({ model }: { model: System }) {
+export function FofSkin({ model, connected = true }: { model: System; connected?: boolean }) {
   const root = useRef<HTMLDivElement>(null);
+  const state = link(model, connected);
 
   // A CSS animation counts from when it starts, and the skin's start at
   // different moments: a conduit once the panels are measured, and any
@@ -102,8 +104,10 @@ export function FofSkin({ model }: { model: System }) {
         <span className="fof-segment fof-clock-segment">
           <Clock />
         </span>
-        <span className={`fof-link ${model.live ? "fof-link-live" : "fof-link-stale"}`} aria-hidden="true">
-          {model.live ? "Live" : "Stale"}
+        {/* How current the readings are: one word on screen, the whole of it for a screen reader. */}
+        <span className={`fof-link fof-link-${state}`} role="status">
+          <span aria-hidden="true">{LINK_WORDS[state]}</span>
+          <span className="fof-quiet">{LINK_SENTENCES[state]}</span>
         </span>
         <SkinSegment />
         <span className="fof-cap fof-cap-right" aria-hidden="true" />

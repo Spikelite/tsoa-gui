@@ -6,7 +6,8 @@ import { MinimalSkin } from "./minimal/MinimalSkin";
 export interface Skin {
   id: string;
   name: string;
-  component: ComponentType<{ model: System }>;
+  /** `connected` is false while the page has lost its connection to the server. */
+  component: ComponentType<{ model: System; connected: boolean }>;
   /**
    * The skin shows the application's name, the time of day and the skin
    * choice in its own frame, in place of the page header's.
