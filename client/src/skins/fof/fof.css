@@ -511,7 +511,19 @@
 .fof-ring-unit { --fof-hub-rim: #3d3852; }
 .fof-unit-core { fill: #000; stroke: var(--fof-hub-rim, #3d3852); stroke-width: 3; }
 .fof-hub-wire { fill: none; stroke: var(--fof-conduit); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.fof-hub-wire-idle { stroke: #4a4436; }
+
+/* A conduit's threads into the hub: its own body and waves, cut to each
+   thread's tapering outline in InverterCore.tsx. */
+.fof-thread-body { fill: none; stroke: var(--fof-conduit); }
+.fof-thread-idle .fof-thread-body { stroke: #4a4436; }
+
+.fof-thread-wave {
+  fill: none;
+  stroke: color-mix(in oklab, var(--fof-plasma-deep) calc(var(--depth) * 100%), var(--fof-plasma));
+  stroke-opacity: calc(0.1 + var(--depth) * 0.2);
+  animation: fof-thread-roll var(--fof-roll) linear infinite;
+  animation-delay: calc(var(--fof-phase, 0) * var(--fof-roll) * -1);
+}
 
 .fof-hub-pulse {
   fill: none;
@@ -1011,7 +1023,8 @@
   .fof-cell-lit::before,
   .fof-unit-cell,
   .fof-hub-light { animation: none; }
-  .fof-hub-pulse { display: none; }
+  .fof-hub-pulse,
+  .fof-thread-wave { display: none; }
   .fof-conduit-wave { display: none; }
   .fof-conduit-chevron { display: inline; }
 }
