@@ -1,13 +1,14 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 
 import { useSkinChoice } from "../skinChoice";
 
-// The skin choice as a segment of the frame's top bar. Chosen, it drops a bar
-// down from the segment with the skins beside it as segments of their own,
-// each sliding in after the one above, the one showing marked; picking one
-// shows it and folds the list away again. It works as a list box from the
-// keyboard: the arrow keys move through the skins, Enter or Space picks one,
-// and Escape or Tab folds the list without picking.
+// The skin choice as a segment of the frame's top bar. Chosen, the segment
+// extends down as a bar to the skin showing, which joins it like an elbow,
+// with the other skins beside it as free-standing rounded buttons, each
+// sliding in after the one above; picking one shows it and folds the list
+// away again. It works as a list box from the keyboard: the arrow keys move
+// through the skins, Enter or Space picks one, and Escape or Tab folds the
+// list without picking.
 export function SkinSegment() {
   const choice = useSkinChoice();
   const [open, setOpen] = useState(false);
@@ -16,6 +17,16 @@ export function SkinSegment() {
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const options = useRef<(HTMLLIElement | null)[]>([]);
+  // How far the bar reaches: down to the bottom of the skin showing.
+  const [reach, setReach] = useState(0);
+  const currentIndex = choice ? choice.skins.findIndex((skin) => skin.id === choice.current) : -1;
+
+  useLayoutEffect(() => {
+    const showing = options.current[currentIndex];
+    if (showing) {
+      setReach(showing.offsetTop + showing.offsetHeight);
+    }
+  }, [currentIndex, open]);
 
   useEffect(() => {
     if (!open) {
@@ -42,7 +53,7 @@ export function SkinSegment() {
   const current = choice.skins.find((skin) => skin.id === choice.current);
 
   const show = () => {
-    setActive(Math.max(0, choice.skins.findIndex((skin) => skin.id === choice.current)));
+    setActive(Math.max(0, currentIndex));
     setOpen(true);
   };
   const fold = (refocus: boolean) => {
@@ -95,7 +106,7 @@ export function SkinSegment() {
         <span>{current?.name}</span>
       </button>
       <div className="fof-select-drop" aria-hidden={!open}>
-        <span className="fof-select-bar" />
+        <span className="fof-select-bar" style={{ height: reach }} />
         <ul id={list} role="listbox" aria-label="Skin" className="fof-select-list" onKeyDown={onListKey}>
           {choice.skins.map((skin, index) => (
             <li key={skin.id} ref={(element) => { options.current[index] = element; }} role="option"

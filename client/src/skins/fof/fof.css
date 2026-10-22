@@ -132,16 +132,17 @@
   outline-offset: 2px;
 }
 
-/* The list, hidden until chosen, then a bar drops from the segment and the
-   skins slide in beside it, each a moment after the one above. */
+/* The list, hidden until chosen. Then the segment extends down as a bar to
+   the skin showing, which joins the bar like an elbow, and the other skins
+   slide in beside it as free-standing rounded buttons, each a moment after
+   the one above. */
 .fof-select-drop {
   position: absolute;
-  top: calc(100% + 0.35em);
+  top: 100%;
   right: 0;
   z-index: 10;
   display: flex;
-  align-items: stretch;
-  gap: 0.35em;
+  align-items: flex-start;
   visibility: hidden;
   transition: visibility 0s linear 0.25s;
 }
@@ -155,7 +156,7 @@
   order: 2;
   width: 1.1em;
   background: var(--fof-lavender);
-  border-radius: 0 0 0.55em 0.55em;
+  border-radius: 0 0 0.55em 0;
   transform: scaleY(0);
   transform-origin: top;
   transition: transform 0.2s ease-out;
@@ -167,16 +168,17 @@
   display: grid;
   gap: 0.35em;
   margin: 0;
-  padding: 0;
+  padding: 0.35em 0 0;
   list-style: none;
 }
 
 .fof-select-option {
   justify-content: flex-end;
   min-width: 9em;
+  margin-right: 0.35em;
   padding: 0.45em 0.9em;
   background: var(--fof-periwinkle);
-  border-radius: 1em 0 0 1em;
+  border-radius: 1em;
   cursor: pointer;
   opacity: 0;
   transform: translateX(1.5em);
@@ -188,7 +190,13 @@
   transform: none;
 }
 
-.fof-select-current { background: var(--fof-sand); }
+/* The skin showing joins the bar: the bar's color, open on the bar's side. */
+.fof-select-current {
+  margin-right: 0;
+  background: var(--fof-lavender);
+  border-radius: 1em 0 0 1em;
+}
+
 .fof-select-option:hover { background: var(--fof-ink); }
 
 /* The diagram: the same places as the minimal skin's, so switching skins
