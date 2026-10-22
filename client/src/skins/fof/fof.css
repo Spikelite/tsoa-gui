@@ -11,7 +11,9 @@
   --fof-well: #0b0a12;
   --fof-cell: #f0dfa8;
   --fof-cap: #a8803c;
-  --fof-conduit: #c99a4f;
+  --fof-conduit: #f6dc74;
+  --fof-plasma: #4a9bff;
+  --fof-plasma-hot: #e3f1ff;
   min-height: 100vh;
   background: #000;
 }
@@ -111,11 +113,14 @@
 .fof-diagram [data-part="ac_loads"] { grid-area: ac; }
 .fof-diagram [data-part="dc_loads"] { grid-area: dc; }
 
-/* The outer panels sit toward the top and bottom, so the conduits feeding the
-   middle column bend in to meet it. */
+/* The diagram steps down from left to right, as power runs from supplies to
+   loads: each supply sits toward the top of its place and each load toward
+   the bottom, so the conduits all bend the same way, like a staircase,
+   rather than mirroring each other around the middle. */
 .fof-diagram [data-part="grid"],
-.fof-diagram [data-part="ac_loads"] { align-self: start; }
-.fof-diagram [data-part="solar"],
+.fof-diagram [data-part="generator"],
+.fof-diagram [data-part="solar"] { align-self: start; }
+.fof-diagram [data-part="ac_loads"],
 .fof-diagram [data-part="dc_loads"] { align-self: end; }
 
 /* Panels sit over the conduits, which plug in under their edges. */
@@ -306,11 +311,11 @@
   font-variant-numeric: tabular-nums;
 }
 
-.fof-pulse-0, .fof-speed-0 { --fof-beat: 3s; }
-.fof-pulse-1, .fof-speed-1 { --fof-beat: 2s; }
-.fof-pulse-2, .fof-speed-2 { --fof-beat: 1.2s; }
-.fof-pulse-3, .fof-speed-3 { --fof-beat: 0.7s; }
-.fof-pulse-4, .fof-speed-4 { --fof-beat: 0.4s; }
+.fof-pulse-0 { --fof-beat: 3s; }
+.fof-pulse-1 { --fof-beat: 2s; }
+.fof-pulse-2 { --fof-beat: 1.2s; }
+.fof-pulse-3 { --fof-beat: 0.7s; }
+.fof-pulse-4 { --fof-beat: 0.4s; }
 
 /* Conduits, underneath the panels */
 .fof-conduits {
@@ -329,17 +334,29 @@
   stroke-linejoin: round;
 }
 
-.fof-conduit-body { stroke: var(--fof-conduit); }
-
-/* The current: dark pulses running through the conduit toward its target. */
-.fof-conduit-current {
-  stroke: #000;
-  stroke-opacity: 0.6;
-  stroke-dasharray: 8 18;
-  animation: fof-carry var(--fof-beat, 2.4s) linear infinite;
+/* A lemon yellow, brighter than the frame's gold and well clear of the
+   amber that means attention. Its width is measured in the text's size, so a
+   conduit keeps its weight on a TV. */
+.fof-conduit-body {
+  stroke: var(--fof-conduit);
+  stroke-width: var(--fof-width);
 }
 
-@keyframes fof-carry { to { stroke-dashoffset: -26; } }
+.fof-speed-0 { --fof-width: 1em; }
+.fof-speed-1 { --fof-width: 1.2em; }
+.fof-speed-2 { --fof-width: 1.4em; }
+.fof-speed-3 { --fof-width: 1.6em; }
+.fof-speed-4 { --fof-width: 1.8em; }
+
+/* A pulse's glows are as wide as the conduit, so they never spill past it.
+   Plasma blue is the conduit's opposite, so it stands out, and it falls off
+   gently so the overlapping glows blend into one. */
+.fof-conduit-pulse { r: calc(var(--fof-width) * 0.5); }
+
+.fof-plasma-core { stop-color: var(--fof-plasma-hot); stop-opacity: 1; }
+.fof-plasma-body { stop-color: var(--fof-plasma); stop-opacity: 0.8; }
+.fof-plasma-fringe { stop-color: var(--fof-plasma); stop-opacity: 0.3; }
+.fof-plasma-edge { stop-color: var(--fof-plasma); stop-opacity: 0; }
 
 /* The motion shows the direction, so the chevron appears only without it. */
 .fof-conduit-chevron {
@@ -377,10 +394,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fof-cell-lit,
-  .fof-conduit-current {
-    animation: none;
-  }
-
+  .fof-cell-lit { animation: none; }
+  .fof-conduit-pulse { display: none; }
   .fof-conduit-chevron { display: inline; }
 }

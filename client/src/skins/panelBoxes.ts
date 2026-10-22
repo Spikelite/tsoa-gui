@@ -74,31 +74,66 @@ export function flowPoints(from: Box, to: Box): string {
   return `${from.x},${from.y} ${middle.x},${middle.y} ${to.x},${to.y}`;
 }
 
+/** A conduit's route: its path, its length, and a point and direction for a marker. */
+export type Conduit = { d: string; length: number; middle: Point; angle: number };
+
+type Axis = "x" | "y";
+
+// The length of a rounded elbow as a share of its radius: a quadratic curve
+// with its control point at the corner.
+const ELBOW = 1.1478;
+
+function half(box: Box, axis: Axis): number {
+  return axis === "x" ? box.halfWidth : box.halfHeight;
+}
+
 /**
  * A conduit's path from one panel to another, in right angles with rounded
  * elbows, as the console draws its connections. It runs from the edge of one
- * panel to the facing edge of the other, a little under each so it plugs in.
- * Panels side by side are joined across the gap between their columns;
- * panels in one column, down the gap between their rows. Returns the path and
- * the point and direction for a marker in the middle of its visible stretch.
+ * panel to the facing edge of the other, reaching `tuck` pixels under each
+ * (never past its center) so it plugs in. Panels side by side are joined
+ * across the gap between their columns, turning in its middle; panels in one
+ * column, down the gap between their rows. The bends depend only on where the
+ * panels are, so a deeper tuck gives the same route with longer ends.
  */
-export function conduitPath(from: Box, to: Box, radius: number): { d: string; middle: Point; angle: number } {
-  const tuck = 6;
-  const across = Math.abs(to.x - from.x) > from.halfWidth + to.halfWidth;
-  if (across) {
-    const sx = Math.sign(to.x - from.x);
-    const x1 = from.x + sx * (from.halfWidth - tuck);
-    const x2 = to.x - sx * (to.halfWidth - tuck);
-    const gapMiddle = (from.x + sx * from.halfWidth + to.x - sx * to.halfWidth) / 2;
-    const [y1, y2] = levels(from.y, from.halfHeight, to.y, to.halfHeight, radius);
-    return elbows("x", x1, y1, x2, y2, gapMiddle, radius);
+export function conduitPath(from: Box, to: Box, radius: number, tuck = 6): Conduit {
+  // The main axis crosses the gap between the panels; the cross axis runs along it.
+  const main: Axis = Math.abs(to.x - from.x) > from.halfWidth + to.halfWidth ? "x" : "y";
+  const cross: Axis = main === "x" ? "y" : "x";
+  const sa = Math.sign(to[main] - from[main]) || 1;
+  const leaving = from[main] + sa * half(from, main);
+  const arriving = to[main] - sa * half(to, main);
+  const turn = (leaving + arriving) / 2;
+  const a1 = leaving - sa * Math.min(tuck, half(from, main));
+  const a2 = arriving + sa * Math.min(tuck, half(to, main));
+  const [b1, b2] = levels(from[cross], half(from, cross), to[cross], half(to, cross), radius);
+  const sb = Math.sign(b2 - b1);
+  const r = Math.min(radius, Math.abs(b2 - b1) / 2, Math.abs(turn - leaving));
+  const point = (a: number, b: number) => (main === "x" ? `${a},${b}` : `${b},${a}`);
+  const at = (a: number, b: number): Point => (main === "x" ? { x: a, y: b } : { x: b, y: a });
+
+  if (sb === 0 || r < 1) {
+    // In line, or so nearly that the bends would vanish: a straight run.
+    return {
+      d: `M${point(a1, b1)} L${point(a2, b2)}`,
+      length: Math.hypot(a2 - a1, b2 - b1),
+      middle: at(turn, (b1 + b2) / 2),
+      angle: heading(at(sa, 0)),
+    };
   }
-  const sy = Math.sign(to.y - from.y) || 1;
-  const y1 = from.y + sy * (from.halfHeight - tuck);
-  const y2 = to.y - sy * (to.halfHeight - tuck);
-  const gapMiddle = (from.y + sy * from.halfHeight + to.y - sy * to.halfHeight) / 2;
-  const [x1, x2] = levels(from.x, from.halfWidth, to.x, to.halfWidth, radius);
-  return elbows("y", x1, y1, x2, y2, gapMiddle, radius);
+  return {
+    d: [
+      `M${point(a1, b1)}`,
+      `L${point(turn - sa * r, b1)}`,
+      `Q${point(turn, b1)} ${point(turn, b1 + sb * r)}`,
+      `L${point(turn, b2 - sb * r)}`,
+      `Q${point(turn, b2)} ${point(turn + sa * r, b2)}`,
+      `L${point(a2, b2)}`,
+    ].join(" "),
+    length: Math.abs(a2 - a1) + Math.abs(b2 - b1) - 4 * r + 2 * ELBOW * r,
+    middle: at(turn, (b1 + b2) / 2),
+    angle: heading(at(0, sb)),
+  };
 }
 
 /**
@@ -114,37 +149,7 @@ function levels(a: number, halfA: number, b: number, halfB: number, radius: numb
   return [shared, shared];
 }
 
-function elbows(
-  main: "x" | "y", x1: number, y1: number, x2: number, y2: number, turn: number, radius: number,
-): { d: string; middle: Point; angle: number } {
-  // In "x" the path runs along x to the turn, along y, then along x again;
-  // "y" is the same with the axes swapped.
-  const [a1, b1, a2, b2] = main === "x" ? [x1, y1, x2, y2] : [y1, x1, y2, x2];
-  const sa = Math.sign(a2 - a1) || 1;
-  const sb = Math.sign(b2 - b1);
-  const r = Math.min(radius, Math.abs(b2 - b1) / 2, Math.abs(turn - a1), Math.abs(a2 - turn));
-  const point = (a: number, b: number) => (main === "x" ? `${a},${b}` : `${b},${a}`);
-  let d: string;
-  let middle: Point;
-  let angle: number;
-  if (sb === 0 || r < 1) {
-    // In line, or so nearly that the bends would vanish: a straight run.
-    d = `M${point(a1, b1)} L${point(a2, b2)}`;
-    const m = (a1 + a2) / 2;
-    middle = main === "x" ? { x: m, y: (b1 + b2) / 2 } : { x: (b1 + b2) / 2, y: m };
-    angle = main === "x" ? (sa > 0 ? 0 : 180) : sa > 0 ? 90 : 270;
-  } else {
-    d = [
-      `M${point(a1, b1)}`,
-      `L${point(turn - sa * r, b1)}`,
-      `Q${point(turn, b1)} ${point(turn, b1 + sb * r)}`,
-      `L${point(turn, b2 - sb * r)}`,
-      `Q${point(turn, b2)} ${point(turn + sa * r, b2)}`,
-      `L${point(a2, b2)}`,
-    ].join(" ");
-    const m = (b1 + b2) / 2;
-    middle = main === "x" ? { x: turn, y: m } : { x: m, y: turn };
-    angle = main === "x" ? (sb > 0 ? 90 : 270) : sb > 0 ? 0 : 180;
-  }
-  return { d, middle, angle };
+/** The direction of a vector in degrees, clockwise from the x axis as SVG turns. */
+function heading(direction: Point): number {
+  return (Math.atan2(direction.y, direction.x) * 180) / Math.PI + (direction.y < 0 ? 360 : 0);
 }
