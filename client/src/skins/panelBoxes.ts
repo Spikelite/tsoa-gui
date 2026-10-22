@@ -122,7 +122,7 @@ export type Conduit = { d: string; length: number; middle: Point; angle: number 
 // with its control point at the corner.
 const ELBOW = 1.1478;
 
-type Axis = "x" | "y";
+export type Axis = "x" | "y";
 
 function half(box: Rect, axis: Axis): number {
   return axis === "x" ? box.halfWidth : box.halfHeight;
@@ -136,14 +136,25 @@ function half(box: Rect, axis: Axis): number {
  * one's readings. Panels side by side are joined across the gap between their
  * columns; panels in one column, down the gap between their rows.
  */
+/**
+ * The axis a conduit crosses the gap between two boxes' panels along, and
+ * which way it runs on it: across columns where the panels stand apart side
+ * to side, or else up or down a column.
+ */
+export function approach(from: Box, to: Box): { main: Axis; sign: number } {
+  const fromPanel = from.panel ?? from;
+  const toPanel = to.panel ?? to;
+  const main: Axis =
+    Math.abs(toPanel.x - fromPanel.x) > fromPanel.halfWidth + toPanel.halfWidth ? "x" : "y";
+  return { main, sign: Math.sign(toPanel[main] - fromPanel[main]) || 1 };
+}
+
 export function conduitPath(from: Box, to: Box, radius: number): Conduit {
   const fromPanel = from.panel ?? from;
   const toPanel = to.panel ?? to;
   // The main axis crosses the gap between the panels; the cross axis runs along it.
-  const main: Axis =
-    Math.abs(toPanel.x - fromPanel.x) > fromPanel.halfWidth + toPanel.halfWidth ? "x" : "y";
+  const { main, sign: sa } = approach(from, to);
   const cross: Axis = main === "x" ? "y" : "x";
-  const sa = Math.sign(toPanel[main] - fromPanel[main]) || 1;
   const turn =
     (fromPanel[main] + sa * half(fromPanel, main) + toPanel[main] - sa * half(toPanel, main)) / 2;
   const [b1, b2] = levels(from, to, cross, radius);

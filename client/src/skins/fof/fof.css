@@ -468,7 +468,7 @@
    a narrow one there is no room beside the hub, so the readings go above it. */
 .fof-readout-hub {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 4.3em 4.3em minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 6em 6em minmax(0, 1fr);
   row-gap: 0.35em;
   align-items: start;
 }
@@ -484,7 +484,7 @@
 
 .fof-readout-hub > .fof-state-line { grid-row: 3; margin-top: 0.4em; margin-bottom: 0; }
 .fof-readout-hub > .fof-rows { grid-row: 4; width: auto; }
-.fof-ring-unit { width: 8.6em; }
+.fof-ring-unit { width: 12em; }
 
 .fof-duty-inverting { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #cfe6ff; --fof-ring: var(--fof-plasma-deep); }
 .fof-duty-charging { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #c9f3ea; --fof-ring: #3fb8a8; }
@@ -501,13 +501,36 @@
 .fof-plate-0 { fill: #c9c6d6; stroke: #c9c6d6; }
 .fof-plate-1 { fill: #8e8aa3; stroke: #8e8aa3; }
 .fof-unit-band { fill: none; stroke-width: 3; }
-.fof-unit-housing { fill: #e6e2ee; }
 .fof-panel-breaker { fill: var(--fof-cell-rest); }
 
-/* The core sits over the junction where the hub's conduits meet. */
+/* The hub: a dark square over the junction where its conduits meet, the
+   core's rings of cells, the windings the conduits branch into, and at the
+   center a thin band round a light in the core's tint. */
+.fof-hub-disc { fill: #000; }
 .fof-unit-core { fill: #000; stroke: #3d3852; stroke-width: 3; }
-.fof-unit-port { fill: #000; }
-.fof-unit-ring { fill: none; stroke: var(--fof-ring); stroke-width: 5; }
+.fof-hub-wire { fill: none; stroke: var(--fof-conduit); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.fof-hub-wire-idle { stroke: #4a4436; }
+
+.fof-hub-pulse {
+  fill: none;
+  stroke: var(--fof-plasma-deep);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 10 400;
+  stroke-dashoffset: 10;
+  opacity: 0;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.fof-hub-band { fill: none; stroke: #e6e2ee; stroke-width: 1.8; }
+.fof-hub-light { fill: var(--fof-ring); animation: fof-hub-glow var(--fof-light, 2s) ease-in-out infinite; }
+.fof-duty-idle .fof-hub-light { animation: none; fill-opacity: 0.35; }
+
+@keyframes fof-hub-glow {
+  0%, 100% { fill-opacity: 0.5; }
+  50% { fill-opacity: 1; }
+}
 
 /* A loads' panel: breakers tapped off the bus, and the terminal
    block at the bus's end. The conduit's crests reach the bus's end as each
@@ -700,16 +723,9 @@
 .fof-duty-idle .fof-unit-cell,
 .fof-duty-passing .fof-unit-cell { animation: none; }
 
-.fof-duty-passing .fof-unit-ring { animation: fof-ring-pulse 2.4s ease-in-out infinite; }
-
 @keyframes fof-surge {
   0%, 60%, 100% { fill: var(--fof-cell-rest); }
   25% { fill: var(--fof-cell-hot); }
-}
-
-@keyframes fof-ring-pulse {
-  0%, 100% { stroke-opacity: 1; }
-  50% { stroke-opacity: 0.45; }
 }
 
 .fof-flow-0 { --fof-beat: 3s; }
@@ -996,7 +1012,8 @@
   .fof-cable-pulse { display: none; }
   .fof-cell-lit::before,
   .fof-unit-cell,
-  .fof-unit-ring { animation: none; }
+  .fof-hub-light { animation: none; }
+  .fof-hub-pulse { display: none; }
   .fof-conduit-wave { display: none; }
   .fof-conduit-chevron { display: inline; }
 }
