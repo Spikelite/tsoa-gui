@@ -514,8 +514,12 @@
 
 /* A pulse of plasma through each lit cell, deep blue at its middle and
    fading out to its edges, in the same blues and at the same rhythm as the
-   waves on the conduits at that power, running through the cells forward
-   while charging and backward while discharging. */
+   waves on the conduits at that power. A crest reaches the end of the
+   conduit feeding the block as each cycle starts, so the first cell in
+   --wave's order lights just after it lands and the rest follow outward,
+   each a step later; discharging, the order runs the other way. The delay
+   keeps every pulse's peak, a quarter into its cycle, on that schedule, and
+   stays negative so no cell waits to start. */
 .fof-cell-lit::before {
   content: "";
   position: absolute;
@@ -525,7 +529,7 @@
     color-mix(in srgb, var(--fof-plasma) 70%, transparent) 55%, transparent 100%);
   opacity: 0;
   animation: fof-cell-pulse var(--fof-beat, 4s) ease-in-out infinite;
-  animation-delay: calc(var(--wave) * var(--fof-beat, 4s) / -10);
+  animation-delay: calc(var(--fof-beat, 4s) * (var(--wave) * 0.06 - 1.22));
 }
 
 .fof-still .fof-cell-lit::before { animation: none; }
