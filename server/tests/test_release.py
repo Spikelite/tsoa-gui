@@ -51,10 +51,11 @@ def test_the_archive_holds_the_release_with_nothing_of_who_built_it(tmp_path: Pa
     assert not any("__pycache__" in name for name in members)
 
 
-def run_script(script: Path, device: Path, stdin: str = "") -> subprocess.CompletedProcess:
+def run_script(script: Path, device: Path, stdin: str = "", env: dict[str, str] | None = None,
+               check: bool = True) -> subprocess.CompletedProcess:
     env = dict(os.environ, TSOA_GUI_ROOT=str(device / "data" / "tsoa-gui"), RC_LOCAL=str(device / "data" / "rc.local"),
-               SERVICE_DIR=str(device / "service"), PYTHON=sys.executable)
-    return subprocess.run(["sh", str(script)], env=env, input=stdin, capture_output=True, text=True, check=True)
+               SERVICE_DIR=str(device / "service"), PYTHON=sys.executable, **(env or {}))
+    return subprocess.run(["sh", str(script)], env=env, input=stdin, capture_output=True, text=True, check=check)
 
 
 @posix_shell
@@ -104,3 +105,60 @@ def test_boot_returns_cleanly_even_with_no_release(tmp_path: Path):
     shutil.copyfile(REPO / "venus" / "boot.sh", empty / "boot.sh")
     run_script(empty / "boot.sh", device)
     assert not (device / "service" / "tsoa-gui").exists()
+
+
+FAKE_SVSTAT = '#!/bin/sh\necho "$1: up (pid $(cat "$FAKE_STATE/pid")) 30 seconds"\n'
+# Plays daemontools' svc: records each call, and moves to a new pid on -t or
+# -k only when the scenario's flag file says that one works.
+FAKE_SVC = """#!/bin/sh
+echo "$*" >> "$FAKE_STATE/calls"
+case "$1" in
+    -t) [ -f "$FAKE_STATE/term-works" ] && echo $(( $(cat "$FAKE_STATE/pid") + 1 )) > "$FAKE_STATE/pid" ;;
+    -k) [ -f "$FAKE_STATE/kill-works" ] && echo $(( $(cat "$FAKE_STATE/pid") + 1 )) > "$FAKE_STATE/pid" ;;
+esac
+exit 0
+"""
+
+
+def supervised_update(tmp_path: Path, *works: str) -> tuple[subprocess.CompletedProcess, list[str]]:
+    """Install once, then update with a supervisor running the old release."""
+    device = tmp_path / "device"
+    (device / "data").mkdir(parents=True)
+    (device / "service").mkdir()
+    run_script(staged(tmp_path, "1") / "install.sh", device)
+
+    state, bin_dir = tmp_path / "supervisor", tmp_path / "bin"
+    state.mkdir()
+    bin_dir.mkdir()
+    (state / "pid").write_text("100\n")
+    for flag in works:
+        (state / flag).touch()
+    for name, text in (("svstat", FAKE_SVSTAT), ("svc", FAKE_SVC)):
+        (bin_dir / name).write_text(text)
+        (bin_dir / name).chmod(0o755)
+    env = {"PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}", "FAKE_STATE": str(state), "RESTART_WAIT_S": "1"}
+    result = run_script(staged(tmp_path, "2") / "install.sh", device, env=env, check=False)
+    return result, (state / "calls").read_text().split("\n")[:-1]
+
+
+@posix_shell
+def test_an_update_restarts_the_running_service(tmp_path: Path):
+    result, calls = supervised_update(tmp_path, "term-works")
+    assert result.returncode == 0
+    assert calls == [f"-t {tmp_path / 'device' / 'service' / 'tsoa-gui'}"]
+
+
+@posix_shell
+def test_an_old_process_that_will_not_stop_is_killed(tmp_path: Path):
+    result, calls = supervised_update(tmp_path, "kill-works")
+    assert result.returncode == 0
+    assert [call.split()[0] for call in calls] == ["-t", "-k"]
+    assert "did not stop" in result.stderr
+
+
+@posix_shell
+def test_an_update_that_leaves_the_service_down_says_so(tmp_path: Path):
+    result, calls = supervised_update(tmp_path)
+    assert result.returncode == 1
+    assert [call.split()[0] for call in calls] == ["-t", "-k"]
+    assert "not running after the update" in result.stderr

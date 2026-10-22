@@ -11,6 +11,11 @@ from .app import create_app
 
 BUILT_CLIENT = Path(__file__).resolve().parents[2] / "client" / "dist"
 
+# A browser's event stream never ends on its own, so a graceful shutdown
+# would wait on it forever and a restart would leave the server stopped but
+# not gone. Past this many seconds, open requests are cut off.
+SHUTDOWN_TIMEOUT_S = 3
+
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="python -m tsoa_gui", description=__doc__)
@@ -56,6 +61,7 @@ def main(argv: list[str] | None = None) -> None:
         ssl_keyfile=args.keyfile,
         log_level=args.log_level,
         access_log=False,
+        timeout_graceful_shutdown=SHUTDOWN_TIMEOUT_S,
     )
 
 
