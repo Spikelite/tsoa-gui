@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, type ReactNode } from "react";
 
 import { Clock } from "../../Clock";
 import type { PartName, Status, System } from "../../model/system";
@@ -57,8 +57,23 @@ function Readout(props: {
 // conduits, all inside a frame of rounded bars. Everything is drawn in CSS
 // and SVG, with no images.
 export function FofSkin({ model }: { model: System }) {
+  const root = useRef<HTMLDivElement>(null);
+
+  // A CSS animation counts from when it starts, and the skin's start at
+  // different moments: a conduit once the panels are measured, and any
+  // animation again whenever its pace changes. Pinning them all to the
+  // page's clock keeps the ones timed to each other, a conduit and what it
+  // feeds or is fed by, in step.
+  useLayoutEffect(() => {
+    root.current?.getAnimations?.({ subtree: true }).forEach((animation) => {
+      if (animation.startTime !== 0) {
+        animation.startTime = 0;
+      }
+    });
+  });
+
   return (
-    <div className="fof">
+    <div ref={root} className="fof">
       <div className="fof-top">
         <span className="fof-cap fof-cap-left" aria-hidden="true" />
         <span className="fof-label" aria-hidden="true">Power systems</span>

@@ -37,7 +37,7 @@
 /* On a short, wide screen, such as a small touch panel, the height limits
    the size too, so the whole console fits without scrolling. */
 @media (orientation: landscape) {
-  .fof { font-size: clamp(0.7rem, min(0.45vw + 0.55rem, 1.4vh + 0.2rem), 1.45rem); }
+  .fof { font-size: clamp(0.7rem, min(0.45vw + 0.55rem, 1.4vh + 0.2rem), 2.4rem); }
 }
 
 @media (orientation: landscape) and (max-height: 650px) {
@@ -529,6 +529,8 @@
    after, so the plasma flows into each circuit as it reaches it. */
 .fof-panel-unit {
   --fof-panel: 14;
+  /* The pace of the conduit feeding the panel. */
+  --fof-feed: var(--fof-roll-inverter_charger-ac_loads, 4s);
   position: relative;
   width: calc(var(--fof-panel) * 1em);
   margin-left: 0;
@@ -538,13 +540,13 @@
 .fof-panel-tap { stroke: #8e8aa3; stroke-width: 2.5; }
 
 .fof-duty-loaded .fof-panel-tap {
-  animation: fof-tap var(--fof-roll) linear infinite;
-  animation-delay: calc(var(--fof-roll) * -1 * (var(--tap) * var(--fof-panel) / 14 + 0.25));
+  animation: fof-tap var(--fof-feed) linear infinite;
+  animation-delay: calc(var(--fof-feed) * -1 * (var(--tap) * var(--fof-panel) / 14 + 0.25));
 }
 
 .fof-duty-loaded .fof-panel-breaker {
-  animation: fof-surge var(--fof-roll) ease-in-out infinite;
-  animation-delay: calc(var(--fof-roll) * -1 * (var(--tap) * var(--fof-panel) / 14 + 0.19));
+  animation: fof-surge var(--fof-feed) ease-in-out infinite;
+  animation-delay: calc(var(--fof-feed) * -1 * (var(--tap) * var(--fof-panel) / 14 + 0.19));
 }
 
 @keyframes fof-tap {
@@ -570,19 +572,20 @@
 /* The grid's tower, as a schematic: members drawn as pale blue outlines round
    dark navy, thin lattice inside, and the wire as a leader line, as the
    console draws equipment. GridTower.tsx gives each pip its own keyframes,
-   one wave's cycle long; the delay puts the end of each cycle, when the
-   pulse reaches the row's far end, where a wave sets off along the grid's
-   conduit. */
+   one cycle of the grid's conduit long, each ending as a packet reaches the
+   row's far end, which is when a wave sets off along the conduit. */
 .fof-tower-unit {
   position: relative;
   width: 26em;
   --fof-cell-rest: #6e6450;
+  /* The pace of the conduit the tower feeds. */
+  --fof-feed: var(--fof-roll-grid-inverter_charger, 4s);
 }
 
+/* The pips rest in the conduit's yellow and charge to its deep plasma blue. */
 .fof-duty-feeding {
-  --fof-drip-empty: #4a4436;
-  --fof-drip-full: #eadfb2;
-  --fof-drip-hot: #5a9cff;
+  --fof-drip-yellow: var(--fof-conduit);
+  --fof-drip-blue: var(--fof-plasma-deep);
 }
 
 .fof-schematic-outline,
@@ -601,8 +604,7 @@
 .fof-tower-pill { fill: var(--fof-cell-rest); }
 
 .fof-duty-feeding .fof-tower-pill {
-  animation: var(--drip) var(--fof-roll) linear infinite;
-  animation-delay: calc(var(--fof-roll) * -0.98);
+  animation: var(--drip) var(--fof-feed) linear infinite;
 }
 
 .fof-tower-row { position: absolute; }
@@ -766,12 +768,11 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* The time between waves on a conduit at the same power (--fof-roll). */
-.fof-pulse-0 { --fof-beat: 9s; }
-.fof-pulse-1 { --fof-beat: 6s; }
-.fof-pulse-2 { --fof-beat: 4s; }
-.fof-pulse-3 { --fof-beat: 2.6s; }
-.fof-pulse-4 { --fof-beat: 1.7s; }
+/* The battery pulses at the pace of the conduit feeding or drawing on it. */
+.fof-bank {
+  --fof-beat: var(--fof-roll-inverter_charger-battery,
+    var(--fof-roll-battery-inverter_charger, var(--fof-roll-solar-battery, 4s)));
+}
 
 /* Conduits, underneath the panels */
 .fof-conduits {
@@ -798,11 +799,13 @@
   stroke-width: var(--fof-width);
 }
 
-.fof-speed-0 { --fof-width: 1em; --fof-roll: 9s; }
-.fof-speed-1 { --fof-width: 1.2em; --fof-roll: 6s; }
-.fof-speed-2 { --fof-width: 1.4em; --fof-roll: 4s; }
-.fof-speed-3 { --fof-width: 1.6em; --fof-roll: 2.6s; }
-.fof-speed-4 { --fof-width: 1.8em; --fof-roll: 1.7s; }
+/* A conduit's width steps with every tenfold increase in its power; its
+   pace, --fof-roll, comes from Conduits.tsx. */
+.fof-speed-0 { --fof-width: 1em; }
+.fof-speed-1 { --fof-width: 1.2em; }
+.fof-speed-2 { --fof-width: 1.4em; }
+.fof-speed-3 { --fof-width: 1.6em; }
+.fof-speed-4 { --fof-width: 1.8em; }
 
 /* The energy: long waves of plasma rolling along the conduit toward its
    target, one every 14em, across its whole width and around its bends, with

@@ -4,7 +4,6 @@ import type { Battery } from "../../model/system";
 import { batteryState } from "../describe";
 import { Eased } from "../Eased";
 import * as f from "../format";
-import { flowSpeed } from "../minimal/flowSpeed";
 import { StatusWords } from "./StatusPill";
 
 // Ten cells, so each is a tenth of the charge, the share people read at a glance.
@@ -21,14 +20,13 @@ const FILL = [2, 1, 3, 0, 4];
 // end and its state and readings below. Its light follows the charge, a
 // tenth of it to each cell, the last one partly, filling from the top row's
 // middle as FILL orders it. Its pulse follows the power: a wave of light runs
-// through the lit cells forward while the battery charges and
-// backward while it discharges, faster with every tenfold increase in power,
-// and stands still when it is idle.
+// through the lit cells forward while the battery charges and backward while
+// it discharges, at the pace of the conduit feeding or drawing on it, and
+// stands still when it is idle.
 export function Core({ battery }: { battery: Battery }) {
   const heading = useId();
   const soc = battery.soc_percent;
   const direction = battery.activity === "charging" ? "up" : battery.activity === "discharging" ? "down" : "still";
-  const pulse = flowSpeed(Math.abs(battery.power_w ?? 0));
   const charge = Math.max(0, Math.min(100, soc ?? 0));
   const lit = (charge / 100) * CELLS;
   const offline = battery.status === "offline";
@@ -50,7 +48,7 @@ export function Core({ battery }: { battery: Battery }) {
       {/* Conduits plug into the block and its charge together, so none crosses the figure. */}
       <div className="fof-core-row" data-anchor="open">
         <div
-          className={`fof-bank fof-${direction} fof-pulse-${pulse}`}
+          className={`fof-bank fof-${direction}`}
           style={{ "--charge": `${charge}%` } as CSSProperties}
           role="meter"
           aria-label="State of charge"

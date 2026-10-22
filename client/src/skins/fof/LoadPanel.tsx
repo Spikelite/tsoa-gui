@@ -1,7 +1,6 @@
 import type { CSSProperties } from "react";
 
 import type { AcLoads } from "../../model/system";
-import { flowSpeed } from "../minimal/flowSpeed";
 
 const WIDTH = 240;
 const HEIGHT = 124;
@@ -25,7 +24,6 @@ const CLEAR = 16;
 export function LoadPanel({ loads }: { loads: AcLoads }) {
   const power = Math.abs(loads.power_w ?? 0);
   const working = loads.status !== "offline" && power > 0;
-  const speed = flowSpeed(power);
 
   const row = (above: boolean) =>
     Array.from({ length: BREAKERS }, (_, index) => {
@@ -48,7 +46,7 @@ export function LoadPanel({ loads }: { loads: AcLoads }) {
     });
 
   return (
-    <div className={`fof-unit fof-panel-unit ${working ? "fof-duty-loaded" : "fof-duty-idle"} fof-speed-${speed}`}
+    <div className={`fof-unit fof-panel-unit ${working ? "fof-duty-loaded" : "fof-duty-idle"}`}
       aria-hidden="true">
       <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="fof-unit-art">
         {row(true)}

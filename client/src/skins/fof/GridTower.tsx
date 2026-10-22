@@ -1,7 +1,6 @@
 import type { CSSProperties } from "react";
 
 import type { Grid } from "../../model/system";
-import { flowSpeed } from "../minimal/flowSpeed";
 
 const WIDTH = 400;
 const HEIGHT = 180;
@@ -31,46 +30,55 @@ const LATTICE = [
 ];
 const INSULATORS: [number, number][] = [[8, 32], [92, 32], [18, 72], [82, 72]];
 
-// Each cycle of a pip, as shares of the wave's cycle: the pips fill one after
-// another until the row is full, then a pulse runs down the full row, emptying
-// each pip as it passes, and reaches the far end at the cycle's close, just as
-// a wave sets off along the conduit.
-const FILL_END = 0.7;
-const PULSE_START = 0.74;
-const PULSE_END = 0.98;
+// The drip, over one wave's cycle. The pips rest in the conduit's yellow.
+// The first turns steadily blue until it is full, then the second, then the
+// third; before the third is full, the charge sets off down the row as a
+// packet of blue and the first pip goes back to yellow to start the next.
+// The packet reaches the row's far end at the close of the cycle, just as a
+// wave sets off along the conduit, so it moves at close to the conduit's own
+// speed and the next packet sets off as it arrives.
+const CHARGING = 0.4;
+const PACKET = 2.5;
+const SAMPLES = 40;
 
-/** The keyframes for one pip, by its place in the row. */
-function drip(index: number): string {
-  const percent = (share: number) => `${(share * 100).toFixed(1)}%`;
-  const filling = (FILL_END * index) / PILLS;
-  const full = (FILL_END * (index + 1)) / PILLS;
-  const pulse = PULSE_START + ((PULSE_END - PULSE_START) * index) / (PILLS - 1);
-  return `@keyframes fof-drip-${index} {
-    0%, ${percent(filling)} { fill: var(--fof-drip-empty); }
-    ${percent(full)}, ${percent(pulse - 0.01)} { fill: var(--fof-drip-full); }
-    ${percent(pulse)} { fill: var(--fof-drip-hot); }
-    ${percent(Math.min(pulse + 0.04, 1))}, 100% { fill: var(--fof-drip-empty); }
-  }`;
+/** How blue a pip is at a point in the cycle, from 0 (yellow) to 1. */
+function blueness(pip: number, time: number): number {
+  const charge = Math.max(0, Math.min(1, (time - pip * CHARGING) / CHARGING));
+  // The packet's leading edge, in pips, from where it set off to the far end.
+  const lead = PACKET + (PILLS - PACKET) * time;
+  const middle = pip + 0.5;
+  const inside = Math.min(middle - (lead - PACKET), lead - middle);
+  const packet = Math.max(0, Math.min(1, inside * 2 + 0.5));
+  return pip < PACKET ? Math.max(charge, packet) : packet;
 }
 
-const DRIPS = Array.from({ length: PILLS }, (_, index) => drip(index)).join(" ");
+/** The keyframes for one pip, by its place in the row. */
+function drip(pip: number): string {
+  const stops = Array.from({ length: SAMPLES + 1 }, (_, step) => {
+    const time = step / SAMPLES;
+    const blue = Math.round(blueness(pip, time) * 100);
+    const at = (time * 100).toFixed(1);
+    return `${at}% { fill: color-mix(in oklab, var(--fof-drip-blue) ${blue}%, var(--fof-drip-yellow)); }`;
+  });
+  return `@keyframes fof-drip-${pip} { ${stops.join(" ")} }`;
+}
+
+const DRIPS = Array.from({ length: PILLS }, (_, pip) => drip(pip)).join(" ");
 
 // The grid drawn as a schematic of a supply, in the console's way of showing
 // equipment: a tall lattice transmission tower in outline, its wire running
 // down to a row of pips along the bottom, and the grid's conduit leaving
 // from the row's far end, with the grid's readings in the space above the
-// row. While power comes in from the grid it drips off the wire: the first
-// pip charges, then the next, and the next, until the row is full, and then a
-// pulse runs down the row and into the conduit, timed to set off along it
-// with a wave, and the row starts filling again. With nothing coming in, the
-// row is dim and still.
+// row. While power comes in from the grid it drips off the wire, charging the
+// pips nearest it until the charge sets off down the row and into the
+// conduit, as drip() describes. With nothing coming in, the row is dim and
+// still.
 export function GridTower({ grid }: { grid: Grid }) {
   const power = grid.power_w ?? 0;
   const feeding = grid.status !== "offline" && grid.connected !== false && power > 0;
-  const speed = flowSpeed(power);
 
   return (
-    <div className={`fof-unit fof-tower-unit ${feeding ? "fof-duty-feeding" : "fof-duty-idle"} fof-speed-${speed}`}
+    <div className={`fof-unit fof-tower-unit ${feeding ? "fof-duty-feeding" : "fof-duty-idle"}`}
       aria-hidden="true">
       <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="fof-unit-art">
         <style>{DRIPS}</style>

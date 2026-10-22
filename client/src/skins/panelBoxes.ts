@@ -207,9 +207,13 @@ function end(box: Box, main: Axis, toward: number, level: number): number {
 function levels(from: Box, to: Box, cross: Axis, radius: number): [number, number] {
   const [a, b] = [from[cross], to[cross]];
   const reaches = (box: Box, level: number) => Math.abs(level - box[cross]) <= half(box, cross);
-  // A hub or a bus is met at its own level, through its port: straight if
-  // the other box reaches that level, or else with bends however small.
-  const fixed = (box: Box) => box.hub || box.bus;
+  // A hub, a bus or a row that launches a conduit is met at its own level,
+  // through its port: straight if the other box reaches that level, or else
+  // with bends however small; between two of them, always at both levels.
+  const fixed = (box: Box) => box.hub || box.bus || box.launch;
+  if (fixed(from) && fixed(to)) {
+    return [a, b];
+  }
   if (fixed(from) || fixed(to)) {
     const level = fixed(from) ? a : b;
     return reaches(fixed(from) ? to : from, level) ? [level, level] : [a, b];

@@ -159,4 +159,14 @@ describe("conduitPath", () => {
     expect(conduitPath(block, below, 28).d.startsWith("M")).toBe(true);
     expect(conduitPath(block, below, 28).d).toContain(",250 ");
   });
+
+  it("meets a launching row and a hub each at its own level, bending between them", () => {
+    const row = { x: 100, y: 88, halfWidth: 60, halfHeight: 17, launch: true,
+      panel: { x: 100, y: 60, halfWidth: 100, halfHeight: 60 } };
+    const hub = { x: 500, y: 100, halfWidth: 40, halfHeight: 40, hub: true,
+      panel: { x: 500, y: 100, halfWidth: 120, halfHeight: 80 } };
+    const { d } = conduitPath(row, hub, 28);
+    expect(d.startsWith("M160,88 ")).toBe(true);
+    expect(d.endsWith(" L500,100")).toBe(true);
+  });
 });
