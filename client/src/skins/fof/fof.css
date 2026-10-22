@@ -13,6 +13,7 @@
   --fof-cap: #a8803c;
   --fof-conduit: #f6dc74;
   --fof-plasma: #a6d4ff;
+  --fof-plasma-deep: #2a6ee8;
   min-height: 100vh;
   background: #000;
 }
@@ -349,35 +350,22 @@
 
 /* The energy: waves of plasma rolling along the conduit toward its target,
    one every 7em, across its whole width and around its bends, with clear
-   yellow between them. Each wave is six faint strokes centered on one
-   another, each shorter than the one under it, so its tint swells and fades
-   with no hard edge, and needs no blur filter, which would cost too much on a
-   small panel. The blue is an icy one, about as light as the yellow, so it
-   does not stand out hard against it; a darker blue made faint enough would
-   only mix with the yellow into gray. */
+   yellow between them. Conduits.tsx stacks each wave from faint strokes that
+   deepen toward its middle, so it flares from deep blue through icy blue into
+   the yellow with no hard edge, and needs no blur filter, which would cost
+   too much on a small panel. Every stroke is centered in the 7em between
+   waves, after an empty first dash, so all of them share one animation. */
 .fof-conduit-wave {
-  stroke: var(--fof-plasma);
+  stroke: color-mix(in oklab, var(--fof-plasma-deep) calc(var(--depth) * 100%), var(--fof-plasma));
   stroke-width: var(--fof-width);
-  stroke-opacity: 0.17;
-  animation: var(--fof-roll) linear infinite;
+  stroke-opacity: var(--alpha);
+  stroke-dasharray: 0 calc((7em - var(--length)) / 2) var(--length) calc((7em - var(--length)) / 2);
+  animation: fof-roll var(--fof-roll) linear infinite;
 }
 
 .fof-conduit .fof-conduit-wave { stroke-linecap: butt; }
 
-.fof-wave-0 { stroke-dasharray: 5em 2em; animation-name: fof-roll-0; }
-.fof-wave-1 { stroke-dasharray: 4.1em 2.9em; animation-name: fof-roll-1; }
-.fof-wave-2 { stroke-dasharray: 3.2em 3.8em; animation-name: fof-roll-2; }
-.fof-wave-3 { stroke-dasharray: 2.3em 4.7em; animation-name: fof-roll-3; }
-.fof-wave-4 { stroke-dasharray: 1.4em 5.6em; animation-name: fof-roll-4; }
-.fof-wave-5 { stroke-dasharray: 0.6em 6.4em; animation-name: fof-roll-5; }
-
-/* Each stroke starts centered on the conduit's start and moves one wave on. */
-@keyframes fof-roll-0 { from { stroke-dashoffset: 2.5em; } to { stroke-dashoffset: -4.5em; } }
-@keyframes fof-roll-1 { from { stroke-dashoffset: 2.05em; } to { stroke-dashoffset: -4.95em; } }
-@keyframes fof-roll-2 { from { stroke-dashoffset: 1.6em; } to { stroke-dashoffset: -5.4em; } }
-@keyframes fof-roll-3 { from { stroke-dashoffset: 1.15em; } to { stroke-dashoffset: -5.85em; } }
-@keyframes fof-roll-4 { from { stroke-dashoffset: 0.7em; } to { stroke-dashoffset: -6.3em; } }
-@keyframes fof-roll-5 { from { stroke-dashoffset: 0.3em; } to { stroke-dashoffset: -6.7em; } }
+@keyframes fof-roll { to { stroke-dashoffset: -7em; } }
 
 /* The motion shows the direction, so the chevron appears only without it. */
 .fof-conduit-chevron {
