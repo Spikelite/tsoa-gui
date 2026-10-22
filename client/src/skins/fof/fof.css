@@ -779,7 +779,8 @@
   border-radius: 2.4em 0.35em 0.35em 2.4em;
 }
 
-.fof-bank-cap:last-child { border-radius: 0.35em 2.4em 2.4em 0.35em; }
+/* The right-hand cap, its rounding and its terminal facing out. */
+.fof-bank-cap-end { border-radius: 0.35em 2.4em 2.4em 0.35em; }
 
 .fof-bank-cap::before {
   content: "";
@@ -791,7 +792,7 @@
   background: var(--fof-ink);
 }
 
-.fof-bank-cap:last-child::before { right: -0.45em; left: auto; }
+.fof-bank-cap-end::before { right: -0.45em; left: auto; }
 
 /* A cell: a capsule split across its middle, dark until lit. Its light is
    its share of the charge. */

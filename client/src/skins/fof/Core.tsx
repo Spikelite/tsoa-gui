@@ -84,7 +84,7 @@ export function Core({ battery }: { battery: Battery }) {
               );
             })}
           </div>
-          <span className="fof-bank-cap" aria-hidden="true" />
+          <span className="fof-bank-cap fof-bank-cap-end" aria-hidden="true" />
         </div>
         <div className="fof-core-side">
           {!offline && (

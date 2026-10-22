@@ -68,7 +68,8 @@ export function BatteryDeck({ battery }: { battery: Battery }) {
                   {cell.highest && <span className="fof-quiet">, highest</span>}
                 </div>
               ))}
-              <span className="fof-bank-cap fof-deck-cap" aria-hidden="true" style={{ gridColumn: row.length + 2 }} />
+              <span className="fof-bank-cap fof-bank-cap-end fof-deck-cap" aria-hidden="true"
+                style={{ gridColumn: row.length + 2 }} />
               {/* The charge beside the block's right end, as on the overview. */}
               {rowIndex === 0 && <div className="fof-deck-charge" style={{ gridColumn: row.length + 3 }}>{figure}</div>}
             </div>
