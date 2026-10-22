@@ -1,8 +1,8 @@
-import type { CSSProperties } from "react";
+import { useId, type CSSProperties } from "react";
 
 import type { InverterCharger, InverterState } from "../../model/system";
 import { flowSpeed } from "../minimal/flowSpeed";
-import { HUB_EDGE, HUB_VIEW, type HubPort, type HubPorts, type HubSide } from "./hubPorts";
+import { HUB_EDGE, HUB_STRANDS, HUB_VIEW, type HubPort, type HubPorts, type HubSide } from "./hubPorts";
 
 /** What the inverter/charger is doing with power, which tints its core. */
 type Duty = "inverting" | "charging" | "passing" | "idle";
@@ -34,13 +34,19 @@ const CORE = 52;
 // The center: a thin band round a light.
 const BAND = 24;
 const LIGHT = 22;
-// A winding's turns run across both rings of cells, from just outside the
-// core in to just outside the band, and back out to just past the outer ring.
-const WIND = { lead: 58, outer: 49, inner: 30 };
-const TURNS = 2;
+// One even winding runs all the way round the core, across both rings of
+// cells: legs from just outside the outer ring in to just outside the band
+// and back out, LEGS of them, each STEP round from the last.
+const WIND = { outer: 49, inner: 30 };
+const LEGS = 48;
+const STEP = 360 / LEGS;
 const BRANCHES = 3;
-// How far apart the branches leave the conduit's end, across it.
-const STRAND = 7;
+// A conduit narrows over FUNNEL units in from the square's edge to its
+// strands' width, the strands SPREAD apart, beginning HUB_STRANDS units in.
+const FUNNEL = 24;
+const SPREAD = 5;
+// How many legs of the winding a pulse runs each way from where its strand joins.
+const RUN = 6;
 const PULSE = 10;
 
 const SIDE_ANGLE: Record<HubSide, number> = { right: 0, bottom: 90, left: 180, top: 270 };
@@ -51,68 +57,124 @@ const polar = (radius: number, degrees: number): Point => ({
   y: CENTER + radius * Math.sin((degrees * Math.PI) / 180),
 });
 const at = (point: Point) => `${point.x.toFixed(2)} ${point.y.toFixed(2)}`;
+const arcLength = (radius: number, degrees: number) => (radius * Math.abs(degrees) * Math.PI) / 180;
 
-/**
- * Where a conduit's strand leaves its end at the edge of the hub's square,
- * `strand` places across from its middle, and which way it runs on inward.
- */
-function crossing(port: HubPort, strand: number): { point: Point; inward: Point } {
+/** A port's frame: where its conduit meets the square's edge, inward, and across. */
+function frame(port: HubPort) {
   const dir = { right: { x: 1, y: 0 }, left: { x: -1, y: 0 }, bottom: { x: 0, y: 1 }, top: { x: 0, y: -1 } }[port.side];
-  const across = port.offset + strand * STRAND;
-  const point = dir.x === 0
-    ? { x: CENTER + across, y: CENTER + dir.y * HUB_EDGE }
-    : { x: CENTER + dir.x * HUB_EDGE, y: CENTER + across };
-  return { point, inward: { x: -dir.x, y: -dir.y } };
+  const edge = dir.x === 0
+    ? { x: CENTER + port.offset, y: CENTER + dir.y * HUB_EDGE }
+    : { x: CENTER + dir.x * HUB_EDGE, y: CENTER + port.offset };
+  const inward = { x: -dir.x, y: -dir.y };
+  const across = { x: Math.abs(inward.y), y: Math.abs(inward.x) };
+  // A point `u` in from the edge and `v` across from the conduit's middle.
+  return (u: number, v: number): Point => ({
+    x: edge.x + inward.x * u + across.x * v,
+    y: edge.y + inward.y * u + across.y * v,
+  });
+}
+
+/** The opening in the square a conduit shows through as it narrows to its strands, ending round. */
+function funnel(port: HubPort): string {
+  const p = frame(port);
+  const wide = port.width / 2 + 0.5;
+  const narrow = SPREAD + 2.5;
+  return [
+    `M${at(p(-2, -wide))} L${at(p(0, -wide))}`,
+    `C${at(p(FUNNEL * 0.45, -wide))} ${at(p(FUNNEL * 0.55, -narrow))} ${at(p(FUNNEL, -narrow))}`,
+    `A${narrow} ${narrow} 0 0 1 ${at(p(FUNNEL, narrow))}`,
+    `C${at(p(FUNNEL * 0.55, narrow))} ${at(p(FUNNEL * 0.45, wide))} ${at(p(0, wide))}`,
+    `L${at(p(-2, wide))} Z`,
+  ].join(" ");
 }
 
 /**
- * One branch from where its conduit crosses the disc to a winding round the
- * core at `angle`: a smooth curve in to the core's edge, then turns that run
- * in across the rings of cells and back out, each a little further round,
- * ending at the core's edge again. Its length, near enough, times the pulse.
+ * The winding, from the middle of an outer turn at `angle`, `legs` legs on
+ * round the core one way or the other: on along the outer arc, then in and
+ * out across the rings of cells, turn by turn.
  */
-function branch(port: HubPort, strand: number, angle: number, span: number): { d: string; length: number } {
-  const { point, inward } = crossing(port, strand);
-  const step = span / (2 * TURNS - 1);
-  const angles = Array.from({ length: 2 * TURNS }, (_, leg) => angle - span / 2 + leg * step);
-  const lead = polar(WIND.lead, angles[0]!);
-  const out = { x: Math.cos((angles[0]! * Math.PI) / 180), y: Math.sin((angles[0]! * Math.PI) / 180) };
-  const parts = [
-    `M${at(point)}`,
-    `C${at({ x: point.x + inward.x * 26, y: point.y + inward.y * 26 })} ${
-      at({ x: lead.x + out.x * 22, y: lead.y + out.y * 22 })} ${at(lead)}`,
-  ];
-  let length = Math.hypot(lead.x - point.x, lead.y - point.y) * 1.2;
-  angles.forEach((a, leg) => {
-    const inwardLeg = leg % 2 === 0;
-    const last = leg === angles.length - 1;
-    const end = inwardLeg ? WIND.inner : last ? WIND.lead : WIND.outer;
-    parts.push(`L${at(polar(end, a))}`);
-    length += Math.abs(end - (inwardLeg ? (leg === 0 ? WIND.lead : WIND.outer) : WIND.inner));
-    if (!last) {
-      const sweep = step > 0 ? 1 : 0;
-      parts.push(`A${end} ${end} 0 0 ${sweep} ${at(polar(end, a + step))}`);
-      length += (end * Math.abs(step) * Math.PI) / 180;
+function walk(angle: number, way: 1 | -1, legs: number): { d: string; length: number } {
+  const first = way > 0 ? angle + STEP / 2 : angle - STEP / 2;
+  const sweep = way > 0 ? 1 : 0;
+  const parts = [`A${WIND.outer} ${WIND.outer} 0 0 ${sweep} ${at(polar(WIND.outer, first))}`];
+  let length = arcLength(WIND.outer, STEP / 2);
+  let radius = WIND.outer;
+  for (let leg = 0; leg < legs; leg++) {
+    const a = first + way * leg * STEP;
+    const next = radius === WIND.outer ? WIND.inner : WIND.outer;
+    parts.push(`L${at(polar(next, a))}`);
+    length += WIND.outer - WIND.inner;
+    radius = next;
+    if (leg < legs - 1) {
+      parts.push(`A${radius} ${radius} 0 0 ${sweep} ${at(polar(radius, a + way * STEP))}`);
+      length += arcLength(radius, STEP);
     }
-  });
+  }
   return { d: parts.join(" "), length };
 }
 
-/** Each port's windings: three round the core on its side, those of two ports sharing a side kept apart. */
-function windings(ports: HubPort[]) {
+/** The whole winding, one even coil all the way round the core. */
+function coil(): string {
+  const parts = [`M${at(polar(WIND.outer, 0))}`];
+  for (let leg = 0; leg < LEGS; leg++) {
+    const a = leg * STEP;
+    const inward = leg % 2 === 0;
+    const radius = inward ? WIND.inner : WIND.outer;
+    parts.push(`L${at(polar(radius, a))}`);
+    parts.push(`A${radius} ${radius} 0 0 1 ${at(polar(radius, a + STEP))}`);
+  }
+  return `${parts.join(" ")} Z`;
+}
+const COIL = coil();
+
+/** Where a strand at `angle` joins the winding: the middle of the nearest outer turn. */
+function join(angle: number): number {
+  // Outer turns run between legs 2m + 1 and 2m + 2.
+  const m = Math.round((angle / STEP - 1.5) / 2);
+  return (2 * m + 1.5) * STEP;
+}
+
+/** A strand from the conduit's narrowed end to where it joins the winding, smoothly. */
+function strand(port: HubPort, place: number, angle: number): { d: string; length: number } {
+  const p = frame(port);
+  const begin = p(HUB_STRANDS, place * SPREAD);
+  const inward = p(HUB_STRANDS + 1, place * SPREAD);
+  const dir = { x: inward.x - begin.x, y: inward.y - begin.y };
+  const end = polar(WIND.outer, angle);
+  const out = polar(WIND.outer + 1, angle);
+  const radial = { x: out.x - end.x, y: out.y - end.y };
+  return {
+    d: `M${at(begin)} C${at({ x: begin.x + dir.x * 20, y: begin.y + dir.y * 20 })} ${
+      at({ x: end.x + radial.x * 18, y: end.y + radial.y * 18 })} ${at(end)}`,
+    length: Math.hypot(end.x - begin.x, end.y - begin.y) * 1.2,
+  };
+}
+
+/**
+ * Each port's strands, three joining the winding on its side, those of two
+ * ports sharing a side kept apart, and the paths its pulses take: along a
+ * strand and on round the winding each way from where it joins.
+ */
+function strands(ports: HubPort[]) {
   return ports.map((port, index) => {
     const sharing = ports.filter((other) => other.side === port.side).length;
     const base = SIDE_ANGLE[port.side];
-    // A port off its side's middle has its windings turned toward where it meets the side.
+    // A port off its side's middle has its strands turned toward where it meets the side.
     const across = port.side === "left" ? -1 : port.side === "right" ? 1 : port.side === "bottom" ? -1 : 1;
-    const toward = (Math.atan2(port.offset * 1.4, 40) * 180) / Math.PI;
-    const center = base + across * toward;
-    const apart = sharing > 1 ? 15 : 26;
+    const center = base + across * ((Math.atan2(port.offset * 1.4, 40) * 180) / Math.PI);
+    const apart = sharing > 1 ? 2 * STEP : 4 * STEP;
     // The strands keep their order across the conduit as they fan out round the core.
     const order = port.side === "left" || port.side === "bottom" ? -1 : 1;
-    const paths = Array.from({ length: BRANCHES }, (_, n) =>
-      branch(port, (n - 1) * order, center + (n - 1) * apart, apart * 0.7));
-    return { port, index, paths };
+    const lines = Array.from({ length: BRANCHES }, (_, n) => {
+      const angle = join(center + (n - 1) * apart);
+      const line = strand(port, (n - 1) * order, angle);
+      const runs = ([1, -1] as const).map((way) => {
+        const round = walk(angle, way, RUN);
+        return { d: `${line.d} ${round.d}`, length: line.length + round.length };
+      });
+      return { line, runs };
+    });
+    return { port, index, lines };
   });
 }
 
@@ -130,11 +192,11 @@ function lightPeriod(power: number): number {
 }
 
 // The inverter/charger drawn as a hub that power runs through, on a dark
-// square. Each conduit that meets it runs on under the square, and where it
-// meets the square's edge it splits into three branches, each winding round
-// the core's rings of cells like a transformer's windings. Pulses come in
-// along a supply's branches and through its windings, then out through the
-// windings and branches of what it feeds, each conduit's pulses at its own
+// square, its core wound all the way round in one even coil like a
+// transformer's. Each conduit that meets it narrows in from the square's edge
+// into three strands that join the coil on its side. Pulses pour from a
+// supply's conduit into its strands and on round the coil, and from the coil
+// out through the strands of what it feeds into their conduits, each conduit's pulses at its own
 // pace and timed to its crests, so they flow on from the conduits and back
 // out into them. Light chases round the core's cells, clockwise while it
 // charges the battery and the other way while it inverts, faster with every
@@ -151,21 +213,37 @@ export function InverterCore({ inverter, hub }: { inverter: InverterCharger; hub
     Math.abs(inverter.dc_power_w ?? 0),
   );
   const speed = flowSpeed(power);
-  const wound = windings(hub?.ports ?? []);
+  const wound = strands(hub?.ports ?? []);
   const cycle = hub?.cycleUnits || 250;
-  const keyframes = wound.flatMap(({ port, index, paths }) => {
-    const longest = Math.max(...paths.map((path) => path.length));
-    const share = Math.min(0.9, Math.max(0.08, longest / cycle));
-    return [pulseKeyframes(`fof-wind-${index}`, share, port.outward)];
-  }).join(" ");
+  const share = (length: number) => Math.min(0.9, Math.max(0.08, length / cycle));
+  const keyframes = wound.map(({ port, index, lines }) =>
+    pulseKeyframes(`fof-wind-${index}`, share(Math.max(...lines.flatMap((l) => l.runs.map((r) => r.length)))), port.outward),
+  ).join(" ");
+  // The square, with an opening where each conduit narrows to its strands;
+  // each opening starts a little outside the square, which the square's own
+  // outline then clips off, so no seam shows where the conduit meets it.
+  const clip = useId();
+  const outline = [
+    `M${CENTER - HUB_EDGE} ${CENTER - HUB_EDGE + HUB_EDGE / 3}`,
+    `A${HUB_EDGE / 3} ${HUB_EDGE / 3} 0 0 1 ${CENTER - HUB_EDGE + HUB_EDGE / 3} ${CENTER - HUB_EDGE}`,
+    `L${CENTER + HUB_EDGE - HUB_EDGE / 3} ${CENTER - HUB_EDGE}`,
+    `A${HUB_EDGE / 3} ${HUB_EDGE / 3} 0 0 1 ${CENTER + HUB_EDGE} ${CENTER - HUB_EDGE + HUB_EDGE / 3}`,
+    `L${CENTER + HUB_EDGE} ${CENTER + HUB_EDGE - HUB_EDGE / 3}`,
+    `A${HUB_EDGE / 3} ${HUB_EDGE / 3} 0 0 1 ${CENTER + HUB_EDGE - HUB_EDGE / 3} ${CENTER + HUB_EDGE}`,
+    `L${CENTER - HUB_EDGE + HUB_EDGE / 3} ${CENTER + HUB_EDGE}`,
+    `A${HUB_EDGE / 3} ${HUB_EDGE / 3} 0 0 1 ${CENTER - HUB_EDGE} ${CENTER + HUB_EDGE - HUB_EDGE / 3} Z`,
+  ].join(" ");
+  const square = [outline, ...wound.map(({ port }) => funnel(port))].join(" ");
 
   return (
     <div className={`fof-unit fof-ring-unit fof-duty-${work} fof-flow-${speed}`} data-anchor="hub" aria-hidden="true"
       style={{ "--fof-light": `${lightPeriod(power).toFixed(2)}s` } as CSSProperties}>
       <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="fof-unit-art">
         <style>{keyframes}</style>
-        <rect className="fof-hub-disc" x={CENTER - HUB_EDGE} y={CENTER - HUB_EDGE} width={2 * HUB_EDGE}
-          height={2 * HUB_EDGE} rx={HUB_EDGE / 3} />
+        <clipPath id={clip}>
+          <path d={outline} />
+        </clipPath>
+        <path className="fof-hub-disc" d={square} fillRule="evenodd" clipPath={`url(#${CSS.escape(clip)})`} />
         <circle className="fof-unit-core" cx={CENTER} cy={CENTER} r={CORE} />
         {TRACKS.map((radius) =>
           Array.from({ length: CELLS }, (_, cell) => {
@@ -181,21 +259,23 @@ export function InverterCore({ inverter, hub }: { inverter: InverterCharger; hub
             );
           }),
         )}
-        {wound.map(({ port, paths }) => paths.map((path, n) => (
-          <path key={`${port.key}-${n}`} className={`fof-hub-wire${port.idle ? " fof-hub-wire-idle" : ""}`} d={path.d} />
+        <path className="fof-hub-wire" d={COIL} />
+        {wound.map(({ port, lines }) => lines.map(({ line }, n) => (
+          <path key={`${port.key}-${n}`} className={`fof-hub-wire${port.idle ? " fof-hub-wire-idle" : ""}`} d={line.d} />
         )))}
-        {wound.map(({ port, index, paths }) => !port.idle && paths.map((path, n) => {
-          const start = port.outward ? port.crossing - Math.min(0.9, Math.max(0.08, path.length / cycle)) : port.crossing;
+        {wound.map(({ port, index, lines }) => !port.idle && lines.flatMap(({ runs }, n) => runs.map((run, way) => {
+          // A pulse in leaves the conduit's end as a crest reaches it; one out reaches it as a crest leaves.
+          const start = port.outward ? port.crossing - share(run.length) : port.crossing;
           const begin = ((start % 1) + 1) % 1;
           return (
-            <path key={`${port.key}-pulse-${n}`} className="fof-hub-pulse" d={path.d} pathLength="100"
+            <path key={`${port.key}-pulse-${n}-${way}`} className="fof-hub-pulse" d={run.d} pathLength="100"
               style={{
                 animationName: `fof-wind-${index}`,
                 animationDuration: `var(--fof-roll-${port.key}, 4s)`,
                 animationDelay: `calc(var(--fof-roll-${port.key}, 4s) * ${(begin - 1).toFixed(3)})`,
               } as CSSProperties} />
           );
-        }))}
+        })))}
         <circle className="fof-hub-band" cx={CENTER} cy={CENTER} r={BAND} />
         <circle className="fof-hub-light" cx={CENTER} cy={CENTER} r={LIGHT} />
       </svg>

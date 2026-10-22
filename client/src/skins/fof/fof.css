@@ -507,7 +507,9 @@
    core's rings of cells, the windings the conduits branch into, and at the
    center a thin band round a light in the core's tint. */
 .fof-hub-disc { fill: #000; }
-.fof-unit-core { fill: #000; stroke: #3d3852; stroke-width: 3; }
+/* The core's edge and the band round the light share one color. */
+.fof-ring-unit { --fof-hub-rim: #3d3852; }
+.fof-unit-core { fill: #000; stroke: var(--fof-hub-rim, #3d3852); stroke-width: 3; }
 .fof-hub-wire { fill: none; stroke: var(--fof-conduit); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .fof-hub-wire-idle { stroke: #4a4436; }
 
@@ -523,7 +525,7 @@
   animation-iteration-count: infinite;
 }
 
-.fof-hub-band { fill: none; stroke: #e6e2ee; stroke-width: 1.8; }
+.fof-hub-band { fill: none; stroke: var(--fof-hub-rim); stroke-width: 1.8; }
 .fof-hub-light { fill: var(--fof-ring); animation: fof-hub-glow var(--fof-light, 2s) ease-in-out infinite; }
 .fof-duty-idle .fof-hub-light { animation: none; fill-opacity: 0.35; }
 

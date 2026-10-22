@@ -3,7 +3,7 @@ import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { Flow, PartName } from "../../model/system";
 import { flowSpeed } from "../minimal/flowSpeed";
 import { approach, conduitPath, usePanelMeasure, type Box } from "../panelBoxes";
-import { HUB_EDGE, HUB_VIEW, portShift, type HubPort, type HubPorts } from "./hubPorts";
+import { HUB_EDGE, HUB_STRANDS, HUB_VIEW, portShift, type HubPort, type HubPorts } from "./hubPorts";
 import { steadyPeriod } from "./wavePeriod";
 
 // A wave is many faint strokes centered on one another, each shorter, a
@@ -63,28 +63,31 @@ const fraction = (value: number) => Number((((value % 1) + 1) % 1).toFixed(3));
 
 /**
  * Where a conduit meets the hub, if it does, and when in its cycle a crest
- * crosses the edge of the hub's square there: a conduit into the hub has a crest at its end,
+ * reaches where it has narrowed into its strands there: a conduit into the hub has a crest at its end,
  * the hub's center, as each cycle starts, and one out of it has a crest at
  * its far end then, so a crest crosses the disc as far before or after as the
  * distance takes at the waves' pace.
  */
-function hubPort(flow: Flow, from: Box, to: Box, hub: Box, length: number, wave: number): HubPort | null {
+function hubPort(flow: Flow, from: Box, to: Box, hub: Box, length: number, em: number): HubPort | null {
   if (!from.hub && !to.hub) {
     return null;
   }
   const { main, sign } = approach(from, to);
   const scale = (2 * hub.halfWidth) / HUB_VIEW;
+  const wave = WAVE * em;
   const outward = Boolean(from.hub);
   // A conduit into the hub arrives travelling the way it runs; one out of it leaves that way.
   const heading = outward ? sign : -sign;
   const side = main === "x" ? (heading > 0 ? "right" : "left") : heading > 0 ? "bottom" : "top";
   const cross = main === "x" ? "y" : "x";
   const offset = outward ? 0 : (to[cross] - hub[cross]) / scale;
-  const toEdge = HUB_EDGE * scale;
+  const toEdge = (HUB_EDGE - HUB_STRANDS) * scale;
   return {
     key: `${flow.source}-${flow.target}`,
     side,
     offset: Number(offset.toFixed(2)),
+    // As wide as fof.css draws a conduit at its speed.
+    width: Number((((1 + 0.2 * flowSpeed(flow.power_w)) * em) / scale).toFixed(2)),
     outward,
     idle: flow.power_w <= 0,
     crossing: outward ? fraction(-(length - toEdge) / wave) : fraction(1 - toEdge / wave),
@@ -183,7 +186,7 @@ export function Conduits({ flows, inputs = {}, onHubPorts }: {
       return null;
     }
     const path = conduitPath(from, to, 36);
-    const port = hub?.hub ? hubPort(flow, from, to, hub, path.length, WAVE * em) : null;
+    const port = hub?.hub ? hubPort(flow, from, to, hub, path.length, em) : null;
     if (port) {
       ports.push(port);
     }
