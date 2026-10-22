@@ -1,9 +1,9 @@
 import { useId, type ReactNode } from "react";
 
 import type {
-  AcLoads, Alarm, Battery, DcLoads, Generator, Grid, InverterCharger, InverterMode, InverterState, PartName, Solar,
-  Status,
+  AcLoads, Alarm, Battery, DcLoads, Generator, Grid, InverterCharger, PartName, Solar, Status,
 } from "../../model/system";
+import { batteryState, generatorState, gridState, inverterState, MODES, solarState } from "../describe";
 import { Eased } from "../Eased";
 import * as f from "../format";
 import { StatusIcon } from "../StatusIcon";
@@ -65,9 +65,8 @@ function Alarms({ alarms }: { alarms: Alarm[] }) {
 }
 
 export function GridPanel({ grid }: { grid: Grid }) {
-  const state = grid.connected === null ? "Unknown" : grid.connected ? "Connected" : "Disconnected";
   return (
-    <Panel part="grid" title={grid.kind === "shore" ? "Shore power" : "Grid"} status={grid.status} state={state}>
+    <Panel part="grid" title={grid.kind === "shore" ? "Shore power" : "Grid"} status={grid.status} state={gridState(grid)}>
       <Headline value={grid.power_w} format={f.power} />
       <dl>
         <Reading label="Voltage" value={grid.voltage_v} format={f.volts} />
@@ -80,9 +79,8 @@ export function GridPanel({ grid }: { grid: Grid }) {
 }
 
 export function GeneratorPanel({ generator }: { generator: Generator }) {
-  const state = generator.running === null ? "Unknown" : generator.running ? "Running" : "Stopped";
   return (
-    <Panel part="generator" title="Generator" status={generator.status} state={state}>
+    <Panel part="generator" title="Generator" status={generator.status} state={generatorState(generator)}>
       <Headline value={generator.power_w} format={f.power} />
       <dl>
         <Reading label="Running for" value={generator.run_time_s} format={f.duration} />
@@ -91,22 +89,11 @@ export function GeneratorPanel({ generator }: { generator: Generator }) {
   );
 }
 
-const MODES: Record<InverterMode, string> = {
-  on: "On", off: "Off", charger_only: "Charger only", inverter_only: "Inverter only",
-};
-
-const INVERTER_STATES: Record<InverterState, string> = {
-  off: "Off", low_power: "Low power", fault: "Fault", bulk: "Bulk", absorption: "Absorption", float: "Float",
-  storage: "Storage", equalize: "Equalize", passthrough: "Passthrough", inverting: "Inverting",
-  power_assist: "Power assist", power_supply: "Power supply", sustain: "Sustain",
-  external_control: "External control", other: "Other",
-};
-
 export function InverterChargerPanel({ inverter }: { inverter: InverterCharger }) {
   return (
     // A narrow panel breaks the title after the slash, not inside a word.
     <Panel part="inverter_charger" title={<>Inverter/<wbr />charger</>} status={inverter.status}
-      state={inverter.state === null ? "Unknown" : INVERTER_STATES[inverter.state]}>
+      state={inverterState(inverter)}>
       <Headline value={inverter.ac_out_power_w} format={f.power} />
       <dl>
         {inverter.mode !== null && (
@@ -124,13 +111,12 @@ export function InverterChargerPanel({ inverter }: { inverter: InverterCharger }
 }
 
 export function BatteryPanel({ battery }: { battery: Battery }) {
-  const state = { idle: "Idle", charging: "Charging", discharging: "Discharging" }[battery.activity ?? "idle"];
   const spread =
     battery.min_cell_voltage_v !== null && battery.max_cell_voltage_v !== null
       ? battery.max_cell_voltage_v - battery.min_cell_voltage_v
       : null;
   return (
-    <Panel part="battery" title="Battery" status={battery.status} state={battery.activity === null ? "Unknown" : state}>
+    <Panel part="battery" title="Battery" status={battery.status} state={batteryState(battery)}>
       <Headline value={battery.soc_percent} format={f.percent} />
       {battery.soc_percent !== null && (
         <div className="charge-bar" aria-hidden="true">
@@ -154,7 +140,7 @@ export function BatteryPanel({ battery }: { battery: Battery }) {
 export function SolarPanel({ solar }: { solar: Solar }) {
   return (
     <Panel part="solar" title="Solar" status={solar.status}
-      state={solar.power_w === null ? "Unknown" : solar.power_w > 0 ? "Producing" : "Not producing"}>
+      state={solarState(solar)}>
       <Headline value={solar.power_w} format={f.power} />
       <dl>
         <Reading label="Today" value={solar.yield_today_kwh} format={f.kilowattHours} />

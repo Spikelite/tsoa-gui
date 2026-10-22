@@ -1,20 +1,59 @@
+import { Suspense, useState } from "react";
+
 import type { SystemStore } from "./model/store";
 import type { System } from "./model/system";
 import { useSystem } from "./model/useSystem";
-import { MinimalSkin } from "./skins/minimal/MinimalSkin";
+import { addressWithSkin, chosenSkin, rememberSkin, SKINS } from "./skins/registry";
+
+function browserStorage(): Storage | null {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
 
 export function App({ store }: { store?: SystemStore }) {
   const { model, connected } = useSystem(store);
+  const [skinId, setSkinId] = useState(() => chosenSkin(window.location.search, browserStorage()));
+  const skin = SKINS.find((candidate) => candidate.id === skinId) ?? SKINS[0]!;
+
+  const choose = (id: string) => {
+    setSkinId(id);
+    rememberSkin(id, browserStorage());
+    const address = addressWithSkin(window.location.href, id);
+    if (address !== null) {
+      window.history.replaceState(null, "", address);
+    }
+  };
+
+  const Skin = skin.component;
   return (
-    <>
+    <div className={`app skin-${skin.id}`}>
       <header className="app-header">
         <h1>tsoa-gui</h1>
         <Notice model={model} connected={connected} />
+        <label className="skin-menu">
+          Skin
+          <select value={skin.id} onChange={(event) => choose(event.target.value)}>
+            {SKINS.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.name}
+              </option>
+            ))}
+          </select>
+        </label>
       </header>
       <main>
-        {model === null ? <p className="waiting">Waiting for the first readings.</p> : <MinimalSkin model={model} />}
+        {model === null ? (
+          <p className="waiting">Waiting for the first readings.</p>
+        ) : (
+          <Suspense fallback={<p className="waiting">Loading the skin.</p>}>
+            <Skin model={model} />
+          </Suspense>
+        )}
       </main>
-    </>
+    </div>
   );
 }
 

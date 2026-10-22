@@ -1,0 +1,366 @@
+/* Sci-Fi FOF: an engineering console in rounded bars on black. The frame's
+   colors are decoration only and stay clear of the status colors, which
+   appear only with their icons and words. */
+.skin-sci-fi-fof {
+  --fof-lavender: #c4a7e7;
+  --fof-periwinkle: #8fa8e8;
+  --fof-sand: #d9b98a;
+  --fof-teal: #79b8b0;
+  --fof-ink: #f2e8d5;
+  --fof-dim: #a99fc4;
+  --fof-well: #0b0a12;
+  --fof-plasma: #a8ecff;
+  min-height: 100vh;
+  background: #000;
+}
+
+.skin-sci-fi-fof .app-header h1 {
+  color: var(--fof-sand);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fof {
+  display: grid;
+  gap: 0.75em 1.25em;
+  padding: 0.75em clamp(0.75em, 2vw, 1.5em) 1.5em;
+  grid-template-columns: minmax(10em, 14em) minmax(12em, 16em) minmax(0, 1fr);
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "top top top"
+    "rail core main"
+    "bottom bottom bottom";
+  align-items: start;
+  /* Fills the screen below the page header, so a wall display is all console. */
+  min-height: calc(100vh - 3.5rem);
+  /* Text and every measure scale with the screen: larger on a TV, readable on a phone. */
+  font-size: clamp(0.9rem, 0.45vw + 0.55rem, 1.45rem);
+  color: var(--fof-ink);
+  font-family: "Arial Narrow", "Roboto Condensed", "Helvetica Neue", Arial, sans-serif;
+  font-stretch: condensed;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* The frame */
+.fof-top,
+.fof-bottom {
+  display: flex;
+  align-items: stretch;
+  gap: 0.4em;
+  height: 2em;
+}
+
+.fof-top { grid-area: top; }
+.fof-bottom { grid-area: bottom; height: 0.9em; }
+
+.fof-cap {
+  width: 3.5em;
+  background: var(--fof-lavender);
+}
+
+.fof-cap-left { border-radius: 1em 0 0 1em; }
+.fof-cap-right { border-radius: 0 1em 1em 0; background: var(--fof-sand); }
+
+.fof-bar {
+  flex: 1;
+  min-width: 1em;
+  background: var(--fof-periwinkle);
+}
+
+.fof-label {
+  display: flex;
+  align-items: center;
+  padding: 0 0.5em;
+  color: var(--fof-sand);
+  font-size: 1.25em;
+  white-space: nowrap;
+}
+
+.fof-link {
+  display: flex;
+  align-items: center;
+  padding: 0 0.8em;
+  color: #000;
+  background: var(--fof-teal);
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+
+.fof-link-stale { background: var(--status-attention); }
+
+/* The status rail */
+.fof-rail {
+  grid-area: rail;
+  display: grid;
+  gap: 0.35em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fof-pill {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 0.5em;
+  padding: 0.4em 0.9em 0.4em 0.6em;
+  background: #16121f;
+  border-left: 0.6em solid var(--status-color);
+  border-radius: 0 1.2em 1.2em 0;
+}
+
+.fof-pill.status-offline { border-left-style: dashed; }
+.fof-pill .status-icon { grid-row: span 2; align-self: center; }
+.fof-pill-name { color: var(--fof-sand); font-size: 0.95em; }
+.fof-pill-state { font-size: 0.8em; }
+
+/* The battery's core */
+.fof-core {
+  grid-area: core;
+  display: grid;
+  justify-items: center;
+  gap: 0.6em;
+  padding: 0.75em 0.9em 1em;
+  border: 2px solid var(--fof-periwinkle);
+  border-radius: 1.5em;
+}
+
+.fof-core-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25em 0.75em;
+  width: 100%;
+}
+
+.fof-core h2 {
+  margin: 0;
+  color: var(--fof-sand);
+  font-size: 1em;
+  font-weight: 600;
+}
+
+.fof-state {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  margin: 0;
+  font-size: 0.85em;
+}
+
+.fof-vessel {
+  position: relative;
+  width: 5.5em;
+  height: clamp(13em, 52vh, 40em);
+  overflow: hidden;
+  background: #06050a;
+  border: 2px solid var(--fof-lavender);
+  border-radius: 2.75em;
+  box-shadow: 0 0 calc(2.5em * var(--glow)) rgba(168, 236, 255, 0.3);
+}
+
+.fof-plasma {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: var(--charge);
+  overflow: hidden;
+  background: linear-gradient(to top, #3fa9c9, var(--fof-plasma));
+  opacity: var(--glow);
+  transition: height 0.8s ease-out, opacity 0.8s ease-out;
+  animation: fof-throb var(--fof-beat, 2.4s) ease-in-out infinite alternate;
+}
+
+.fof-bands {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(to top, transparent 0 14px, rgba(255, 255, 255, 0.35) 14px 18px);
+  animation: fof-rise var(--fof-beat, 2.4s) linear infinite;
+}
+
+.fof-down .fof-bands { animation-name: fof-fall; }
+.fof-still .fof-bands { animation: none; opacity: 0.4; }
+.fof-still .fof-plasma { animation: none; }
+
+.fof-pulse-0 { --fof-beat: 3s; }
+.fof-pulse-1 { --fof-beat: 2s; }
+.fof-pulse-2 { --fof-beat: 1.2s; }
+.fof-pulse-3 { --fof-beat: 0.7s; }
+.fof-pulse-4 { --fof-beat: 0.4s; }
+
+@keyframes fof-rise { to { background-position: 0 -18px; } }
+@keyframes fof-fall { to { background-position: 0 18px; } }
+@keyframes fof-throb { to { filter: brightness(1.3); } }
+
+.fof-ticks {
+  position: absolute;
+  inset: 1.8em 0.6em 1.8em auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: var(--fof-dim);
+  font-size: 0.65em;
+  text-align: right;
+}
+
+.fof-core-figure {
+  margin: 0;
+  color: var(--fof-plasma);
+  font-size: 2.6em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Readouts */
+.fof-rows {
+  display: grid;
+  gap: 0.15em;
+  width: 100%;
+  margin: 0;
+}
+
+.fof-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0 0.75em;
+  font-size: 0.9em;
+}
+
+.fof-row dt {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  color: var(--fof-dim);
+}
+
+.fof-row dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.fof-main {
+  grid-area: main;
+  display: grid;
+  gap: 1.25em;
+}
+
+.fof-readouts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 14em), 1fr));
+  gap: 0.75em;
+}
+
+.fof-readout {
+  padding-bottom: 0.5em;
+  background: var(--fof-well);
+  border-left: 0.5em solid var(--fof-periwinkle);
+  border-radius: 1em 0 0 1em;
+}
+
+.fof-readout.status-offline { border-left: 0.5em dashed var(--status-offline-outline); }
+
+.fof-readout h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  margin: 0 0 0.4em;
+  padding: 0.2em 0.75em 0.2em 0.5em;
+  color: #000;
+  background: var(--fof-sand);
+  border-radius: 0 0.9em 0.9em 0;
+  font-size: 0.95em;
+  font-weight: 600;
+}
+
+/* On the sand bar a status icon sits on black, so every status color reads. */
+.fof-readout h2 .status-icon {
+  padding: 2px;
+  background: #000;
+  border-radius: 50%;
+}
+
+.fof-readout .fof-rows,
+.fof-readout .fof-quiet {
+  padding: 0 0.75em;
+}
+
+.fof-quiet {
+  margin: 0;
+  color: var(--fof-dim);
+  font-size: 0.85em;
+}
+
+/* Conduits: one per path power is taking, moving from its source to its target */
+.fof-conduits {
+  display: grid;
+  gap: 0.4em;
+}
+
+.fof-conduits h2 {
+  margin: 0;
+  color: var(--fof-sand);
+  font-size: 0.95em;
+}
+
+.fof-conduit {
+  display: grid;
+  grid-template-columns: minmax(8em, 15em) minmax(3em, 1fr) 5.5em;
+  align-items: center;
+  gap: 0.6em;
+  font-size: 0.85em;
+}
+
+.fof-conduit-bar {
+  height: 0.7em;
+  background-color: #12101c;
+  background-image: repeating-linear-gradient(90deg, var(--fof-teal) 0 10px, transparent 10px 20px);
+  border-radius: 0.35em;
+  animation: fof-carry var(--fof-beat, 2.4s) linear infinite;
+}
+
+.fof-speed-0 { --fof-beat: 3s; }
+.fof-speed-1 { --fof-beat: 2s; }
+.fof-speed-2 { --fof-beat: 1.2s; }
+.fof-speed-3 { --fof-beat: 0.7s; }
+.fof-speed-4 { --fof-beat: 0.4s; }
+
+@keyframes fof-carry { to { background-position: 20px 0; } }
+
+.fof-conduit-power {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Upright screens and phones: one column, the core first. */
+@media (orientation: portrait), (max-width: 760px) {
+  .fof {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-template-areas: "top" "core" "rail" "main" "bottom";
+  }
+
+  .fof-rail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fof-cap { width: 1.5em; }
+  .fof-label { font-size: 1em; }
+  .fof-conduit { grid-template-columns: minmax(0, 1fr) 5em; }
+  .fof-conduit-route { grid-column: 1 / -1; }
+}
+
+/* A small panel keeps the motion but drops the glow and the throb, the parts
+   that cost the most to draw. */
+@media (max-width: 760px), (max-height: 520px) {
+  .fof-vessel { box-shadow: none; }
+  .fof-plasma { animation: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fof-plasma,
+  .fof-bands,
+  .fof-conduit-bar {
+    animation: none;
+  }
+
+  .fof-plasma { transition: none; }
+}
