@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useRef, type ReactNode } from "react";
+import { useCallback, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 import { Clock } from "../../Clock";
 import type { PartName, Status, System } from "../../model/system";
@@ -15,6 +15,7 @@ import { Conduits } from "./Conduits";
 import { Core, Rows } from "./Core";
 import { GeneratorCore } from "./GeneratorCore";
 import { GridTower } from "./GridTower";
+import type { HubPorts } from "./hubPorts";
 import { InverterCore } from "./InverterCore";
 import { LoadPanel } from "./LoadPanel";
 import { SkinSegment } from "./SkinSegment";
@@ -80,6 +81,12 @@ function Readout(props: {
 // and SVG, with no images.
 export function FofSkin({ model, connected = true }: { model: System; connected?: boolean }) {
   const root = useRef<HTMLDivElement>(null);
+  // Where the conduits meet the hub, which they work out once laid out and
+  // the hub needs to carry them on into its windings.
+  const [hub, setHub] = useState<HubPorts>();
+  const heardHub = useCallback((ports: HubPorts) => {
+    setHub((previous) => (JSON.stringify(previous) === JSON.stringify(ports) ? previous : ports));
+  }, []);
   const state = link(model, connected);
 
   // A CSS animation counts from when it starts, and the skin's start at
@@ -115,7 +122,7 @@ export function FofSkin({ model, connected = true }: { model: System; connected?
 
       <div className="fof-diagram">
         <Conduits flows={withIdleLinks(model.inverter_charger ? throughHub(model.flows) : model.flows, model)}
-          inputs={hubInputs(model)} />
+          inputs={hubInputs(model)} onHubPorts={heardHub} />
 
         {model.grid && (
           <Readout part="grid" title={partTitle("grid", model)} status={model.grid.status} state={gridState(model.grid)}
@@ -133,7 +140,7 @@ export function FofSkin({ model, connected = true }: { model: System; connected?
 
         {model.inverter_charger && (
           <Readout part="inverter_charger" title="Inverter" status={model.inverter_charger.status}
-            state={inverterState(model.inverter_charger)} art={<InverterCore inverter={model.inverter_charger} />}
+            state={inverterState(model.inverter_charger)} art={<InverterCore inverter={model.inverter_charger} hub={hub} />}
             layout="hub">
             <Rows readings={all(inverterReadings(model.inverter_charger, model))} />
             {model.inverter_charger.alarms.map((alarm) => (

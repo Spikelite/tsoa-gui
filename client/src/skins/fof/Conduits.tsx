@@ -2,8 +2,8 @@ import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 
 import type { Flow, PartName } from "../../model/system";
 import { flowSpeed } from "../minimal/flowSpeed";
-import { conduitPath, usePanelMeasure, type Box } from "../panelBoxes";
-import { HUB_VIEW, portShift } from "./hubPorts";
+import { approach, conduitPath, usePanelMeasure, type Box } from "../panelBoxes";
+import { HUB_EDGE, HUB_VIEW, portShift, type HubPort, type HubPorts } from "./hubPorts";
 import { steadyPeriod } from "./wavePeriod";
 
 // A wave is many faint strokes centered on one another, each shorter, a
@@ -59,6 +59,38 @@ function hubNudge(
 /** The space between waves, in em. */
 const WAVE = 14;
 
+const fraction = (value: number) => Number((((value % 1) + 1) % 1).toFixed(3));
+
+/**
+ * Where a conduit meets the hub, if it does, and when in its cycle a crest
+ * crosses the edge of the hub's square there: a conduit into the hub has a crest at its end,
+ * the hub's center, as each cycle starts, and one out of it has a crest at
+ * its far end then, so a crest crosses the disc as far before or after as the
+ * distance takes at the waves' pace.
+ */
+function hubPort(flow: Flow, from: Box, to: Box, hub: Box, length: number, wave: number): HubPort | null {
+  if (!from.hub && !to.hub) {
+    return null;
+  }
+  const { main, sign } = approach(from, to);
+  const scale = (2 * hub.halfWidth) / HUB_VIEW;
+  const outward = Boolean(from.hub);
+  // A conduit into the hub arrives travelling the way it runs; one out of it leaves that way.
+  const heading = outward ? sign : -sign;
+  const side = main === "x" ? (heading > 0 ? "right" : "left") : heading > 0 ? "bottom" : "top";
+  const cross = main === "x" ? "y" : "x";
+  const offset = outward ? 0 : (to[cross] - hub[cross]) / scale;
+  const toEdge = HUB_EDGE * scale;
+  return {
+    key: `${flow.source}-${flow.target}`,
+    side,
+    offset: Number(offset.toFixed(2)),
+    outward,
+    idle: flow.power_w <= 0,
+    crossing: outward ? fraction(-(length - toEdge) / wave) : fraction(1 - toEdge / wave),
+  };
+}
+
 // Power moving between panels, drawn as the console's thick conduits, in right
 // angles with rounded elbows, plugged into the panels' edges. Waves of plasma
 // roll along each toward its target, faster and the conduit wider with every
@@ -75,10 +107,12 @@ const WAVE = 14;
 // for its breakers. A conduit launched from its source, as the grid's is from
 // its tower's row of pills, is timed from its start instead, so the source can
 // time the waves it sends.
-export function Conduits({ flows, inputs = {} }: {
+export function Conduits({ flows, inputs = {}, onHubPorts }: {
   flows: Flow[];
   /** The AC input of the inverter/charger's hub each supply plugs into, where it has two. */
   inputs?: Partial<Record<PartName, 1 | 2>>;
+  /** Hears where and when the conduits meet the hub, for the hub to carry them on in its drawing. */
+  onHubPorts?: (ports: HubPorts) => void;
 }) {
   const svg = useRef<SVGSVGElement>(null);
   const [nudge, setNudge] = useState(0);
@@ -140,18 +174,38 @@ export function Conduits({ flows, inputs = {} }: {
     return () => entries.forEach(([key]) => root.style.removeProperty(`--fof-roll-${key}`));
   }, [settled]);
 
+  const hub = boxes.inverter_charger;
+  const ports: HubPort[] = [];
+  const drawn = flows.map((flow) => {
+    const from = boxes[flow.source];
+    const to = target(flow);
+    if (from === undefined || to === undefined) {
+      return null;
+    }
+    const path = conduitPath(from, to, 36);
+    const port = hub?.hub ? hubPort(flow, from, to, hub, path.length, WAVE * em) : null;
+    if (port) {
+      ports.push(port);
+    }
+    return { flow, from, path };
+  });
+  const cycleUnits = hub?.hub ? Number(((WAVE * em * HUB_VIEW) / (2 * hub.halfWidth)).toFixed(1)) : 0;
+  const heard = JSON.stringify({ ports, cycleUnits });
+  useLayoutEffect(() => {
+    onHubPorts?.(JSON.parse(heard) as HubPorts);
+  }, [heard, onHubPorts]);
+
   return (
     <svg ref={svg} className="fof-conduits" aria-hidden="true">
-      {flows.map((flow) => {
-        const from = boxes[flow.source];
-        const to = target(flow);
-        if (from === undefined || to === undefined) {
+      {drawn.map((entry) => {
+        if (entry === null) {
           return null;
         }
+        const { flow, from, path } = entry;
         const key = `${flow.source}-${flow.target}`;
         const speed = flowSpeed(flow.power_w);
         const period = settled[key] ?? steadyPeriod(undefined, flow.power_w);
-        const { d, length, middle, angle } = conduitPath(from, to, 36);
+        const { d, length, middle, angle } = path;
         // How far into its cycle a crest is at the far end when the cycle
         // starts, or for a conduit launched from its source, at its start,
         // which with each crest centered in its wave is always half a cycle.
