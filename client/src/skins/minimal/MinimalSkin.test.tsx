@@ -56,6 +56,11 @@ describe("MinimalSkin", () => {
     expect(drawn).toEqual(system.flows.map((flow) => `${flow.source}-${flow.target}`));
   });
 
+  it("says a state is unknown when the reading behind it is", () => {
+    render(<MinimalSkin model={{ ...system, solar: { ...system.solar!, power_w: null } }} />);
+    expect(within(panel("Solar")).getByText("Unknown")).toBeInTheDocument();
+  });
+
   it("draws an offline part without its readings", () => {
     render(<MinimalSkin model={{ ...system, battery: { ...system.battery!, status: "offline" } }} />);
     const battery = panel("Battery");

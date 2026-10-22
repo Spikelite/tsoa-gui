@@ -153,7 +153,8 @@ export function BatteryPanel({ battery }: { battery: Battery }) {
 
 export function SolarPanel({ solar }: { solar: Solar }) {
   return (
-    <Panel part="solar" title="Solar" status={solar.status} state={solar.power_w ? "Producing" : "Not producing"}>
+    <Panel part="solar" title="Solar" status={solar.status}
+      state={solar.power_w === null ? "Unknown" : solar.power_w > 0 ? "Producing" : "Not producing"}>
       <Headline value={solar.power_w} format={f.power} />
       <dl>
         <Reading label="Today" value={solar.yield_today_kwh} format={f.kilowattHours} />
