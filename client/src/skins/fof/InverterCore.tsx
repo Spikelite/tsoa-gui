@@ -39,11 +39,12 @@ const LIGHT = 22;
 // cells: legs from just outside the outer ring in to just outside the band
 // and back out, LEGS of them, each STEP round from the last.
 const WIND = { outer: 49, inner: 30 };
-const LEGS = 72;
+const LEGS = 96;
 const STEP = 360 / LEGS;
-// Outer turns, where threads join the winding, come every other leg.
+// Outer turns, where threads join the winding, come every other leg; a
+// conduit's joins take the turns nearest where it lands, side by side.
 const TURN = 2 * STEP;
-const WIRE = 1.6;
+const WIRE = 1.3;
 // A conduit splits into THREADS threads, and each of those forks into FORKS.
 const THREADS = 3;
 const FORKS = 3;
@@ -213,8 +214,9 @@ function strand(port: HubPort, thread: number, fork: number, angles: number[]) {
 }
 
 /**
- * Where each port's joins go round the winding: a stretch of outer turns for
- * each, centered as near the side the port meets as the others leave room for.
+ * Where each port's joins go round the winding: the outer turns nearest where
+ * it lands, side by side, moved along only as far as it takes to keep clear
+ * of another port's.
  */
 function stretches(ports: HubPort[]): number[] {
   const natural = ports.map((port) => {
