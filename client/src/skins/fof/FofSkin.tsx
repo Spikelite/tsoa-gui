@@ -8,11 +8,15 @@ import { StatusIcon } from "../StatusIcon";
 import { Title } from "../Title";
 import { Conduits } from "./Conduits";
 import { Core, Row } from "./Core";
+import { InverterCore } from "./InverterCore";
 import "./fof.css";
 
-function Readout(props: { part: PartName; title: string; status: Status; state: string; children: ReactNode }) {
+function Readout(props: {
+  part: PartName; title: string; status: Status; state: string; art?: ReactNode; children: ReactNode;
+}) {
   const heading = useId();
   const offline = props.status === "offline";
+  const rows = !offline && <dl className="fof-rows">{props.children}</dl>;
   return (
     <section className={`fof-readout status-${props.status}`} data-part={props.part} aria-labelledby={heading}>
       <h2>
@@ -22,14 +26,21 @@ function Readout(props: { part: PartName; title: string; status: Status; state: 
         </span>
       </h2>
       <p className="fof-state-line">{offline ? "Not reporting" : props.state}</p>
-      {!offline && <dl className="fof-rows">{props.children}</dl>}
+      {props.art ? (
+        <div className="fof-readout-body">
+          {props.art}
+          {rows}
+        </div>
+      ) : (
+        rows
+      )}
     </section>
   );
 }
 
 // The second skin: the main view's layout as an engineering console. Supplies
-// on the left, the inverter/charger and the battery's glowing core in the
-// middle, loads on the right, with power moving between them through
+// on the left, the inverter/charger's housing and the battery's bank of cells
+// in the middle, loads on the right, with power moving between them through
 // conduits, all inside a frame of rounded bars. Everything is drawn in CSS
 // and SVG, with no images.
 export function FofSkin({ model }: { model: System }) {
@@ -68,7 +79,7 @@ export function FofSkin({ model }: { model: System }) {
 
         {model.inverter_charger && (
           <Readout part="inverter_charger" title="Inverter/charger" status={model.inverter_charger.status}
-            state={inverterState(model.inverter_charger)}>
+            state={inverterState(model.inverter_charger)} art={<InverterCore inverter={model.inverter_charger} />}>
             {model.inverter_charger.mode !== null && (
               <div className="fof-row">
                 <dt>Mode</dt>

@@ -51,6 +51,21 @@ describe("FofSkin", () => {
     expect(screen.getByRole("meter").className).toContain("fof-down");
   });
 
+  it("colors the inverter/charger's ring by what it is doing, and stills it when it is not reporting", () => {
+    const inverter = system.inverter_charger!;
+    const ring = (state: typeof inverter.state, status: typeof inverter.status = inverter.status) => {
+      const { container, unmount } = render(<FofSkin model={{ ...system, inverter_charger: { ...inverter, state, status } }} />);
+      const unit = container.querySelector(".fof-unit")!.className;
+      unmount();
+      return unit;
+    };
+    expect(ring("bulk")).toContain("fof-duty-charging");
+    expect(ring("inverting")).toContain("fof-duty-inverting");
+    expect(ring("passthrough")).toContain("fof-duty-passing");
+    expect(ring("off")).toContain("fof-duty-idle");
+    expect(ring("inverting", "offline")).toContain("fof-duty-idle");
+  });
+
   it("shows the output's voltage and frequency with the AC loads", () => {
     render(<FofSkin model={system} />);
     const loads = screen.getByRole("region", { name: "AC loads" });

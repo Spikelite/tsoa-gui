@@ -199,6 +199,100 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The inverter/charger: a housing with a ring of energy beside its readings */
+.fof-readout-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6em 1em;
+  padding: 0 0.75em;
+}
+
+.fof-readout-body .fof-rows {
+  flex: 1 1 12em;
+  width: auto;
+  padding: 0;
+}
+
+.fof-unit {
+  position: relative;
+  flex: 0 0 auto;
+  width: 10em;
+  aspect-ratio: 1;
+  --fof-ring: #5b5672;
+  --fof-ring-head: #8a85a3;
+}
+
+.fof-duty-inverting { --fof-ring: var(--fof-plasma-deep); --fof-ring-head: var(--fof-plasma); }
+.fof-duty-charging { --fof-ring: #3fb8a8; --fof-ring-head: #b6f0e6; }
+.fof-duty-passing { --fof-ring: #9c7fd0; --fof-ring-head: #e2d4f7; }
+
+.fof-unit-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.fof-housing { stroke: var(--fof-periwinkle); stroke-width: 2; }
+.fof-bolt { fill: #4a4660; stroke: #000; stroke-width: 1; }
+.fof-vent line { stroke: #000; stroke-width: 3; stroke-linecap: round; }
+.fof-bezel { fill: #050409; stroke: #3d3852; stroke-width: 4; }
+
+.fof-ring-track,
+.fof-ring-glow,
+.fof-ring-halo,
+.fof-ring-arc {
+  fill: none;
+  stroke-width: 10;
+}
+
+.fof-ring-track { stroke: #1b1828; }
+.fof-ring-glow { stroke: var(--fof-ring); stroke-opacity: 0.35; }
+
+/* Each arc of a comet whitens toward its head; the halo is its glow. */
+.fof-ring-arc {
+  stroke: color-mix(in oklab, #fff calc(var(--heat) * 55%), var(--fof-ring-head));
+  stroke-opacity: var(--alpha);
+}
+
+.fof-ring-halo {
+  stroke: var(--fof-ring-head);
+  stroke-width: 18;
+  stroke-opacity: calc(var(--alpha) * 0.3);
+}
+
+/* Round ends give each comet a rounded head and a soft tail. */
+.fof-ring-arc,
+.fof-ring-halo { stroke-linecap: round; }
+
+/* The ring turns about the window's center while power moves through. */
+.fof-ring-spin {
+  transform-box: view-box;
+  transform-origin: 70px 70px;
+  animation: fof-spin var(--fof-turn, 0s) linear infinite;
+}
+
+/* Idle, the ring is dim and nothing chases round it. */
+.fof-duty-idle .fof-ring-spin { display: none; }
+
+.fof-spin-0 { --fof-turn: 6s; }
+.fof-spin-1 { --fof-turn: 4.5s; }
+.fof-spin-2 { --fof-turn: 3.2s; }
+.fof-spin-3 { --fof-turn: 2.2s; }
+.fof-spin-4 { --fof-turn: 1.4s; }
+
+@keyframes fof-spin { to { transform: rotate(1turn); } }
+
+.fof-unit-figure {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--fof-ink);
+  font-size: 0.95em;
+  font-variant-numeric: tabular-nums;
+}
+
 /* The battery: a bank of cells between end caps */
 .fof-core {
   display: grid;
@@ -404,7 +498,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fof-cell-lit { animation: none; }
+  .fof-cell-lit,
+  .fof-ring-spin { animation: none; }
   .fof-conduit-wave { display: none; }
   .fof-conduit-chevron { display: inline; }
 }
