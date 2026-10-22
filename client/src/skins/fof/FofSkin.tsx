@@ -85,7 +85,7 @@ export function FofSkin({ model }: { model: System }) {
           <Clock />
         </span>
         <span className={`fof-link ${model.live ? "fof-link-live" : "fof-link-stale"}`} aria-hidden="true">
-          {model.live ? "Feed live" : "Feed stale"}
+          {model.live ? "Live" : "Stale"}
         </span>
         <SkinSegment />
         <span className="fof-cap fof-cap-right" aria-hidden="true" />
