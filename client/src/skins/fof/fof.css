@@ -511,6 +511,11 @@
 .fof-ring-unit { --fof-hub-rim: #3d3852; }
 .fof-unit-core { fill: #000; stroke: var(--fof-hub-rim, #3d3852); stroke-width: 3; }
 .fof-hub-wire { fill: none; stroke: var(--fof-conduit); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.fof-hub-coil { stroke-width: 1.6; }
+
+/* The core's cells pulse behind the coil 42% darker than elsewhere, so the
+   winding stands clear of them. */
+.fof-ring-unit .fof-unit-cell { opacity: 0.58; }
 
 /* A conduit's threads into the hub: its own body and waves, cut to each
    thread's tapering outline in InverterCore.tsx. */
@@ -520,7 +525,6 @@
 .fof-thread-wave {
   fill: none;
   stroke: color-mix(in oklab, var(--fof-plasma-deep) calc(var(--depth) * 100%), var(--fof-plasma));
-  stroke-opacity: calc(0.1 + var(--depth) * 0.2);
   animation: fof-thread-roll var(--fof-roll) linear infinite;
   animation-delay: calc(var(--fof-phase, 0) * var(--fof-roll) * -1);
 }
@@ -644,7 +648,7 @@
    off along the conduit. */
 .fof-solar-unit {
   --fof-cell-rest: #6e6450;
-  --fof-feed: var(--fof-roll-solar-battery, 4s);
+  --fof-feed: var(--fof-roll-solar-dc_bus, var(--fof-roll-solar-battery, 4s));
 }
 
 .fof-duty-producing {
@@ -891,8 +895,8 @@
 
 /* The battery pulses at the pace of the conduit feeding or drawing on it. */
 .fof-bank {
-  --fof-beat: var(--fof-roll-inverter_charger-battery,
-    var(--fof-roll-battery-inverter_charger, var(--fof-roll-solar-battery, 4s)));
+  --fof-beat: var(--fof-roll-dc_bus-battery, var(--fof-roll-battery-dc_bus,
+    var(--fof-roll-inverter_charger-battery, var(--fof-roll-battery-inverter_charger, 4s))));
 }
 
 /* Conduits, underneath the panels */

@@ -29,18 +29,21 @@ def test_power_takes_the_paths_the_day_describes():
     def paths(fraction_of_day):
         return {(f.source, f.target) for f in snapshot(fraction_of_day * CYCLE_S).flows}
 
-    # Midnight: the battery runs everything through the inverter.
-    assert paths(0.0) == {("battery", "inverter_charger"), ("inverter_charger", "ac_loads"), ("battery", "dc_loads")}
-    # Dawn: the generator runs the loads and charges the battery.
+    # Every part on the DC side meets at the DC bus.
+    # Midnight: the battery runs the DC loads, and the AC loads through the inverter.
+    assert paths(0.0) == {("battery", "dc_bus"), ("dc_bus", "inverter_charger"), ("inverter_charger", "ac_loads"),
+                          ("dc_bus", "dc_loads")}
+    # Dawn: the generator runs the loads and charges the battery, and the
+    # charger rather than the battery runs the DC loads.
     assert paths(0.22) == {("generator", "inverter_charger"), ("inverter_charger", "ac_loads"),
-                           ("inverter_charger", "battery"), ("battery", "dc_loads")}
-    # Midday: solar charges the battery, which still runs the inverter.
-    assert paths(0.45) == {("solar", "battery"), ("battery", "inverter_charger"), ("inverter_charger", "ac_loads"),
-                           ("battery", "dc_loads")}
+                           ("inverter_charger", "dc_bus"), ("dc_bus", "battery"), ("dc_bus", "dc_loads")}
+    # Midday: solar charges the battery and runs the DC loads, and the AC loads through the inverter.
+    assert paths(0.45) == {("solar", "dc_bus"), ("dc_bus", "battery"), ("dc_bus", "inverter_charger"),
+                           ("inverter_charger", "ac_loads"), ("dc_bus", "dc_loads")}
     # Evening: shore power runs the loads, charges the battery, and feeds the
     # water heater on its own side of the inverter.
     assert paths(0.80) == {("grid", "inverter_charger"), ("grid", "ac_loads"), ("inverter_charger", "ac_loads"),
-                           ("inverter_charger", "battery"), ("battery", "dc_loads")}
+                           ("inverter_charger", "dc_bus"), ("dc_bus", "battery"), ("dc_bus", "dc_loads")}
 
 
 def test_the_output_follows_its_source():

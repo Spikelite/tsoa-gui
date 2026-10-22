@@ -47,6 +47,11 @@ export type ChargerState =
   | "other";
 /**
  * This interface was referenced by `System`'s JSON-Schema
+ * via the `definition` "FlowEnd".
+ */
+export type FlowEnd = PartName | "dc_bus";
+/**
+ * This interface was referenced by `System`'s JSON-Schema
  * via the `definition` "PartName".
  */
 export type PartName = "grid" | "generator" | "inverter_charger" | "battery" | "solar" | "ac_loads" | "dc_loads";
@@ -327,8 +332,8 @@ export interface DcLoads {
  * via the `definition` "Flow".
  */
 export interface Flow {
-  source: PartName;
-  target: PartName;
+  source: FlowEnd;
+  target: FlowEnd;
   /**
    * Power moving from source to target. Never negative.
    */

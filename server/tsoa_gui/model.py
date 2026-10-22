@@ -20,6 +20,11 @@ Status = TypeAliasType("Status", Literal["good", "normal", "attention", "warning
 PartName = TypeAliasType(
     "PartName", Literal["grid", "generator", "inverter_charger", "battery", "solar", "ac_loads", "dc_loads"])
 
+# Where power can run from or to: a part, or the DC bus, the junction where
+# the inverter/charger, the battery, solar and the DC loads all meet, which
+# is not a part of its own.
+FlowEnd = TypeAliasType("FlowEnd", PartName | Literal["dc_bus"])
+
 
 class _Model(BaseModel):
     # Every field is always present in what the server sends, null or not, so
@@ -148,8 +153,8 @@ class DcLoads(Part):
 class Flow(_Model):
     """Power moving from one part to another, drawn as animated flow between their panels."""
 
-    source: PartName
-    target: PartName
+    source: FlowEnd
+    target: FlowEnd
     power_w: float = Field(ge=0, description="Power moving from source to target. Never negative.")
 
 

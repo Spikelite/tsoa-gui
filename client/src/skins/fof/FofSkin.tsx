@@ -184,7 +184,7 @@ export function FofSkin({ model, connected = true }: { model: System; connected?
         {model.dc_loads && (
           <Readout part="dc_loads" title="DC loads" status={model.dc_loads.status}
             state={dcLoadsState(model.dc_loads)}
-            art={<LoadPanel power={model.dc_loads.power_w} status={model.dc_loads.status} feed="battery-dc_loads" />}
+            art={<LoadPanel power={model.dc_loads.power_w} status={model.dc_loads.status} feed="dc_bus-dc_loads" />}
             layout="lead">
             <Rows readings={all(dcLoadsReadings(model.dc_loads))} />
           </Readout>

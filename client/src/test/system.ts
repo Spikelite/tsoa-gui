@@ -66,7 +66,8 @@ export const system: System = {
     { source: "grid", target: "inverter_charger", power_w: 1050 },
     { source: "grid", target: "ac_loads", power_w: 200 },
     { source: "inverter_charger", target: "ac_loads", power_w: 700 },
-    { source: "inverter_charger", target: "battery", power_w: 317 },
-    { source: "solar", target: "battery", power_w: 310 },
+    { source: "inverter_charger", target: "dc_bus", power_w: 317 },
+    { source: "solar", target: "dc_bus", power_w: 310 },
+    { source: "dc_bus", target: "battery", power_w: 480 },
   ],
 };
