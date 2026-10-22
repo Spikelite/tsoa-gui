@@ -35,7 +35,7 @@ Dark mode is the default.
 
 ## Skins
 
-A skin is a view over the same system model. It receives the model and its updates and decides how to draw them, and it never talks to the device itself. There are two. The default is minimal and technical. The second, Sci-Fi FOF (Form Over Function), draws the same diagram as an engineering console. Every part keeps its place from the minimal skin, stepped down from supplies to loads, joined by thick conduits with rounded elbows along which pulses of plasma travel toward where the power goes. The battery is a bank of cells that light with its charge and carry a wave of light that follows its power. All of its artwork is original, drawn in CSS and SVG, and it drops the cells' glow on a small screen.
+A skin is a view over the same system model. It receives the model and its updates and decides how to draw them, and it never talks to the device itself. There are two. The default is minimal and technical. The second, Sci-Fi FOF (Form Over Function), draws the same diagram as an engineering console. Every part keeps its place from the minimal skin, stepped down from supplies to loads, joined by thick conduits with rounded elbows along which waves of plasma roll toward where the power goes. The battery is a bank of cells that light with its charge and carry a wave of light that follows its power. All of its artwork is original, drawn in CSS and SVG, and it drops the cells' glow on a small screen.
 
 A viewer chooses the skin from a menu at the top of the page, and each browser remembers its choice. A fixed display, with nobody to click, names its skin in the address instead, as in `?skin=sci-fi-fof`.
 

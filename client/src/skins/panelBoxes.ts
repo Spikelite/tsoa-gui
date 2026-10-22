@@ -74,14 +74,10 @@ export function flowPoints(from: Box, to: Box): string {
   return `${from.x},${from.y} ${middle.x},${middle.y} ${to.x},${to.y}`;
 }
 
-/** A conduit's route: its path, its length, and a point and direction for a marker. */
-export type Conduit = { d: string; length: number; middle: Point; angle: number };
+/** A conduit's route: its path, and a point and direction for a marker. */
+export type Conduit = { d: string; middle: Point; angle: number };
 
 type Axis = "x" | "y";
-
-// The length of a rounded elbow as a share of its radius: a quadratic curve
-// with its control point at the corner.
-const ELBOW = 1.1478;
 
 function half(box: Box, axis: Axis): number {
   return axis === "x" ? box.halfWidth : box.halfHeight;
@@ -90,13 +86,13 @@ function half(box: Box, axis: Axis): number {
 /**
  * A conduit's path from one panel to another, in right angles with rounded
  * elbows, as the console draws its connections. It runs from the edge of one
- * panel to the facing edge of the other, reaching `tuck` pixels under each
- * (never past its center) so it plugs in. Panels side by side are joined
- * across the gap between their columns, turning in its middle; panels in one
- * column, down the gap between their rows. The bends depend only on where the
- * panels are, so a deeper tuck gives the same route with longer ends.
+ * panel to the facing edge of the other, a little under each so it plugs in.
+ * Panels side by side are joined across the gap between their columns,
+ * turning in its middle; panels in one column, down the gap between their
+ * rows.
  */
-export function conduitPath(from: Box, to: Box, radius: number, tuck = 6): Conduit {
+export function conduitPath(from: Box, to: Box, radius: number): Conduit {
+  const tuck = 6;
   // The main axis crosses the gap between the panels; the cross axis runs along it.
   const main: Axis = Math.abs(to.x - from.x) > from.halfWidth + to.halfWidth ? "x" : "y";
   const cross: Axis = main === "x" ? "y" : "x";
@@ -104,8 +100,8 @@ export function conduitPath(from: Box, to: Box, radius: number, tuck = 6): Condu
   const leaving = from[main] + sa * half(from, main);
   const arriving = to[main] - sa * half(to, main);
   const turn = (leaving + arriving) / 2;
-  const a1 = leaving - sa * Math.min(tuck, half(from, main));
-  const a2 = arriving + sa * Math.min(tuck, half(to, main));
+  const a1 = leaving - sa * tuck;
+  const a2 = arriving + sa * tuck;
   const [b1, b2] = levels(from[cross], half(from, cross), to[cross], half(to, cross), radius);
   const sb = Math.sign(b2 - b1);
   const r = Math.min(radius, Math.abs(b2 - b1) / 2, Math.abs(turn - leaving));
@@ -116,7 +112,6 @@ export function conduitPath(from: Box, to: Box, radius: number, tuck = 6): Condu
     // In line, or so nearly that the bends would vanish: a straight run.
     return {
       d: `M${point(a1, b1)} L${point(a2, b2)}`,
-      length: Math.hypot(a2 - a1, b2 - b1),
       middle: at(turn, (b1 + b2) / 2),
       angle: heading(at(sa, 0)),
     };
@@ -130,7 +125,6 @@ export function conduitPath(from: Box, to: Box, radius: number, tuck = 6): Condu
       `Q${point(turn, b2)} ${point(turn + sa * r, b2)}`,
       `L${point(a2, b2)}`,
     ].join(" "),
-    length: Math.abs(a2 - a1) + Math.abs(b2 - b1) - 4 * r + 2 * ELBOW * r,
     middle: at(turn, (b1 + b2) / 2),
     angle: heading(at(0, sb)),
   };

@@ -72,16 +72,4 @@ describe("conduitPath", () => {
     const beside = { x: 300, y: 12, halfWidth: 50, halfHeight: 20 };
     expect(conduitPath(left, beside, 28).d).toBe("M44,6 L256,6");
   });
-
-  it("measures its length along the bends", () => {
-    expect(conduitPath(left, { x: 300, y: 0, halfWidth: 50, halfHeight: 20 }, 28).length).toBe(212);
-    // 212 across and 100 down, less the corners the two elbows cut.
-    expect(conduitPath(left, { x: 300, y: 100, halfWidth: 50, halfHeight: 20 }, 28).length).toBeCloseTo(264.28, 2);
-  });
-
-  it("keeps its route with a deeper tuck, reaching no further than each panel's center", () => {
-    const right = { x: 300, y: 100, halfWidth: 50, halfHeight: 20 };
-    expect(conduitPath(left, right, 28, 40).d).toBe("M10,0 L122,0 Q150,0 150,28 L150,72 Q150,100 178,100 L290,100");
-    expect(conduitPath(left, right, 28, 80).d).toBe("M0,0 L122,0 Q150,0 150,28 L150,72 Q150,100 178,100 L300,100");
-  });
 });

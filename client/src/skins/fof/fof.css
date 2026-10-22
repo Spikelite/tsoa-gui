@@ -12,8 +12,7 @@
   --fof-cell: #f0dfa8;
   --fof-cap: #a8803c;
   --fof-conduit: #f6dc74;
-  --fof-plasma: #4a9bff;
-  --fof-plasma-hot: #e3f1ff;
+  --fof-plasma: #a6d4ff;
   min-height: 100vh;
   background: #000;
 }
@@ -342,21 +341,43 @@
   stroke-width: var(--fof-width);
 }
 
-.fof-speed-0 { --fof-width: 1em; }
-.fof-speed-1 { --fof-width: 1.2em; }
-.fof-speed-2 { --fof-width: 1.4em; }
-.fof-speed-3 { --fof-width: 1.6em; }
-.fof-speed-4 { --fof-width: 1.8em; }
+.fof-speed-0 { --fof-width: 1em; --fof-roll: 3.5s; }
+.fof-speed-1 { --fof-width: 1.2em; --fof-roll: 2.2s; }
+.fof-speed-2 { --fof-width: 1.4em; --fof-roll: 1.45s; }
+.fof-speed-3 { --fof-width: 1.6em; --fof-roll: 0.95s; }
+.fof-speed-4 { --fof-width: 1.8em; --fof-roll: 0.6s; }
 
-/* A pulse's glows are as wide as the conduit, so they never spill past it.
-   Plasma blue is the conduit's opposite, so it stands out, and it falls off
-   gently so the overlapping glows blend into one. */
-.fof-conduit-pulse { r: calc(var(--fof-width) * 0.5); }
+/* The energy: waves of plasma rolling along the conduit toward its target,
+   one every 7em, across its whole width and around its bends, with clear
+   yellow between them. Each wave is six faint strokes centered on one
+   another, each shorter than the one under it, so its tint swells and fades
+   with no hard edge, and needs no blur filter, which would cost too much on a
+   small panel. The blue is an icy one, about as light as the yellow, so it
+   does not stand out hard against it; a darker blue made faint enough would
+   only mix with the yellow into gray. */
+.fof-conduit-wave {
+  stroke: var(--fof-plasma);
+  stroke-width: var(--fof-width);
+  stroke-opacity: 0.17;
+  animation: var(--fof-roll) linear infinite;
+}
 
-.fof-plasma-core { stop-color: var(--fof-plasma-hot); stop-opacity: 1; }
-.fof-plasma-body { stop-color: var(--fof-plasma); stop-opacity: 0.8; }
-.fof-plasma-fringe { stop-color: var(--fof-plasma); stop-opacity: 0.3; }
-.fof-plasma-edge { stop-color: var(--fof-plasma); stop-opacity: 0; }
+.fof-conduit .fof-conduit-wave { stroke-linecap: butt; }
+
+.fof-wave-0 { stroke-dasharray: 5em 2em; animation-name: fof-roll-0; }
+.fof-wave-1 { stroke-dasharray: 4.1em 2.9em; animation-name: fof-roll-1; }
+.fof-wave-2 { stroke-dasharray: 3.2em 3.8em; animation-name: fof-roll-2; }
+.fof-wave-3 { stroke-dasharray: 2.3em 4.7em; animation-name: fof-roll-3; }
+.fof-wave-4 { stroke-dasharray: 1.4em 5.6em; animation-name: fof-roll-4; }
+.fof-wave-5 { stroke-dasharray: 0.6em 6.4em; animation-name: fof-roll-5; }
+
+/* Each stroke starts centered on the conduit's start and moves one wave on. */
+@keyframes fof-roll-0 { from { stroke-dashoffset: 2.5em; } to { stroke-dashoffset: -4.5em; } }
+@keyframes fof-roll-1 { from { stroke-dashoffset: 2.05em; } to { stroke-dashoffset: -4.95em; } }
+@keyframes fof-roll-2 { from { stroke-dashoffset: 1.6em; } to { stroke-dashoffset: -5.4em; } }
+@keyframes fof-roll-3 { from { stroke-dashoffset: 1.15em; } to { stroke-dashoffset: -5.85em; } }
+@keyframes fof-roll-4 { from { stroke-dashoffset: 0.7em; } to { stroke-dashoffset: -6.3em; } }
+@keyframes fof-roll-5 { from { stroke-dashoffset: 0.3em; } to { stroke-dashoffset: -6.7em; } }
 
 /* The motion shows the direction, so the chevron appears only without it. */
 .fof-conduit-chevron {
@@ -395,6 +416,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .fof-cell-lit { animation: none; }
-  .fof-conduit-pulse { display: none; }
+  .fof-conduit-wave { display: none; }
   .fof-conduit-chevron { display: inline; }
 }
