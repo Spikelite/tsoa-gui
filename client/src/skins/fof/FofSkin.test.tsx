@@ -7,7 +7,7 @@ import { FofSkin } from "./FofSkin";
 describe("FofSkin", () => {
   it("draws a readout for each part the system has, and none for the rest", () => {
     render(<FofSkin model={system} />);
-    for (const name of ["Shore power", "Inverter/charger", "Battery", "Solar", "AC loads", "DC loads"]) {
+    for (const name of ["Shore power", "Inverter", "Battery", "Solar", "AC loads", "DC loads"]) {
       expect(screen.getByRole("region", { name })).toBeInTheDocument();
     }
     expect(screen.queryByRole("region", { name: "Generator" })).not.toBeInTheDocument();
@@ -17,7 +17,7 @@ describe("FofSkin", () => {
     render(<FofSkin model={system} />);
     const expected = {
       "Shore power": ["Normal", "Connected"],
-      "Inverter/charger": ["Warning", "Bulk"],
+      "Inverter": ["Warning", "Bulk"],
       Battery: ["Good", "Charging"],
       Solar: ["Good", "Producing"],
       "AC loads": ["Normal", "In use"],

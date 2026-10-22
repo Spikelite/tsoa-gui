@@ -128,7 +128,7 @@ export function FofSkin({ model }: { model: System }) {
         )}
 
         {model.inverter_charger && (
-          <Readout part="inverter_charger" title="Inverter/charger" status={model.inverter_charger.status}
+          <Readout part="inverter_charger" title="Inverter" status={model.inverter_charger.status}
             state={inverterState(model.inverter_charger)} art={<InverterCore inverter={model.inverter_charger} />}
             layout="hub">
             <Rows readings={all(inverterReadings(model.inverter_charger, model))} />

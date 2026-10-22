@@ -22,7 +22,7 @@ export function partTitle(part: PartName, model: System): string {
     case "generator":
       return "Generator";
     case "inverter_charger":
-      return "Inverter/charger";
+      return "Inverter";
     case "battery":
       return "Battery";
     case "solar":

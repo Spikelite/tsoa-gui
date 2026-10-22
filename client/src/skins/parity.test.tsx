@@ -22,7 +22,7 @@ const everything: System = {
   dc_loads: { status: "normal", power_w: 42, measured_by: "meter" },
 };
 
-const PARTS = ["Shore power", "Generator", "Inverter/charger", "Battery", "Solar", "AC loads", "DC loads"];
+const PARTS = ["Shore power", "Generator", "Inverter", "Battery", "Solar", "AC loads", "DC loads"];
 
 /** Every value a skin shows for each part, numbers and words alike, sorted. */
 function shown(skin: ReactElement): Record<string, string[]> {
@@ -43,6 +43,6 @@ describe("the skins", () => {
     const fof = shown(<FofSkin model={everything} />);
     expect(fof).toEqual(minimal);
     expect(minimal.Battery).toEqual(expect.arrayContaining(["10 h 0 min", "100.0 A", "150.0 A", "20 mV"]));
-    expect(minimal["Inverter/charger"]).toContain("Generator");
+    expect(minimal["Inverter"]).toContain("Generator");
   });
 });

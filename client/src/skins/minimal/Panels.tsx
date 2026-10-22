@@ -107,9 +107,7 @@ export function GeneratorPanel({ generator }: { generator: Generator }) {
 export function InverterChargerPanel({ inverter, model }: { inverter: InverterCharger; model: System }) {
   const readings = inverterReadings(inverter, model);
   return (
-    // A narrow panel breaks the title after the slash, not inside a word.
-    <Panel part="inverter_charger" title={<>Inverter/<wbr />charger</>} status={inverter.status}
-      state={inverterState(inverter)}>
+    <Panel part="inverter_charger" title="Inverter" status={inverter.status} state={inverterState(inverter)}>
       <Headline reading={readings.headline} />
       <Details readings={readings} />
       <Alarms alarms={inverter.alarms} />

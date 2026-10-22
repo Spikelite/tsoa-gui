@@ -8,7 +8,7 @@ One page is both the status board and the data view. Each part of the system has
 |---|---|
 | Grid or shore | connected or not, voltage, current, power, frequency, input current limit |
 | Generator | running or stopped, power, run time |
-| Inverter/charger | mode, state (inverting, bulk, absorption, float, passthrough), AC in and out power, charge current, the AC input in use where it has two, alarms |
+| Inverter/charger, named Inverter on screen | mode, state (inverting, bulk, absorption, float, passthrough), AC in and out power, charge current, the AC input in use where it has two, alarms |
 | Battery | state of charge, voltage, current, power, temperature, time to go, charge limits, cell spread where the battery reports cells |
 | Solar | power per charger and in total, today's yield, charger state |
 | AC loads | power on each output |
