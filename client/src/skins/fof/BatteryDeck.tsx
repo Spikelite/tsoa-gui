@@ -19,7 +19,7 @@ function rowsOf(cells: CellDetail[]): CellDetail[][] {
 }
 
 // The battery's own page, as the console would show one system in full: the
-// block with every cell it reports, each lit to its own charge between empty
+// block with every cell it reports and its charge beside its right end, each lit to its own charge between empty
 // and full with its number above it and its voltage and its difference from
 // the others' mean below, the lowest and highest marked and a balancing cell
 // pulsing; then every reading in groups headed by rounded tags, and every
@@ -29,25 +29,28 @@ export function BatteryDeck({ battery }: { battery: Battery }) {
   const offline = battery.status === "offline";
   const cells = cellDetails(battery.cells, battery);
   const checks = batteryChecks(battery);
+  const figure = (
+    <p className="fof-deck-figure">
+      <Eased value={battery.soc_percent} format={f.percent} />
+    </p>
+  );
 
   return (
-    <section className={`fof-deck status-${battery.status}`} data-part="battery" aria-labelledby={heading}>
+    <section className={`fof-deck status-${battery.status}${cells.length > 0 ? " fof-deck-celled" : ""}`} data-part="battery" aria-labelledby={heading}>
       <div className="fof-deck-head">
         <h2 className="fof-label-block">
           <span id={heading}>Battery</span>
           <StatusWords status={battery.status} separator />
         </h2>
         <p className="fof-state-line">{offline ? "Not reporting" : batteryState(battery)}</p>
-        {!offline && (
-          <p className="fof-deck-figure">
-            <Eased value={battery.soc_percent} format={f.percent} />
-          </p>
-        )}
+        {/* Without cells to stand beside, or on a screen too narrow for it
+            beside them, the charge goes on the name's row. */}
+        {!offline && <div className="fof-deck-head-charge">{figure}</div>}
       </div>
 
       {!offline && cells.length > 0 && (
         <div className="fof-deck-packs" role="list" aria-label="Cells">
-          {rowsOf(cells).map((row) => (
+          {rowsOf(cells).map((row, rowIndex) => (
             <div key={row[0]!.number} className="fof-deck-pack" style={{ "--cells": row.length } as CSSProperties}>
               <span className="fof-bank-cap fof-deck-cap" aria-hidden="true" />
               {row.map((cell, index) => (
@@ -66,6 +69,8 @@ export function BatteryDeck({ battery }: { battery: Battery }) {
                 </div>
               ))}
               <span className="fof-bank-cap fof-deck-cap" aria-hidden="true" style={{ gridColumn: row.length + 2 }} />
+              {/* The charge beside the block's right end, as on the overview. */}
+              {rowIndex === 0 && <div className="fof-deck-charge" style={{ gridColumn: row.length + 3 }}>{figure}</div>}
             </div>
           ))}
         </div>

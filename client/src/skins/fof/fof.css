@@ -1008,6 +1008,12 @@
 .fof-open-link { color: inherit; text-decoration: none; }
 .fof-open-link:focus-visible { outline: 2px solid var(--fof-ink); outline-offset: 0.3em; border-radius: 1em; }
 .fof-back-segment { background: var(--fof-sand); cursor: pointer; }
+.fof-back-short { display: none; }
+
+@media (orientation: portrait), (max-width: 760px) {
+  .fof-back-long { display: none; }
+  .fof-back-short { display: inline; }
+}
 
 /* A part's own page takes the diagram's place inside the frame, growing out
    of where the part sat on the overview. The frame holds to the screen and
@@ -1042,8 +1048,12 @@
 
 .fof-deck-head .fof-state-line { margin: 0; }
 
+.fof-deck-charge { grid-row: 2; align-self: center; padding-left: 0.9em; }
+.fof-deck-head-charge { margin-left: auto; }
+.fof-deck-celled .fof-deck-head-charge { display: none; }
+
 .fof-deck-figure {
-  margin: 0 0 0 auto;
+  margin: 0;
   color: var(--fof-cell);
   font-size: 2.6em;
   font-variant-numeric: tabular-nums;
@@ -1055,7 +1065,7 @@
 
 .fof-deck-pack {
   display: grid;
-  grid-template-columns: 1.6em repeat(var(--cells), minmax(0, 7em)) 1.6em;
+  grid-template-columns: 1.6em repeat(var(--cells), minmax(0, 7em)) 1.6em auto;
   justify-content: start;
   grid-template-rows: auto 9em auto auto;
   column-gap: 0.3em;
@@ -1165,6 +1175,9 @@
 @container (max-width: 40em) {
   .fof-deck-offset { display: none; }
   .fof-deck-volts { writing-mode: vertical-rl; transform: rotate(180deg); }
+  .fof-deck-number { padding: 0 0.15em; font-size: 0.55em; }
+  .fof-deck-charge { display: none; }
+  .fof-deck-celled .fof-deck-head-charge { display: block; }
 }
 
 .fof-deck { container-type: inline-size; }

@@ -109,7 +109,11 @@ export function FofSkin({ model, connected = true }: { model: System; connected?
         <span className="fof-bar" aria-hidden="true" />
         {/* On a part's own page, the way back to the whole system. */}
         {part !== null && (
-          <button type="button" className="fof-segment fof-back-segment" onClick={closePart}>Overview</button>
+          <button type="button" className="fof-segment fof-back-segment" aria-label="Overview" onClick={closePart}>
+            {/* A phone's top bar has room for only the shorter word. */}
+            <span className="fof-back-long" aria-hidden="true">Overview</span>
+            <span className="fof-back-short" aria-hidden="true">Back</span>
+          </button>
         )}
         <span className="fof-segment fof-clock-segment">
           <Clock />
