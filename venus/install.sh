@@ -46,8 +46,41 @@ fi
 grep -qxF "$line" "$rc_local" || printf '%s\n' "$line" >> "$rc_local"
 
 sh "$root/current/boot.sh"
-# A service already running moves to the new release when it restarts.
-svc -t "${SERVICE_DIR:-/service}/tsoa-gui" 2>/dev/null || true
+
+# A service already running moves to the new release when it restarts. An
+# update must never leave it stopped, so the restart is checked: if the old
+# process has not gone within the wait, it is killed, and the supervisor
+# starts the new one.
+service=${SERVICE_DIR:-/service}/tsoa-gui
+wait_s=${RESTART_WAIT_S:-10}
+service_pid() {
+    svstat "$service" 2>/dev/null | sed -n 's/.*(pid \([0-9]*\)).*/\1/p'
+}
+replaced() {
+    # True once a process other than $1 runs, within $wait_s seconds.
+    waited=0
+    while [ "$waited" -lt "$wait_s" ]; do
+        now=$(service_pid)
+        if [ -n "$now" ] && [ "$now" != "$1" ]; then
+            return 0
+        fi
+        sleep 1
+        waited=$((waited + 1))
+    done
+    return 1
+}
+old=$(service_pid)
+if [ -n "$old" ]; then
+    svc -t "$service"
+    if ! replaced "$old"; then
+        echo "The old tsoa-gui process ($old) did not stop within $wait_s s, so it is being killed." >&2
+        svc -k "$service"
+        if ! replaced "$old"; then
+            echo "tsoa-gui is not running after the update: see svstat $service and /data/log/tsoa-gui/current." >&2
+            exit 1
+        fi
+    fi
+fi
 
 PORT=8088
 . "$root/etc/tsoa-gui.conf"
