@@ -15,10 +15,13 @@ day starts over at midnight.
 
 snapshot(t) depends only on t, in seconds, so a test can pin any moment.
 """
+import asyncio
 import math
+import time
 from dataclasses import dataclass
 
 from . import status
+from .feed import Feed
 from .flows import derive_flows
 from .model import (
     AcLoads, Alarm, Battery, DcLoads, Generator, Grid, InverterCharger, Solar, SolarCharger, System,
@@ -246,3 +249,11 @@ def _charger(name: str, power_w: float, yield_wh: float, soc: float) -> SolarCha
         state=state,
         yield_today_kwh=round(yield_wh / 1000, 2),
     )
+
+
+async def run(feed: Feed, interval_s: float = 1.0) -> None:
+    """Publish the invented system every interval, starting at midnight of its day."""
+    start = time.monotonic()
+    while True:
+        feed.publish(snapshot(time.monotonic() - start))
+        await asyncio.sleep(interval_s)

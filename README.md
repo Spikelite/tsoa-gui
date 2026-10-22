@@ -24,7 +24,9 @@ The browser client is in `client/` and needs Node.js 24. The server is in `serve
     python -m pytest
     python -m tsoa_gui
 
-`python -m tsoa_gui` serves the built client from `client/dist` and the API under `/api`, on port 8088. During development, run it beside `npm run dev`, which serves the client with live reload and passes `/api` through to it.
+`python -m tsoa_gui` serves the built client from `client/dist` and the API under `/api`, on port 8088. Add `--mock` to serve invented readings instead of a device's, and `--certfile` and `--keyfile` to serve HTTPS. During development, run it beside `npm run dev`, which serves the client with live reload and passes `/api` through to it.
+
+The browser reads the system model from `GET /api/system/events`, a stream of server-sent events: a `model` event with the whole model when the stream opens, then a `patch` event each time it changes, holding only what changed. `GET /api/system` returns the current model once.
 
 ## The system model
 
