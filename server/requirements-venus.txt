@@ -1,0 +1,6 @@
+# What the server takes from Venus OS itself instead of installing: pydantic
+# and its compiled core, at the versions Venus ships, so development and CI
+# test against exactly what the device runs.
+pydantic==2.7.4
+pydantic-core==2.18.4
+annotated-types==0.7.0
