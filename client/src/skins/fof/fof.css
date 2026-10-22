@@ -440,40 +440,42 @@
 .fof-readout-top > .fof-state-line { order: 2; }
 .fof-readout-top > .fof-rows { order: 3; }
 
-/* The grid's tower: the drawing fills the space under the name, and the state
+/* A schematic, the grid's or the solar's: the drawing fills the space under the name, and the state
    and readings sit in its open space right of the tower and above its row of
    pills, clear of the conduit leaving the row's end. */
-.fof-readout-tower {
+.fof-readout-schematic {
   display: grid;
-  grid-template-columns: 8.5em minmax(0, 17.5em);
-  /* The drawing spans the last three rows, so the last, under the readings,
-     takes up its row of pills. */
-  grid-template-rows: auto auto auto auto;
+  /* The drawing fills the column's width, up to its full size; the readings
+     take the part of it right of the tower or the array, which never reaches
+     past a third of the way across. */
+  grid-template-columns: 33% minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  max-width: 26em;
   align-items: start;
 }
 
-.fof-readout-tower > .fof-name-row { grid-column: 1 / span 2; grid-row: 1; }
-.fof-readout-tower > .fof-unit { grid-column: 1 / span 2; grid-row: 2 / span 3; margin: 0.4em 0 0; }
+/* The state sits on the name's row, at its right, leaving the drawing's open
+   space to the readings. */
+.fof-readout-schematic > .fof-name-row { grid-column: 1 / span 2; grid-row: 1; }
+.fof-readout-schematic > .fof-state-line { grid-column: 1 / span 2; grid-row: 1; justify-self: end; align-self: center; margin: 0; }
+.fof-readout-schematic > .fof-unit { grid-column: 1 / span 2; grid-row: 2 / span 2; width: 100%; margin: 0.4em 0 0; }
 
-.fof-readout-tower > .fof-state-line,
-.fof-readout-tower > .fof-rows {
+.fof-readout-schematic > .fof-rows {
   position: relative;
   z-index: 1;
   grid-column: 2;
+  grid-row: 2;
+  margin-top: 0.6em;
 }
 
-.fof-readout-tower > .fof-state-line { grid-row: 2; margin-top: 0.8em; }
-.fof-readout-tower > .fof-rows { grid-row: 3; }
-
-/* Where the grid's column is too narrow for the drawing with its readings in
-   it, the drawing fills the column's width and the readings go below it. */
-.fof-readout-tower,
+/* Where the column is too narrow even for that, the drawing fills the
+   column's width and the readings go below it. */
+.fof-readout-schematic,
 .fof-readout-lead { container-type: inline-size; }
 
-@container (max-width: 25.9em) {
-  .fof-readout-tower > .fof-unit { width: 100%; grid-row: 2; }
-  .fof-readout-tower > .fof-state-line { grid-column: 1 / span 2; grid-row: 3; margin-top: 0.2em; }
-  .fof-readout-tower > .fof-rows { grid-column: 1 / span 2; grid-row: 4; }
+@container (max-width: 18em) {
+  .fof-readout-schematic > .fof-unit { grid-row: 2; }
+  .fof-readout-schematic > .fof-rows { grid-column: 1 / span 2; grid-row: 3; margin-top: 0.3em; }
 }
 
 /* A hub: its name above its left edge, and its state and readings in the
@@ -506,7 +508,7 @@
 .fof-duty-charging { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #c9f3ea; --fof-ring: #3fb8a8; }
 .fof-duty-passing { --fof-cell-rest: #e2d6b0; --fof-cell-hot: #e2d6b0; --fof-ring: #9c7fd0; }
 .fof-duty-loaded { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #8fbcff; --fof-ring: var(--fof-plasma-deep); }
-.fof-duty-running { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #fff3d6; --fof-ring: #e0a84f; }
+.fof-duty-running { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #5a9cff; --fof-ring: #e0a84f; }
 
 .fof-unit-art {
   display: block;
@@ -578,9 +580,15 @@
    console draws equipment. GridTower.tsx gives each pip its own keyframes,
    one cycle of the grid's conduit long, each ending as a packet reaches the
    row's far end, which is when a wave sets off along the conduit. */
-.fof-tower-unit {
+.fof-schematic-unit {
   position: relative;
   width: 26em;
+  max-width: 100%;
+}
+
+.fof-schematic-launch { position: absolute; }
+
+.fof-tower-unit {
   --fof-cell-rest: #6e6450;
   /* The pace of the conduit the tower feeds. */
   --fof-feed: var(--fof-roll-grid-inverter_charger, 4s);
@@ -611,7 +619,82 @@
   animation: var(--drip) var(--fof-feed) linear infinite;
 }
 
-.fof-tower-row { position: absolute; }
+/* The solar array, as a schematic: panels in outline, each a grid of cells
+   that gather light, a cable down to a row of pips like the grid's, and a
+   pulse down the cable and along the pips. Each cell's and pip's keyframes
+   come from SolarArray.tsx, one cycle of the solar conduit long; the pulse
+   reaches the row's far end as the cycle closes, which is when a wave sets
+   off along the conduit. */
+.fof-solar-unit {
+  --fof-cell-rest: #6e6450;
+  --fof-feed: var(--fof-roll-solar-battery, 4s);
+}
+
+.fof-duty-producing {
+  --fof-solar-dark: #18205a;
+  --fof-solar-lit: #5a9cff;
+  --fof-drip-yellow: var(--fof-conduit);
+  --fof-drip-blue: var(--fof-plasma-deep);
+}
+
+.fof-solar-cell { fill: #18205a; }
+.fof-solar-panel { fill: none; stroke: #9fc8ff; stroke-width: 2.5; }
+
+.fof-solar-pulse {
+  fill: none;
+  stroke: var(--fof-plasma-deep);
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-dasharray: 14 300;
+  stroke-dashoffset: 14;
+  opacity: 0;
+}
+
+.fof-duty-producing .fof-solar-cell { animation: var(--gather) var(--fof-feed) linear infinite; }
+.fof-duty-producing .fof-solar-pulse { animation: fof-solar-cable var(--fof-feed) linear infinite; }
+.fof-duty-producing .fof-solar-pip { animation: var(--pip) var(--fof-feed) linear infinite; }
+
+/* The grid's wire carries its constant supply as a steady blue flow. */
+.fof-feed-wire {
+  fill: none;
+  stroke: var(--fof-plasma);
+  stroke-width: 2.4;
+  stroke-dasharray: 3 5;
+  opacity: 0;
+}
+
+.fof-duty-feeding .fof-feed-wire {
+  opacity: 1;
+  animation: fof-feed-flow 0.8s linear infinite;
+}
+
+@keyframes fof-feed-flow { to { stroke-dashoffset: -16; } }
+
+/* The generator: a dark housing, a lighter ring and a dot that lights. Its
+   cells light from both ends inward, a tenth of a cycle apart from the
+   outermost at 35% to the innermost at 85% (each keyframe peaks a quarter
+   in), and the dot pulses as the cycle closes, when a wave sets off along its
+   conduit. */
+.fof-gen-unit {
+  --fof-feed: var(--fof-roll-generator-inverter_charger, 4s);
+  --fof-beat: var(--fof-feed);
+}
+.fof-gen-housing { fill: #4f4a5e; }
+.fof-gen-ring { fill: #bdb9cc; }
+.fof-gen-dot { fill: #2a2733; }
+
+.fof-duty-running.fof-gen-unit .fof-unit-cell {
+  animation-duration: var(--fof-feed);
+  animation-delay: calc(var(--fof-feed) * (-0.1 - var(--wave) * 0.1));
+}
+
+.fof-duty-running .fof-gen-dot { animation: fof-gen-pulse var(--fof-feed) linear infinite; }
+
+@keyframes fof-gen-pulse {
+  0%, 86% { fill: #2a2733; }
+  97% { fill: #8fc1ff; }
+  100% { fill: #2a2733; }
+}
 
 /* Light runs through the cells in order, each a step behind the one before. */
 .fof-unit-cell {
@@ -831,6 +914,11 @@
 
 @keyframes fof-roll { to { stroke-dashoffset: -14em; } }
 
+/* A link carrying nothing just now: dim, and still. */
+.fof-conduit-idle .fof-conduit-body { stroke: #4a4436; }
+.fof-conduit-idle .fof-conduit-wave,
+.fof-conduit-idle .fof-conduit-chevron { display: none; }
+
 /* The motion shows the direction, so the chevron appears only without it. */
 .fof-conduit-chevron {
   display: none;
@@ -857,10 +945,10 @@
   .fof-readout-beside,
   .fof-readout-lead,
   .fof-readout-hub,
-  .fof-readout-tower { display: flex; flex-direction: column; align-items: flex-start; }
-  .fof-readout-tower > .fof-unit { order: 1; width: 100%; margin: 0.4em 0 0.3em; }
-  .fof-readout-tower > .fof-state-line { order: 2; margin-top: 0; }
-  .fof-readout-tower > .fof-rows { order: 3; }
+  .fof-readout-schematic { display: flex; flex-direction: column; align-items: flex-start; }
+  .fof-readout-schematic > .fof-unit { order: 1; width: 100%; margin: 0.4em 0 0.3em; }
+  .fof-readout-schematic > .fof-state-line { order: 2; margin: 0.35em 0; }
+  .fof-readout-schematic > .fof-rows { order: 3; }
   .fof-readout-beside > .fof-unit,
   .fof-readout-lead > .fof-unit,
   .fof-readout-hub > .fof-unit { margin: 0.8em auto 0; }
@@ -897,7 +985,11 @@
   .fof-select-option { transition: none; }
   .fof-panel-tap,
   .fof-panel-breaker,
-  .fof-tower-pill { animation: none; }
+  .fof-tower-pill,
+  .fof-gen-dot,
+  .fof-solar-cell,
+  .fof-feed-wire { animation: none; }
+  .fof-solar-pulse { display: none; }
   .fof-cell-lit::before,
   .fof-unit-cell,
   .fof-unit-ring { animation: none; }

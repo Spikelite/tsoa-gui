@@ -13,7 +13,9 @@ import { GridTower } from "./GridTower";
 import { InverterCore } from "./InverterCore";
 import { LoadPanel } from "./LoadPanel";
 import { SkinSegment } from "./SkinSegment";
+import { SolarArray } from "./SolarArray";
 import { StatusPill, StatusWords } from "./StatusPill";
+import { withIdleLinks } from "./links";
 import { throughHub } from "./throughHub";
 import "./fof.css";
 
@@ -23,10 +25,11 @@ function Readout(props: {
    * Where the equipment sits: below the readings, beside them, leading them
    * with the name above it, as a hub with the name above it and the readings
    * tucked into the corner below and right of it, between its spokes, on
-   * top, between the name and the readings, or as the grid's tower, with the
-   * readings in the drawing's open space above its row of pills.
+   * top, between the name and the readings, or as a schematic, the grid's or
+   * the solar's, with the readings in the drawing's open space above the track
+   * its conduit sets off from.
    */
-  layout?: "below" | "beside" | "lead" | "hub" | "top" | "tower";
+  layout?: "below" | "beside" | "lead" | "hub" | "top" | "schematic";
   children: ReactNode;
 }) {
   const heading = useId();
@@ -89,11 +92,11 @@ export function FofSkin({ model }: { model: System }) {
       </div>
 
       <div className="fof-diagram">
-        <Conduits flows={model.inverter_charger ? throughHub(model.flows) : model.flows} />
+        <Conduits flows={withIdleLinks(model.inverter_charger ? throughHub(model.flows) : model.flows, model)} />
 
         {model.grid && (
           <Readout part="grid" title={partTitle("grid", model)} status={model.grid.status} state={gridState(model.grid)}
-            art={<GridTower grid={model.grid} />} layout="tower">
+            art={<GridTower grid={model.grid} />} layout="schematic">
             <Row label="Power" value={model.grid.power_w} format={f.power} always />
             <Row label="Voltage" value={model.grid.voltage_v} format={f.volts} />
             <Row label="Current" value={model.grid.current_a} format={f.amps} />
@@ -137,7 +140,8 @@ export function FofSkin({ model }: { model: System }) {
         {model.battery && <Core battery={model.battery} />}
 
         {model.solar && (
-          <Readout part="solar" title="Solar" status={model.solar.status} state={solarState(model.solar)}>
+          <Readout part="solar" title="Solar" status={model.solar.status} state={solarState(model.solar)}
+            art={<SolarArray solar={model.solar} />} layout="schematic">
             <Row label="Power" value={model.solar.power_w} format={f.power} always />
             <Row label="Today" value={model.solar.yield_today_kwh} format={f.kilowattHours} />
             {model.solar.chargers.length > 1 &&

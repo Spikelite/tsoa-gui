@@ -1,7 +1,6 @@
 import type { CSSProperties } from "react";
 
 import type { Generator } from "../../model/system";
-import { flowSpeed } from "../minimal/flowSpeed";
 
 const WIDTH = 80;
 const PLATES = [44, 56, 64, 70, 74, 76];
@@ -20,13 +19,14 @@ const LOWER = HOUSING + RING + 4;
 const HEIGHT = LOWER + STACK + 2 + CAP;
 
 // The generator drawn as a column, as the console draws a reactor: ribbed
-// caps at each end, stacks of cells between them, and a ring in a housing at
-// its middle, where its conduit plugs in. While it runs, light runs through
-// the cells from both ends in to the ring, faster with every tenfold increase
-// in power; stopped, it is dim and still.
+// caps at each end, stacks of cells between them, and at its middle a dark
+// housing holding a lighter ring round a dot, where its conduit sets off.
+// While it runs, blue light runs through the cells from both ends in to the
+// middle, meets in the dot and pulses there, and passes into the conduit just
+// as a wave sets off along it, at the conduit's pace, as fof.css times it;
+// stopped, it is dim and still.
 export function GeneratorCore({ generator }: { generator: Generator }) {
   const running = generator.status !== "offline" && generator.running === true;
-  const speed = flowSpeed(Math.abs(generator.power_w ?? 0));
 
   const stack = (top: number, inward: (row: number) => number) =>
     Array.from({ length: ROWS }, (_, row) => {
@@ -47,14 +47,14 @@ export function GeneratorCore({ generator }: { generator: Generator }) {
     });
 
   return (
-    <div className={`fof-unit fof-column-unit ${running ? "fof-duty-running" : "fof-duty-idle"} fof-flow-${speed}`}
-      data-anchor aria-hidden="true">
+    <div className={`fof-unit fof-column-unit fof-gen-unit ${running ? "fof-duty-running" : "fof-duty-idle"}`}
+      data-anchor="launch" aria-hidden="true">
       <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="fof-unit-art">
         {cap(0, true)}
         {stack(UPPER, (row) => row)}
-        <rect className="fof-unit-housing" x="0" y={HOUSING} width={WIDTH} height={RING} rx="8" />
-        <circle className="fof-unit-port" cx={WIDTH / 2} cy={HOUSING + RING / 2} r="14" />
-        <circle className="fof-unit-ring" cx={WIDTH / 2} cy={HOUSING + RING / 2} r="9" />
+        <rect className="fof-gen-housing" x="0" y={HOUSING} width={WIDTH} height={RING} rx="8" />
+        <circle className="fof-gen-ring" cx={WIDTH / 2} cy={HOUSING + RING / 2} r="14" />
+        <circle className="fof-gen-dot" cx={WIDTH / 2} cy={HOUSING + RING / 2} r="8" />
         {stack(LOWER, (row) => ROWS - 1 - row)}
         {cap(LOWER + STACK + 2, false)}
       </svg>

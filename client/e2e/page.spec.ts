@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 
+import { withIdleLinks } from "../src/skins/fof/links";
 import { throughHub } from "../src/skins/fof/throughHub";
 import { system } from "../src/test/system";
 
@@ -35,8 +36,9 @@ test("the Sci-Fi FOF skin draws the system and fits the screen", async ({ page }
   await page.goto("/?skin=sci-fi-fof");
   await expect(page.getByRole("meter", { name: "State of charge" })).toBeVisible();
   await expect(page.getByRole("region", { name: "AC loads" })).toBeVisible();
-  // This skin draws power from a supply to the AC loads through the inverter/charger.
-  await expect(page.locator("[data-flow]")).toHaveCount(throughHub(system.flows).length);
+  // This skin draws power from a supply to the AC loads through the inverter/charger, and joins
+  // every part to the rest, with an idle conduit where a link carries nothing.
+  await expect(page.locator("[data-flow]")).toHaveCount(withIdleLinks(throughHub(system.flows), system).length);
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);

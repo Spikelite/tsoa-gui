@@ -78,7 +78,7 @@ export function GridTower({ grid }: { grid: Grid }) {
   const feeding = grid.status !== "offline" && grid.connected !== false && power > 0;
 
   return (
-    <div className={`fof-unit fof-tower-unit ${feeding ? "fof-duty-feeding" : "fof-duty-idle"}`}
+    <div className={`fof-unit fof-schematic-unit fof-tower-unit ${feeding ? "fof-duty-feeding" : "fof-duty-idle"}`}
       aria-hidden="true">
       <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="fof-unit-art">
         <style>{DRIPS}</style>
@@ -90,6 +90,9 @@ export function GridTower({ grid }: { grid: Grid }) {
         ))}
         <path className="fof-schematic-lead"
           d={`M92 46 H104 Q112 46 112 54 V${ROW_MIDDLE - 8} Q112 ${ROW_MIDDLE} 120 ${ROW_MIDDLE} H${PILL.first - 3}`} />
+        {/* The grid's supply is constant: it flows down the wire, and the pips shape it into pulses. */}
+        <path className="fof-feed-wire"
+          d={`M92 46 H104 Q112 46 112 54 V${ROW_MIDDLE - 8} Q112 ${ROW_MIDDLE} 120 ${ROW_MIDDLE} H${PILL.first - 3}`} />
         <circle className="fof-schematic-dot" cx="92" cy="46" r="3" />
         {Array.from({ length: PILLS }, (_, index) => (
           <rect key={index} className="fof-tower-pill" x={PILL.first + index * PILL.pitch} y={PILL.top}
@@ -98,7 +101,7 @@ export function GridTower({ grid }: { grid: Grid }) {
         ))}
       </svg>
       {/* Where the grid's conduit leaves: the row of pills, from its far end. */}
-      <span className="fof-tower-row" data-anchor="launch" style={{
+      <span className="fof-schematic-launch" data-anchor="launch" style={{
         left: `${(PILL.first / WIDTH) * 100}%`,
         width: `${((ROW_END - PILL.first) / WIDTH) * 100}%`,
         top: `${(PILL.top / HEIGHT) * 100}%`,

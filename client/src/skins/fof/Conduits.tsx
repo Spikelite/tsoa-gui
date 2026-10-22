@@ -34,8 +34,8 @@ function settle(previous: Partial<Record<string, number>>, flows: Flow[]): Parti
 const WAVE_WIDTH = 1.4;
 
 /**
- * How far to move the hub so that a conduit launched toward it runs straight,
- * when the two are nearly level; otherwise no distance. The boxes are measured
+ * How far to move the hub so that the first conduit launched toward it that
+ * is nearly level with it runs straight; with none, no distance. The boxes are measured
  * with the hub already moved by `current`.
  */
 function hubNudge(boxes: Partial<Record<string, Box>>, flows: Flow[], current: number, smallest: number): number {
@@ -44,7 +44,9 @@ function hubNudge(boxes: Partial<Record<string, Box>>, flows: Flow[], current: n
     const to = boxes[flow.target];
     if (from?.launch && to?.hub) {
       const apart = Math.round(from.y - to.y + current);
-      return Math.abs(apart) < smallest ? apart : 0;
+      if (Math.abs(apart) < smallest) {
+        return apart;
+      }
     }
   }
   return 0;
@@ -140,7 +142,7 @@ export function Conduits({ flows }: { flows: Flow[] }) {
         const wave = WAVE * em;
         const phase = from.launch ? 0.5 : ((((length - wave / 2) % wave) + wave) % wave) / wave;
         return (
-          <g key={key} className={`fof-conduit fof-speed-${speed}`}
+          <g key={key} className={`fof-conduit fof-speed-${speed}${flow.power_w > 0 ? "" : " fof-conduit-idle"}`}
             style={{ "--fof-phase": phase.toFixed(3), "--fof-roll": `${period}s` } as CSSProperties}
             data-flow={key}>
             <path className="fof-conduit-body" d={d} />
