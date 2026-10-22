@@ -3,12 +3,8 @@ import type { CSSProperties } from "react";
 import type { Grid } from "../../model/system";
 import { flowSpeed } from "../minimal/flowSpeed";
 
-// The drawing is 26em wide (fof.css), so its units are 26/400 em each.
 const WIDTH = 400;
 const HEIGHT = 180;
-const EM_PER_UNIT = 26 / WIDTH;
-// The space between waves on a conduit, in em.
-const WAVE = 14;
 
 // The row of pills along the bottom, which the grid's conduit leaves from at
 // its right-hand end.
@@ -35,29 +31,39 @@ const LATTICE = [
 ];
 const INSULATORS: [number, number][] = [[8, 32], [92, 32], [18, 72], [82, 72]];
 
-/**
- * How long before the wave leaves the row's far end it passes a point this
- * share of the way along the row, in waves. The wave's distance along the row
- * goes as the square of the time, so it starts slowly and reaches the far end
- * at twice its average speed; it takes as long as it needs for that to be the
- * conduit's own speed, more than one wave's time on a row this long, so
- * several waves build along it at once.
- */
-const BUILD = (2 * (ROW_END - PILL.first) * EM_PER_UNIT) / WAVE;
+// Each cycle of a pip, as shares of the wave's cycle: the pips fill one after
+// another until the row is full, then a pulse runs down the full row, emptying
+// each pip as it passes, and reaches the far end at the cycle's close, just as
+// a wave sets off along the conduit.
+const FILL_END = 0.7;
+const PULSE_START = 0.74;
+const PULSE_END = 0.98;
 
-function lead(along: number): number {
-  return BUILD * (1 - Math.sqrt(along));
+/** The keyframes for one pip, by its place in the row. */
+function drip(index: number): string {
+  const percent = (share: number) => `${(share * 100).toFixed(1)}%`;
+  const filling = (FILL_END * index) / PILLS;
+  const full = (FILL_END * (index + 1)) / PILLS;
+  const pulse = PULSE_START + ((PULSE_END - PULSE_START) * index) / (PILLS - 1);
+  return `@keyframes fof-drip-${index} {
+    0%, ${percent(filling)} { fill: var(--fof-drip-empty); }
+    ${percent(full)}, ${percent(pulse - 0.01)} { fill: var(--fof-drip-full); }
+    ${percent(pulse)} { fill: var(--fof-drip-hot); }
+    ${percent(Math.min(pulse + 0.04, 1))}, 100% { fill: var(--fof-drip-empty); }
+  }`;
 }
+
+const DRIPS = Array.from({ length: PILLS }, (_, index) => drip(index)).join(" ");
 
 // The grid drawn as a schematic of a supply, in the console's way of showing
 // equipment: a tall lattice transmission tower in outline, its wire running
-// down to a row of pills along the bottom, and the grid's conduit leaving
+// down to a row of pips along the bottom, and the grid's conduit leaving
 // from the row's far end, with the grid's readings in the space above the
-// row. While power comes in from the grid, waves of plasma form at the front
-// of the row, where the wire lands, and build along it, slowly at first and
-// faster as they go, reaching the far end at the conduit's own speed just as
-// a wave sets off along the conduit, which fof.css times. With nothing coming
-// in, the row is dim and still.
+// row. While power comes in from the grid it drips off the wire: the first
+// pip charges, then the next, and the next, until the row is full, and then a
+// pulse runs down the row and into the conduit, timed to set off along it
+// with a wave, and the row starts filling again. With nothing coming in, the
+// row is dim and still.
 export function GridTower({ grid }: { grid: Grid }) {
   const power = grid.power_w ?? 0;
   const feeding = grid.status !== "offline" && grid.connected !== false && power > 0;
@@ -67,6 +73,7 @@ export function GridTower({ grid }: { grid: Grid }) {
     <div className={`fof-unit fof-tower-unit ${feeding ? "fof-duty-feeding" : "fof-duty-idle"} fof-speed-${speed}`}
       aria-hidden="true">
       <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="fof-unit-art">
+        <style>{DRIPS}</style>
         {MEMBERS.map((member) => <path key={member} className="fof-schematic-outline" d={member} />)}
         {MEMBERS.map((member) => <path key={member} className="fof-schematic-core" d={member} />)}
         {LATTICE.map((brace) => <path key={brace} className="fof-schematic-line" d={brace} />)}
@@ -79,7 +86,7 @@ export function GridTower({ grid }: { grid: Grid }) {
         {Array.from({ length: PILLS }, (_, index) => (
           <rect key={index} className="fof-tower-pill" x={PILL.first + index * PILL.pitch} y={PILL.top}
             width={PILL.width} height={PILL.height} rx={PILL.width / 2}
-            style={{ "--lead": lead(index / (PILLS - 1)).toFixed(3) } as CSSProperties} />
+            style={{ "--drip": `fof-drip-${index}` } as CSSProperties} />
         ))}
       </svg>
       {/* Where the grid's conduit leaves: the row of pills, from its far end. */}

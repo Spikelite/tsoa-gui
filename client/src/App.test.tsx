@@ -43,7 +43,7 @@ describe("App", () => {
     expect(await screen.findByRole("meter", { name: "State of charge" })).toBeInTheDocument();
   });
 
-  it("moves the clock and the skin choice into a framed skin's own frame, and switches back from there", async () => {
+  it("moves the name, the clock and the skin choice into a framed skin's own frame, and switches back from there", async () => {
     const { store, emit } = fakeStore();
     render(<App store={store} />);
     emit("model", system);
@@ -51,6 +51,8 @@ describe("App", () => {
     const choice = await screen.findByRole("button", { name: "Skin: Sci-Fi FOF" });
     expect(screen.queryByRole("combobox", { name: "Skin" })).not.toBeInTheDocument();
     expect(screen.getAllByLabelText("Time of day")).toHaveLength(1);
+    expect(screen.getAllByRole("heading", { level: 1, name: "tsoa-gui" })).toHaveLength(1);
+    expect(screen.getByRole("heading", { level: 1 }).closest(".fof-bottom")).not.toBeNull();
 
     // From the keyboard: open, move to the other skin, pick it.
     expect(choice).toHaveAttribute("aria-expanded", "false");

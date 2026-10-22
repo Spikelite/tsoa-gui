@@ -159,10 +159,11 @@ export function FofSkin({ model }: { model: System }) {
         )}
       </div>
 
-      <div className="fof-bottom" aria-hidden="true">
-        <span className="fof-cap fof-cap-left" />
-        <span className="fof-bar" />
-        <span className="fof-cap fof-cap-right" />
+      <div className="fof-bottom">
+        {/* The frame carries the application's name, in place of the page header's. */}
+        <h1 className="fof-cap fof-cap-left fof-app-name">tsoa-gui</h1>
+        <span className="fof-bar" aria-hidden="true" />
+        <span className="fof-cap fof-cap-right" aria-hidden="true" />
       </div>
     </div>
   );

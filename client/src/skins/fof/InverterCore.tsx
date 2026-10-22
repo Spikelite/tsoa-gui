@@ -39,10 +39,10 @@ const VIEW = `${CENTER - CORE - 2} ${CENTER - CORE - 2} ${2 * CORE + 4} ${2 * CO
 // as wide and as fast as the flow it carries. Over the junction sits the
 // core, two rings of cells round a center, where light chases round,
 // clockwise while it charges the battery and the other way while it inverts,
-// faster with every tenfold increase in power. Passing the supply through, the cells hold steady and
-// the center pulses. Idle, it is dim and still. The core is tinted by what it
-// is doing, which its state also says in words: blue plasma inverting, teal
-// charging, lavender passing through.
+// faster with every tenfold increase in power. Passing the supply through,
+// the cells hold steady and the center pulses. Idle, it is dim and still.
+// The core is tinted by what it is doing, which its state also says in
+// words: blue plasma inverting, teal charging, lavender passing through.
 export function InverterCore({ inverter }: { inverter: InverterCharger }) {
   const work = duty(inverter);
   const power = Math.max(

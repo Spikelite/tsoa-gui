@@ -18,18 +18,12 @@
   background: #000;
 }
 
-.skin-sci-fi-fof .app-header h1 {
-  color: var(--fof-sand);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .fof {
   display: grid;
   grid-template-rows: auto 1fr auto;
   gap: 1em;
-  /* Fills the screen below the page header, so a wall display is all console. */
-  min-height: calc(100vh - 3.5rem);
+  /* Fills the screen, so a wall display is all console. */
+  min-height: 100vh;
   padding: 0.75em clamp(0.75em, 2vw, 1.5em) 1.25em;
   color: var(--fof-ink);
   /* Text and every measure scale with the screen: larger on a TV, readable on a phone. */
@@ -38,6 +32,20 @@
   font-stretch: condensed;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+/* On a short, wide screen, such as a small touch panel, the height limits
+   the size too, so the whole console fits without scrolling. */
+@media (orientation: landscape) {
+  .fof { font-size: clamp(0.7rem, min(0.45vw + 0.55rem, 1.4vh + 0.2rem), 1.45rem); }
+}
+
+@media (orientation: landscape) and (max-height: 650px) {
+  .fof {
+    gap: 0.6em;
+    padding-bottom: 0.6em;
+    font-size: clamp(0.65rem, min(0.45vw + 0.55rem, 1.3vh + 0.2rem), 1.45rem);
+  }
 }
 
 /* The frame */
@@ -51,8 +59,28 @@
 
 .fof-bottom {
   align-self: end;
-  height: 0.9em;
+  height: 1.5em;
 }
+
+/* The bottom left segment carries the application's name, as wide as it needs. */
+.fof-cap.fof-app-name {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: auto;
+  min-width: 3.5em;
+  margin: 0;
+  padding: 0 0.7em 0 1em;
+  color: #000;
+  font-size: 0.85em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+/* The header is left with only a notice to show, when there is one. */
+.skin-sci-fi-fof .app-header:empty { display: none; }
 
 .fof-cap {
   width: 3.5em;
@@ -68,12 +96,15 @@
   background: var(--fof-periwinkle);
 }
 
+/* The screen's title, in a segment of its own. */
 .fof-label {
   display: flex;
   align-items: center;
-  padding: 0 0.5em;
-  color: var(--fof-sand);
-  font-size: 1.25em;
+  padding: 0 0.7em;
+  color: #000;
+  background: var(--fof-sand);
+  font-size: 1.05em;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -212,7 +243,9 @@
     "generator inverter ac"
     "solar battery dc";
   align-items: center;
-  gap: clamp(2.5em, 6vw, 7em) clamp(3em, 7vw, 9em);
+  /* Rows part by the screen's height and columns by its width, so a wide,
+     short screen does not spend its height on gaps. */
+  gap: clamp(1em, 3vh, 5em) clamp(3em, 7vw, 9em);
 }
 
 .fof-diagram [data-part="grid"] { grid-area: grid; }
@@ -383,6 +416,14 @@
 .fof-readout-lead > .fof-state-line { grid-column: 2; grid-row: 2; margin: 0; }
 .fof-readout-lead > .fof-rows { grid-column: 2; grid-row: 3; }
 
+/* Where the column is too narrow for the readings beside the equipment, they
+   go below it, clear of the conduit coming in from the side. */
+@container (max-width: 31em) {
+  .fof-readout-lead > .fof-unit { grid-row: 2; }
+  .fof-readout-lead > .fof-state-line { grid-column: 1 / span 2; grid-row: 3; margin-top: 0.5em; }
+  .fof-readout-lead > .fof-rows { grid-column: 1 / span 2; grid-row: 4; }
+}
+
 /* Equipment on top: the name, then the equipment, then the state and
    readings, clear of a conduit leaving the equipment to the side. */
 .fof-readout-top {
@@ -400,8 +441,10 @@
    pills, clear of the conduit leaving the row's end. */
 .fof-readout-tower {
   display: grid;
-  grid-template-columns: 8.5em 17.5em;
-  grid-template-rows: auto auto 1fr 3em;
+  grid-template-columns: 8.5em minmax(0, 17.5em);
+  /* The drawing spans the last three rows, so the last, under the readings,
+     takes up its row of pills. */
+  grid-template-rows: auto auto auto auto;
   align-items: start;
 }
 
@@ -417,6 +460,17 @@
 
 .fof-readout-tower > .fof-state-line { grid-row: 2; margin-top: 0.8em; }
 .fof-readout-tower > .fof-rows { grid-row: 3; }
+
+/* Where the grid's column is too narrow for the drawing with its readings in
+   it, the drawing fills the column's width and the readings go below it. */
+.fof-readout-tower,
+.fof-readout-lead { container-type: inline-size; }
+
+@container (max-width: 25.9em) {
+  .fof-readout-tower > .fof-unit { width: 100%; grid-row: 2; }
+  .fof-readout-tower > .fof-state-line { grid-column: 1 / span 2; grid-row: 3; margin-top: 0.2em; }
+  .fof-readout-tower > .fof-rows { grid-column: 1 / span 2; grid-row: 4; }
+}
 
 /* A hub: its name above its left edge, and its state and readings in the
    corner below and right of it, clear of the spoke running down from its
@@ -515,16 +569,21 @@
 
 /* The grid's tower, as a schematic: members drawn as pale blue outlines round
    dark navy, thin lattice inside, and the wire as a leader line, as the
-   console draws equipment. Each pill lights --lead waves before the wave
-   leaves the row's far end, which is when one sets off along the grid's
-   conduit; the keyframes peak a quarter into the cycle. */
+   console draws equipment. GridTower.tsx gives each pip its own keyframes,
+   one wave's cycle long; the delay puts the end of each cycle, when the
+   pulse reaches the row's far end, where a wave sets off along the grid's
+   conduit. */
 .fof-tower-unit {
   position: relative;
   width: 26em;
   --fof-cell-rest: #6e6450;
 }
 
-.fof-duty-feeding { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #6aa8ff; }
+.fof-duty-feeding {
+  --fof-drip-empty: #4a4436;
+  --fof-drip-full: #eadfb2;
+  --fof-drip-hot: #5a9cff;
+}
 
 .fof-schematic-outline,
 .fof-schematic-core {
@@ -542,8 +601,8 @@
 .fof-tower-pill { fill: var(--fof-cell-rest); }
 
 .fof-duty-feeding .fof-tower-pill {
-  animation: fof-surge var(--fof-roll) ease-in-out infinite;
-  animation-delay: calc(var(--fof-roll) * -1 * (var(--lead) + 0.25));
+  animation: var(--drip) var(--fof-roll) linear infinite;
+  animation-delay: calc(var(--fof-roll) * -0.98);
 }
 
 .fof-tower-row { position: absolute; }
@@ -582,6 +641,7 @@
    the block's right end, its state and readings below, lined up on the block. */
 .fof-core {
   --fof-bank-width: 18em;
+  container-type: inline-size;
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--fof-bank-width) minmax(0, 1fr);
   row-gap: 0.35em;
@@ -600,6 +660,14 @@
   align-items: center;
   column-gap: 1.2em;
   margin: 0.2em 0;
+}
+
+/* In a narrower column the block shrinks, leaving room beside it for its
+   charge, clear of a conduit leaving to the right. */
+@container (max-width: 31em) {
+  .fof-core > .fof-core-row { --fof-bank-width: 14em; }
+  .fof-core > .fof-core-row .fof-bank { height: 5.6em; }
+  .fof-core > .fof-core-row .fof-core-figure { font-size: 2em; }
 }
 
 /* One block: a pair of end caps spanning every row, with the cells between. */

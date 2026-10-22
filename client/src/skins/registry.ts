@@ -7,7 +7,10 @@ export interface Skin {
   id: string;
   name: string;
   component: ComponentType<{ model: System }>;
-  /** The skin shows the time of day and the skin choice in its own frame, in place of the page header's. */
+  /**
+   * The skin shows the application's name, the time of day and the skin
+   * choice in its own frame, in place of the page header's.
+   */
   framed?: boolean;
 }
 

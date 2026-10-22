@@ -34,9 +34,9 @@ export function App({ store }: { store?: SystemStore }) {
   return (
     <div className={`app skin-${skin.id}`}>
       <header className="app-header">
-        <h1>tsoa-gui</h1>
+        {/* A framed skin shows the name, the clock and the skin choice in its own frame, once it is drawn. */}
+        {(!skin.framed || model === null) && <h1>tsoa-gui</h1>}
         <Notice model={model} connected={connected} />
-        {/* A framed skin shows these in its own frame. */}
         {!skin.framed && (
           <>
             <Clock />
