@@ -48,7 +48,7 @@ function Readout(props: {
   /**
    * Where the equipment sits: below the readings, beside them, leading them
    * with the name above it, as a hub with the name above it and the readings
-   * tucked into the corner below and right of it, between its spokes, on
+   * at its top right, above the spoke leaving its right side, on
    * top, between the name and the readings, or as a schematic, the grid's or
    * the solar's, with the readings in the drawing's open space above the track
    * its conduit sets off from.
