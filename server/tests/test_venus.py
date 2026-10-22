@@ -196,3 +196,28 @@ def test_following_the_broker_finds_the_portal_keeps_alive_and_publishes():
     assert client.published[0] == (f"R/{PORTAL}/keepalive", None)
     assert all(topic == f"R/{PORTAL}/keepalive" for topic, _ in client.published)
     assert model.live and model.battery.soc_percent == 64.5
+
+
+def test_a_broker_outage_is_logged_once(monkeypatch, caplog):
+    class Refusing:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            raise venus.aiomqtt.MqttError("connection refused")
+
+        async def __aexit__(self, *exc):
+            return False
+
+    monkeypatch.setattr(venus.aiomqtt, "Client", Refusing)
+    monkeypatch.setattr(venus, "RECONNECT_AFTER_S", 0)
+
+    async def scenario():
+        task = asyncio.create_task(venus.run(Feed()))
+        await asyncio.sleep(0.05)
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+
+    with caplog.at_level("WARNING"):
+        asyncio.run(scenario())
+    assert len([r for r in caplog.records if "lost the device's MQTT broker" in r.message]) == 1

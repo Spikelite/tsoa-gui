@@ -311,12 +311,20 @@ def _dc_loads(r: Readings) -> DcLoads | None:
 async def run(feed: Feed, host: str = "127.0.0.1", port: int = 1883) -> None:
     """Keep the feed current from the device's broker, reconnecting whenever it is lost."""
     readings = Readings()
+    # An outage is logged when it starts and when it ends, not at every
+    # retry: on a device each log line is a write to its storage.
+    lost = False
     while True:
         try:
             async with aiomqtt.Client(host, port) as client:
+                if lost:
+                    log.warning("reached the device's MQTT broker again")
+                    lost = False
                 await _follow(client, feed, readings)
         except aiomqtt.MqttError as error:
-            log.warning("lost the device's MQTT broker: %s", error)
+            if not lost:
+                log.warning("lost the device's MQTT broker, retrying every %g s: %s", RECONNECT_AFTER_S, error)
+            lost = True
         if feed.latest is not None and feed.latest.live:
             feed.publish(feed.latest.model_copy(update={"live": False}))
         await asyncio.sleep(RECONNECT_AFTER_S)
