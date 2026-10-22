@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 
 import type { Flow } from "../../model/system";
 import { flowSpeed } from "../minimal/flowSpeed";
-import { conduitPath, usePanelBoxes } from "../panelBoxes";
+import { conduitPath, usePanelMeasure, type Box } from "../panelBoxes";
 import { steadyPeriod } from "./wavePeriod";
 
 // A wave is many faint strokes centered on one another, each shorter, a
@@ -30,6 +30,26 @@ function settle(previous: Partial<Record<string, number>>, flows: Flow[]): Parti
   return same ? previous : next;
 }
 
+/** A conduit's width at everyday power, in em, the measure of the smallest bend worth drawing. */
+const WAVE_WIDTH = 1.4;
+
+/**
+ * How far to move the hub so that a conduit launched toward it runs straight,
+ * when the two are nearly level; otherwise no distance. The boxes are measured
+ * with the hub already moved by `current`.
+ */
+function hubNudge(boxes: Partial<Record<string, Box>>, flows: Flow[], current: number, smallest: number): number {
+  for (const flow of flows) {
+    const from = boxes[flow.source];
+    const to = boxes[flow.target];
+    if (from?.launch && to?.hub) {
+      const apart = Math.round(from.y - to.y + current);
+      return Math.abs(apart) < smallest ? apart : 0;
+    }
+  }
+  return 0;
+}
+
 /** The space between waves, in em. */
 const WAVE = 14;
 
@@ -51,7 +71,14 @@ const WAVE = 14;
 // time the waves it sends.
 export function Conduits({ flows }: { flows: Flow[] }) {
   const svg = useRef<SVGSVGElement>(null);
-  const boxes = usePanelBoxes(svg, flows);
+  const [nudge, setNudge] = useState(0);
+
+  // Moves the hub before the panels are measured, so they are measured where it is.
+  useLayoutEffect(() => {
+    svg.current?.parentElement?.style.setProperty("--fof-hub-nudge", `${nudge}px`);
+  }, [nudge]);
+
+  const { boxes, revision: measuredAt } = usePanelMeasure(svg, flows, nudge);
   const [em, setEm] = useState(16);
 
   const [periods, setPeriods] = useState<Partial<Record<string, number>>>({});
@@ -61,6 +88,19 @@ export function Conduits({ flows }: { flows: Flow[] }) {
       setEm(parseFloat(getComputedStyle(svg.current).fontSize) || 16);
     }
   }, [boxes]);
+
+  // A conduit between a row that launches it and a hub must meet each at its
+  // own level, so it bends between them. A bend smaller than a conduit and a
+  // half would read as a mistake, so where they are that nearly level, the
+  // hub moves to the row's level instead and the conduit runs straight.
+  // The boxes were measured with the hub moved by `measuredAt`; until they are
+  // measured again with the latest move, there is nothing new to go on.
+  if (measuredAt === nudge) {
+    const levelled = hubNudge(boxes, flows, nudge, 1.5 * WAVE_WIDTH * em);
+    if (levelled !== nudge) {
+      setNudge(levelled);
+    }
+  }
 
   // Each conduit keeps its period until its power has moved well away, so
   // its animation does not restart with every small change. The periods are

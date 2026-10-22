@@ -24,13 +24,23 @@ export type Box = Rect & {
 /**
  * The box of every panel marked with `data-part`, or of the element inside it
  * marked with `data-anchor`, relative to the element holding the given SVG,
- * measured again whenever the layout changes. Flows are
+ * measured again whenever the layout changes, or when `revision` does, for a
+ * change the layout does not report, such as a panel moved by a transform. Flows are
  * drawn between their centers, underneath the panels. The panels are found
  * through the SVG's parent because a parent's own ref is not yet set when its
  * child's layout effect runs.
  */
-export function usePanelBoxes(svg: RefObject<SVGSVGElement | null>, flows: Flow[]): Partial<Record<string, Box>> {
-  const [boxes, setBoxes] = useState<Partial<Record<string, Box>>>({});
+export function usePanelBoxes(
+  svg: RefObject<SVGSVGElement | null>, flows: Flow[], revision = 0,
+): Partial<Record<string, Box>> {
+  return usePanelMeasure(svg, flows, revision).boxes;
+}
+
+/** The panels' boxes as usePanelBoxes measures them, with the revision they were measured at. */
+export type Measure = { boxes: Partial<Record<string, Box>>; revision: number };
+
+export function usePanelMeasure(svg: RefObject<SVGSVGElement | null>, flows: Flow[], revision = 0): Measure {
+  const [measured, setMeasured] = useState<Measure>({ boxes: {}, revision });
   const layoutKey = [...new Set(flows.flatMap((flow) => [flow.source, flow.target]))].sort().join(",");
 
   useLayoutEffect(() => {
@@ -66,7 +76,7 @@ export function usePanelBoxes(svg: RefObject<SVGSVGElement | null>, flows: Flow[
             }
           : rect(panel);
       });
-      setBoxes(next);
+      setMeasured({ boxes: next, revision });
     };
     measure();
     if (typeof ResizeObserver === "undefined") {
@@ -76,9 +86,9 @@ export function usePanelBoxes(svg: RefObject<SVGSVGElement | null>, flows: Flow[
     observer.observe(root);
     root.querySelectorAll("[data-part]").forEach((panel) => observer.observe(panel));
     return () => observer.disconnect();
-  }, [svg, layoutKey]);
+  }, [svg, layoutKey, revision]);
 
-  return boxes;
+  return measured;
 }
 
 /** Where a line from a box's center toward a point leaves the box. */

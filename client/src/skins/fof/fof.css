@@ -256,6 +256,10 @@
 .fof-diagram [data-part="ac_loads"] { grid-area: ac; }
 .fof-diagram [data-part="dc_loads"] { grid-area: dc; }
 
+/* The hub moves a little to meet a nearly level conduit straight on, as
+   Conduits.tsx works out. */
+.fof-diagram [data-part="inverter_charger"] { translate: 0 var(--fof-hub-nudge, 0px); }
+
 /* The diagram steps down from left to right, as power runs from supplies to
    loads: each supply sits toward the top of its place and each load toward
    the bottom, so the conduits all bend the same way, like a staircase,
