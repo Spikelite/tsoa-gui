@@ -195,6 +195,43 @@ def test_a_battery_that_reports_its_cells_gives_its_detail():
     assert [(a.name, a.level) for a in battery.alarms] == [("High cell voltage", "warning")]
 
 
+def test_an_inverter_charger_gives_its_detail():
+    values = dict(DEVICE)
+    values.update({
+        ("vebus", 276, "ProductName"): "Example 24/3000",
+        ("vebus", 276, "FirmwareVersion"): 0x502,
+        ("vebus", 276, "Ac/Out/NominalInverterPower"): 2400,
+        ("vebus", 276, "Ac/Out/L1/S"): 760,
+        ("vebus", 276, "Ac/ActiveIn/L1/V"): 231.0,
+        ("vebus", 276, "Ac/ActiveIn/Connected"): 1,
+        ("vebus", 276, "Devices/0/UpTime"): 3600,
+        ("vebus", 276, "Devices/0/Diagnostics/UBatRipple"): 0.05,
+        ("vebus", 276, "BatteryOperationalLimits/MaxChargeVoltage"): 28.2,
+        ("vebus", 276, "Devices/0/ExtendStatus/ChargeDisabledDueToLowTemp"): 0,
+        ("vebus", 276, "Settings/PowerAssistEnabled"): True,
+        ("vebus", 276, "Energy/AcIn1ToAcOut"): 6.5,
+        ("vebus", 276, "Energy/InverterToAcOut"): 0.25,
+        ("vebus", 276, "Leds/Mains"): 1,
+        ("vebus", 276, "Leds/Bulk"): 2,
+        ("vebus", 276, "Leds/Float"): 0,
+    })
+    inverter = build(readings(values), live=True).inverter_charger
+
+    assert (inverter.product_name, inverter.firmware_version, inverter.rated_power_w) == (
+        "Example 24/3000", "502", 2400)
+    assert [(p.phase, p.voltage_v, p.power_w, p.apparent_power_va) for p in inverter.output_phases] == [
+        ("L1", 230.2, 700.0, 760)]
+    assert [(p.phase, p.voltage_v) for p in inverter.input_phases] == [("L1", 231.0)]
+    assert (inverter.input_connected, inverter.uptime_s, inverter.battery_ripple_v) == (True, 3600, 0.05)
+    assert inverter.battery_charge_voltage_v == 28.2
+    assert (inverter.too_cold_to_charge, inverter.power_assist, inverter.weak_input) == (False, True, None)
+    assert [(e.source, e.target, e.kwh) for e in inverter.energy] == [
+        ("input_1", "output", 6.5), ("battery", "output", 0.25)]
+    assert [(led.name, led.state) for led in inverter.leds] == [("Mains", "on"), ("Bulk", "blinking"), ("Float", "off")]
+    # Per-phase alarms count once, and every condition shows, alarming or not.
+    assert [(c.name, c.level) for c in inverter.checks] == [("High temperature", "warning"), ("Overload", "ok")]
+
+
 def test_a_battery_that_reports_no_detail_has_none():
     battery = build(readings(DEVICE), live=True).battery
     assert (battery.cells, battery.temperatures, battery.checks, battery.history) == ([], [], [], None)

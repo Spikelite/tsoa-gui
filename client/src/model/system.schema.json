@@ -96,6 +96,81 @@
       "title": "AcLoads",
       "type": "object"
     },
+    "AcPhase": {
+      "additionalProperties": false,
+      "description": "One phase of an AC connection.",
+      "properties": {
+        "phase": {
+          "description": "The phase's name, L1, L2 or L3.",
+          "type": "string"
+        },
+        "voltage_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "current_a": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "power_w": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "apparent_power_va": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "frequency_hz": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "phase",
+        "voltage_v",
+        "current_a",
+        "power_w",
+        "apparent_power_va",
+        "frequency_hz"
+      ],
+      "title": "AcPhase",
+      "type": "object"
+    },
     "Alarm": {
       "additionalProperties": false,
       "properties": {
@@ -120,10 +195,10 @@
     },
     "AlarmCheck": {
       "additionalProperties": false,
-      "description": "One condition a battery watches for, and where it stands now.",
+      "description": "One condition a part watches for, and where it stands now.",
       "properties": {
         "name": {
-          "description": "What the battery watches, worded for the person reading it.",
+          "description": "What the part watches, worded for the person reading it.",
           "type": "string"
         },
         "level": {
@@ -917,6 +992,37 @@
       "title": "DcLoads",
       "type": "object"
     },
+    "EnergyCounter": {
+      "additionalProperties": false,
+      "description": "Energy the inverter/charger has moved along one route, since its counters were last reset.",
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/EnergyEnd"
+        },
+        "target": {
+          "$ref": "#/$defs/EnergyEnd"
+        },
+        "kwh": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "source",
+        "target",
+        "kwh"
+      ],
+      "title": "EnergyCounter",
+      "type": "object"
+    },
+    "EnergyEnd": {
+      "enum": [
+        "input_1",
+        "input_2",
+        "battery",
+        "output"
+      ],
+      "type": "string"
+    },
     "Flow": {
       "additionalProperties": false,
       "description": "Power moving from one part to another, drawn as animated flow between their panels.",
@@ -1251,6 +1357,312 @@
           ],
           "default": null,
           "description": "The AC input it is taking power from now, if any."
+        },
+        "product_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The model, as the unit reports it."
+        },
+        "firmware_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "rated_power_w": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The most power it is rated to invert."
+        },
+        "phases": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How many phases it supplies."
+        },
+        "units": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How many units work together as this one inverter/charger."
+        },
+        "uptime_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Time since the unit last started."
+        },
+        "input_connected": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether the AC input in use is connected now."
+        },
+        "input_current_limit_a": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The most current it will draw from the AC input in use."
+        },
+        "input_phases": {
+          "description": "Each phase of the AC input in use.",
+          "items": {
+            "$ref": "#/$defs/AcPhase"
+          },
+          "type": "array"
+        },
+        "output_phases": {
+          "description": "Each phase of the AC output.",
+          "items": {
+            "$ref": "#/$defs/AcPhase"
+          },
+          "type": "array"
+        },
+        "output_apparent_power_va": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "dc_voltage_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Battery voltage at its DC terminals."
+        },
+        "max_charge_current_a": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The most current its charger can give."
+        },
+        "battery_ripple_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Ripple on the battery voltage, which grows with cables or a battery too small for the load."
+        },
+        "battery_charge_voltage_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The charge voltage it holds to, as the system sets it for the battery."
+        },
+        "battery_charge_current_a": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The charge current limit it follows, as the system sets it for the battery."
+        },
+        "battery_discharge_current_a": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The discharge current limit it follows, as the system sets it for the battery."
+        },
+        "battery_low_voltage_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The battery voltage it stops inverting at."
+        },
+        "charging_disabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "too_cold_to_charge": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "too_low_to_invert": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether the battery's charge is too low for it to invert."
+        },
+        "power_assist": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether it adds battery power to the supply when the loads need more than the input limit allows."
+        },
+        "ups_function": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "weak_input": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether it is set to accept a weak or distorted supply."
+        },
+        "output_voltage_setting_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The voltage it is set to invert at."
+        },
+        "energy": {
+          "description": "Energy moved along each route.",
+          "items": {
+            "$ref": "#/$defs/EnergyCounter"
+          },
+          "type": "array"
+        },
+        "checks": {
+          "description": "Every condition it watches for, alarming or not.",
+          "items": {
+            "$ref": "#/$defs/AlarmCheck"
+          },
+          "type": "array"
+        },
+        "leds": {
+          "description": "Its front panel lights.",
+          "items": {
+            "$ref": "#/$defs/Led"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -1263,7 +1675,35 @@
         "dc_power_w",
         "alarms",
         "ac_inputs",
-        "active_input"
+        "active_input",
+        "product_name",
+        "firmware_version",
+        "rated_power_w",
+        "phases",
+        "units",
+        "uptime_s",
+        "input_connected",
+        "input_current_limit_a",
+        "input_phases",
+        "output_phases",
+        "output_apparent_power_va",
+        "dc_voltage_v",
+        "max_charge_current_a",
+        "battery_ripple_v",
+        "battery_charge_voltage_v",
+        "battery_charge_current_a",
+        "battery_discharge_current_a",
+        "battery_low_voltage_v",
+        "charging_disabled",
+        "too_cold_to_charge",
+        "too_low_to_invert",
+        "power_assist",
+        "ups_function",
+        "weak_input",
+        "output_voltage_setting_v",
+        "energy",
+        "checks",
+        "leds"
       ],
       "title": "InverterCharger",
       "type": "object"
@@ -1296,6 +1736,29 @@
         "other"
       ],
       "type": "string"
+    },
+    "Led": {
+      "additionalProperties": false,
+      "description": "One of the inverter/charger's front panel lights.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "off",
+            "on",
+            "blinking"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "state"
+      ],
+      "title": "Led",
+      "type": "object"
     },
     "PartName": {
       "enum": [

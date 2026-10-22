@@ -71,6 +71,42 @@ class Alarm(_Model):
     level: Literal["warning", "alarm"]
 
 
+class AlarmCheck(_Model):
+    """One condition a part watches for, and where it stands now."""
+
+    name: str = Field(description="What the part watches, worded for the person reading it.")
+    level: Literal["ok", "warning", "alarm"]
+
+
+class AcPhase(_Model):
+    """One phase of an AC connection."""
+
+    phase: str = Field(description="The phase's name, L1, L2 or L3.")
+    voltage_v: float | None = None
+    current_a: float | None = None
+    power_w: float | None = None
+    apparent_power_va: float | None = None
+    frequency_hz: float | None = None
+
+
+EnergyEnd = TypeAliasType("EnergyEnd", Literal["input_1", "input_2", "battery", "output"])
+
+
+class EnergyCounter(_Model):
+    """Energy the inverter/charger has moved along one route, since its counters were last reset."""
+
+    source: EnergyEnd
+    target: EnergyEnd
+    kwh: float
+
+
+class Led(_Model):
+    """One of the inverter/charger's front panel lights."""
+
+    name: str
+    state: Literal["off", "on", "blinking"]
+
+
 class InverterCharger(Part):
     mode: InverterMode | None = Field(None, description="The mode it has been set to.")
     state: InverterState | None = Field(None, description="What it is doing now.")
@@ -88,6 +124,46 @@ class InverterCharger(Part):
     active_input: Literal[1, 2] | None = Field(
         None, description="The AC input it is taking power from now, if any.")
 
+    # The detail, for the inverter/charger's own page.
+    product_name: str | None = Field(None, description="The model, as the unit reports it.")
+    firmware_version: str | None = None
+    rated_power_w: float | None = Field(None, description="The most power it is rated to invert.")
+    phases: int | None = Field(None, description="How many phases it supplies.")
+    units: int | None = Field(None, description="How many units work together as this one inverter/charger.")
+    uptime_s: float | None = Field(None, description="Time since the unit last started.")
+    input_connected: bool | None = Field(None, description="Whether the AC input in use is connected now.")
+    input_current_limit_a: float | None = Field(
+        None, description="The most current it will draw from the AC input in use.")
+    input_phases: list[AcPhase] = Field(default_factory=list, description="Each phase of the AC input in use.")
+    output_phases: list[AcPhase] = Field(default_factory=list, description="Each phase of the AC output.")
+    output_apparent_power_va: float | None = None
+    dc_voltage_v: float | None = Field(None, description="Battery voltage at its DC terminals.")
+    max_charge_current_a: float | None = Field(None, description="The most current its charger can give.")
+    battery_ripple_v: float | None = Field(
+        None, description="Ripple on the battery voltage, which grows with cables or a battery too small for "
+                          "the load.")
+    battery_charge_voltage_v: float | None = Field(
+        None, description="The charge voltage it holds to, as the system sets it for the battery.")
+    battery_charge_current_a: float | None = Field(
+        None, description="The charge current limit it follows, as the system sets it for the battery.")
+    battery_discharge_current_a: float | None = Field(
+        None, description="The discharge current limit it follows, as the system sets it for the battery.")
+    battery_low_voltage_v: float | None = Field(None, description="The battery voltage it stops inverting at.")
+    charging_disabled: bool | None = None
+    too_cold_to_charge: bool | None = None
+    too_low_to_invert: bool | None = Field(
+        None, description="Whether the battery's charge is too low for it to invert.")
+    power_assist: bool | None = Field(
+        None, description="Whether it adds battery power to the supply when the loads need more than the "
+                          "input limit allows.")
+    ups_function: bool | None = None
+    weak_input: bool | None = Field(None, description="Whether it is set to accept a weak or distorted supply.")
+    output_voltage_setting_v: float | None = Field(None, description="The voltage it is set to invert at.")
+    energy: list[EnergyCounter] = Field(default_factory=list, description="Energy moved along each route.")
+    checks: list[AlarmCheck] = Field(
+        default_factory=list, description="Every condition it watches for, alarming or not.")
+    leds: list[Led] = Field(default_factory=list, description="Its front panel lights.")
+
 
 class Cell(_Model):
     """One cell of a battery that reports its cells, in the order the battery numbers them."""
@@ -100,13 +176,6 @@ class Cell(_Model):
 class TemperatureSensor(_Model):
     name: str = Field(description="The sensor's name as the battery reports it.")
     temperature_c: float | None = None
-
-
-class AlarmCheck(_Model):
-    """One condition a battery watches for, and where it stands now."""
-
-    name: str = Field(description="What the battery watches, worded for the person reading it.")
-    level: Literal["ok", "warning", "alarm"]
 
 
 class BatteryHistory(_Model):

@@ -985,6 +985,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .fof-deck-led-blinking,
   .fof-page,
   .fof-deck-balancing .fof-deck-pill::before { animation: none; }
   .fof-select-drop,
@@ -1182,3 +1183,42 @@
 }
 
 .fof-deck { container-type: inline-size; }
+
+/* The inverter/charger drawn large: its hub beside its front panel's lights. */
+.fof-deck-head-figure { margin-left: auto; }
+
+.fof-deck-unit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.2em 2.4em;
+}
+
+.fof-deck-hub .fof-ring-unit { width: 13em; margin: 0; }
+
+.fof-deck-leds {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 0.45em 0.6em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fof-deck-led {
+  padding: 0.2em 1em;
+  color: var(--fof-dim);
+  border: 0.12em solid #3d3852;
+  border-radius: 1em;
+  font-size: 0.85em;
+  font-weight: 700;
+  text-align: center;
+}
+
+.fof-deck-led-on,
+.fof-deck-led-blinking { color: #000; background: var(--fof-plasma); border-color: var(--fof-plasma); }
+.fof-deck-led-blinking { animation: fof-led-blink 1s steps(1) infinite; }
+
+@keyframes fof-led-blink {
+  50% { color: var(--fof-dim); background: transparent; border-color: #3d3852; }
+}

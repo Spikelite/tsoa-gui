@@ -36,7 +36,7 @@ export function generatorReadings(generator: Generator): Readings {
 }
 
 /** The supply wired to an AC input, or the input itself where no known supply is. */
-function inputName(input: 1 | 2, model: System): string {
+export function inputName(input: 1 | 2, model: System): string {
   if (model.grid?.ac_input === input) {
     return partTitle("grid", model);
   }

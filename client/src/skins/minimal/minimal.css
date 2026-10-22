@@ -265,3 +265,25 @@
 .checks { margin: 0; padding: 0; list-style: none; }
 .checks li { display: flex; align-items: center; gap: 0.4rem; }
 .check-level { margin-left: auto; opacity: 0.75; }
+
+/* An inverter/charger's front panel lights. */
+.leds {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.35rem 1rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.led { display: flex; align-items: center; gap: 0.5rem; }
+
+.led-light {
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 50%;
+}
+
+.led-on .led-light,
+.led-blinking .led-light { background: var(--status-good); border-color: var(--status-good); }

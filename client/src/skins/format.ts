@@ -26,3 +26,5 @@ export const offsetMillivolts: Format = (v) => {
   const mv = Math.round(v * 1000);
   return `${mv >= 0 ? "+" : "-"}${Math.abs(mv)} mV`;
 };
+export const voltAmps: Format = (va) =>
+  Math.abs(va) >= 1000 ? `${(va / 1000).toFixed(2)} kVA` : `${Math.round(va)} VA`;

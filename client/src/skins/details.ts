@@ -1,7 +1,9 @@
-import type { AlarmCheck, Battery, Cell, PartName, System } from "../model/system";
-import { batteryState } from "./describe";
+import type {
+  AcPhase, AlarmCheck, Battery, Cell, EnergyEnd, InverterCharger, PartName, System,
+} from "../model/system";
+import { batteryState, inverterState, MODES } from "./describe";
 import * as f from "./format";
-import type { Reading } from "./readings";
+import { inputName, type Reading } from "./readings";
 
 // What a part's own page shows, shared by every skin as readings.ts is for
 // the overview: readings in titled groups, and for a battery that reports
@@ -11,10 +13,11 @@ import type { Reading } from "./readings";
 export type DetailGroup = { title: string; readings: Reading[] };
 
 /** The parts that have a page of their own. */
-export const DETAILED: PartName[] = ["battery"];
+export const DETAILED: PartName[] = ["battery", "inverter_charger"];
 
 const allowed = (value: boolean | null) => (value === null ? [] : [value ? "Allowed" : "Blocked"]);
 const yesNo = (value: boolean | null) => (value === null ? [] : [value ? "Yes" : "No"]);
+const onOff = (value: boolean | null) => (value === null ? [] : [value ? "On" : "Off"]);
 
 function worded(label: string, texts: string[]): Reading[] {
   return texts.map((text) => ({ label, text }));
@@ -156,10 +159,115 @@ export function batteryGroups(battery: Battery): DetailGroup[] {
   return groups.filter((group) => shown(group.readings));
 }
 
-/** The conditions a battery watches, those alarming first. */
-export function batteryChecks(battery: Battery): AlarmCheck[] {
+/** The conditions a part watches, those alarming first. */
+export function alarmingFirst(checks: AlarmCheck[]): AlarmCheck[] {
   const rank = { alarm: 0, warning: 1, ok: 2 };
-  return [...battery.checks].sort((a, b) => rank[a.level] - rank[b.level]);
+  return [...checks].sort((a, b) => rank[a.level] - rank[b.level]);
+}
+
+/** An AC connection's phases as readings: plainly for one phase, each named for more. */
+function phaseReadings(phases: AcPhase[]): Reading[] {
+  const name = (phase: AcPhase, label: string) => (phases.length > 1 ? `${phase.phase} ${label.toLowerCase()}` : label);
+  return phases.flatMap((phase) => [
+    { label: name(phase, "Voltage"), value: phase.voltage_v, format: f.volts },
+    { label: name(phase, "Current"), value: phase.current_a, format: f.amps },
+    ...(phases.length > 1 ? [{ label: name(phase, "Power"), value: phase.power_w, format: f.power }] : []),
+    { label: name(phase, "Apparent power"), value: phase.apparent_power_va, format: f.voltAmps },
+    { label: name(phase, "Frequency"), value: phase.frequency_hz, format: f.hertz },
+  ]);
+}
+
+function energyEnd(end: EnergyEnd, model: System): string {
+  return end === "input_1" ? inputName(1, model) : end === "input_2" ? inputName(2, model)
+    : end === "battery" ? "Battery" : "Loads";
+}
+
+export function inverterGroups(inverter: InverterCharger, model: System): DetailGroup[] {
+  const inUse = inverter.active_input;
+  const load = inverter.ac_out_power_w !== null && inverter.rated_power_w
+    ? (inverter.ac_out_power_w / inverter.rated_power_w) * 100
+    : null;
+  const groups: DetailGroup[] = [
+    {
+      title: "Output",
+      readings: [
+        { label: "Power", value: inverter.ac_out_power_w, format: f.power, always: true },
+        ...(inverter.output_phases.length === 1 ? [] : [
+          { label: "Apparent power", value: inverter.output_apparent_power_va, format: f.voltAmps },
+        ]),
+        { label: "Load", value: load, format: f.percent },
+        { label: "Rated power", value: inverter.rated_power_w, format: f.power },
+        ...phaseReadings(inverter.output_phases),
+      ],
+    },
+    {
+      title: "Input",
+      readings: [
+        ...worded("In use", inUse ? [inputName(inUse, model)] : []),
+        ...worded("Connected", yesNo(inverter.input_connected)),
+        { label: "Power", value: inverter.ac_in_power_w, format: f.power },
+        { label: "Current limit", value: inverter.input_current_limit_a, format: f.amps },
+        ...phaseReadings(inverter.input_phases),
+      ],
+    },
+    {
+      title: "Battery side",
+      readings: [
+        { label: "Voltage", value: inverter.dc_voltage_v, format: f.volts },
+        { label: "Current", value: inverter.charge_current_a, format: f.amps },
+        { label: "Power", value: inverter.dc_power_w, format: f.power },
+        { label: "Ripple", value: inverter.battery_ripple_v, format: f.millivolts },
+        { label: "Most charge current", value: inverter.max_charge_current_a, format: f.amps },
+      ],
+    },
+    {
+      title: "Battery limits",
+      readings: [
+        { label: "Charge voltage", value: inverter.battery_charge_voltage_v, format: f.volts },
+        { label: "Charge current", value: inverter.battery_charge_current_a, format: f.amps },
+        { label: "Discharge current", value: inverter.battery_discharge_current_a, format: f.amps },
+        { label: "Stops inverting at", value: inverter.battery_low_voltage_v, format: f.volts },
+      ],
+    },
+    {
+      title: "Conditions",
+      readings: [
+        ...worded("State", [inverterState(inverter)]),
+        ...worded("Charging disabled", yesNo(inverter.charging_disabled)),
+        ...worded("Too cold to charge", yesNo(inverter.too_cold_to_charge)),
+        ...worded("Too low to invert", yesNo(inverter.too_low_to_invert)),
+      ],
+    },
+    {
+      title: "Settings",
+      readings: [
+        ...worded("Mode", inverter.mode === null ? [] : [MODES[inverter.mode]]),
+        ...worded("Power assist", onOff(inverter.power_assist)),
+        ...worded("UPS function", onOff(inverter.ups_function)),
+        ...worded("Weak input", onOff(inverter.weak_input)),
+        { label: "Output voltage", value: inverter.output_voltage_setting_v, format: f.volts },
+      ],
+    },
+    {
+      title: "Energy",
+      readings: inverter.energy.map((counter) => ({
+        label: `${energyEnd(counter.source, model)} to ${energyEnd(counter.target, model)}`,
+        value: counter.kwh,
+        format: f.kilowattHours,
+      })),
+    },
+    {
+      title: "Device",
+      readings: [
+        ...worded("Model", inverter.product_name ? [inverter.product_name] : []),
+        ...worded("Firmware", inverter.firmware_version ? [inverter.firmware_version] : []),
+        { label: "Units", value: inverter.units, format: f.count },
+        { label: "Phases", value: inverter.phases, format: f.count },
+        { label: "Running for", value: inverter.uptime_s, format: f.duration },
+      ],
+    },
+  ];
+  return groups.filter((group) => shown(group.readings));
 }
 
 /** The part a page is for, if the system has it and it has a page. */

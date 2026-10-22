@@ -32,6 +32,11 @@ export type InverterState =
   | "other";
 /**
  * This interface was referenced by `System`'s JSON-Schema
+ * via the `definition` "EnergyEnd".
+ */
+export type EnergyEnd = "input_1" | "input_2" | "battery" | "output";
+/**
+ * This interface was referenced by `System`'s JSON-Schema
  * via the `definition` "ChargerState".
  */
 export type ChargerState =
@@ -171,6 +176,103 @@ export interface InverterCharger {
    * The AC input it is taking power from now, if any.
    */
   active_input: (1 | 2) | null;
+  /**
+   * The model, as the unit reports it.
+   */
+  product_name: string | null;
+  firmware_version: string | null;
+  /**
+   * The most power it is rated to invert.
+   */
+  rated_power_w: number | null;
+  /**
+   * How many phases it supplies.
+   */
+  phases: number | null;
+  /**
+   * How many units work together as this one inverter/charger.
+   */
+  units: number | null;
+  /**
+   * Time since the unit last started.
+   */
+  uptime_s: number | null;
+  /**
+   * Whether the AC input in use is connected now.
+   */
+  input_connected: boolean | null;
+  /**
+   * The most current it will draw from the AC input in use.
+   */
+  input_current_limit_a: number | null;
+  /**
+   * Each phase of the AC input in use.
+   */
+  input_phases: AcPhase[];
+  /**
+   * Each phase of the AC output.
+   */
+  output_phases: AcPhase[];
+  output_apparent_power_va: number | null;
+  /**
+   * Battery voltage at its DC terminals.
+   */
+  dc_voltage_v: number | null;
+  /**
+   * The most current its charger can give.
+   */
+  max_charge_current_a: number | null;
+  /**
+   * Ripple on the battery voltage, which grows with cables or a battery too small for the load.
+   */
+  battery_ripple_v: number | null;
+  /**
+   * The charge voltage it holds to, as the system sets it for the battery.
+   */
+  battery_charge_voltage_v: number | null;
+  /**
+   * The charge current limit it follows, as the system sets it for the battery.
+   */
+  battery_charge_current_a: number | null;
+  /**
+   * The discharge current limit it follows, as the system sets it for the battery.
+   */
+  battery_discharge_current_a: number | null;
+  /**
+   * The battery voltage it stops inverting at.
+   */
+  battery_low_voltage_v: number | null;
+  charging_disabled: boolean | null;
+  too_cold_to_charge: boolean | null;
+  /**
+   * Whether the battery's charge is too low for it to invert.
+   */
+  too_low_to_invert: boolean | null;
+  /**
+   * Whether it adds battery power to the supply when the loads need more than the input limit allows.
+   */
+  power_assist: boolean | null;
+  ups_function: boolean | null;
+  /**
+   * Whether it is set to accept a weak or distorted supply.
+   */
+  weak_input: boolean | null;
+  /**
+   * The voltage it is set to invert at.
+   */
+  output_voltage_setting_v: number | null;
+  /**
+   * Energy moved along each route.
+   */
+  energy: EnergyCounter[];
+  /**
+   * Every condition it watches for, alarming or not.
+   */
+  checks: AlarmCheck[];
+  /**
+   * Its front panel lights.
+   */
+  leds: Led[];
 }
 /**
  * This interface was referenced by `System`'s JSON-Schema
@@ -182,6 +284,57 @@ export interface Alarm {
    */
   name: string;
   level: "warning" | "alarm";
+}
+/**
+ * One phase of an AC connection.
+ *
+ * This interface was referenced by `System`'s JSON-Schema
+ * via the `definition` "AcPhase".
+ */
+export interface AcPhase {
+  /**
+   * The phase's name, L1, L2 or L3.
+   */
+  phase: string;
+  voltage_v: number | null;
+  current_a: number | null;
+  power_w: number | null;
+  apparent_power_va: number | null;
+  frequency_hz: number | null;
+}
+/**
+ * Energy the inverter/charger has moved along one route, since its counters were last reset.
+ *
+ * This interface was referenced by `System`'s JSON-Schema
+ * via the `definition` "EnergyCounter".
+ */
+export interface EnergyCounter {
+  source: EnergyEnd;
+  target: EnergyEnd;
+  kwh: number;
+}
+/**
+ * One condition a part watches for, and where it stands now.
+ *
+ * This interface was referenced by `System`'s JSON-Schema
+ * via the `definition` "AlarmCheck".
+ */
+export interface AlarmCheck {
+  /**
+   * What the part watches, worded for the person reading it.
+   */
+  name: string;
+  level: "ok" | "warning" | "alarm";
+}
+/**
+ * One of the inverter/charger's front panel lights.
+ *
+ * This interface was referenced by `System`'s JSON-Schema
+ * via the `definition` "Led".
+ */
+export interface Led {
+  name: string;
+  state: "off" | "on" | "blinking";
 }
 /**
  * This interface was referenced by `System`'s JSON-Schema
@@ -309,19 +462,6 @@ export interface Battery {
   manufacturer: string | null;
   firmware_version: string | null;
   history: BatteryHistory | null;
-}
-/**
- * One condition a battery watches for, and where it stands now.
- *
- * This interface was referenced by `System`'s JSON-Schema
- * via the `definition` "AlarmCheck".
- */
-export interface AlarmCheck {
-  /**
-   * What the battery watches, worded for the person reading it.
-   */
-  name: string;
-  level: "ok" | "warning" | "alarm";
 }
 /**
  * One cell of a battery that reports its cells, in the order the battery numbers them.

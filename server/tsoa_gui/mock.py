@@ -24,8 +24,8 @@ from . import status
 from .feed import Feed
 from .flows import derive_flows
 from .model import (
-    AcLoads, Alarm, AlarmCheck, Battery, BatteryHistory, Cell, DcLoads, Generator, Grid, InverterCharger, Solar,
-    SolarCharger, System, TemperatureSensor,
+    AcLoads, AcPhase, Alarm, AlarmCheck, Battery, BatteryHistory, Cell, DcLoads, EnergyCounter, Generator, Grid,
+    InverterCharger, Led, Solar, SolarCharger, System, TemperatureSensor,
 )
 
 CYCLE_S = 600
@@ -47,6 +47,8 @@ BATTERY_AH = 200.0
 # running high enough near full that the battery balances it.
 CELL_OFFSETS_V = (-0.004, 0.002, 0.000, -0.002, 0.003, -0.001, 0.001, 0.001)
 BALANCE_ABOVE_PERCENT = 95.0
+INVERTER_RATED_W = 2400.0
+INVERTER_MAX_CHARGE_A = 70.0
 
 
 def _window(phase: float, start: float, end: float) -> bool:
@@ -238,6 +240,13 @@ def snapshot(t: float) -> System:
         inverter_alarms.append(Alarm(name="High temperature", level="warning"))
     if _window(m.phase, 0.530, 0.535):
         inverter_alarms.append(Alarm(name="Overload", level="alarm"))
+    out_v = round(_shore_voltage(t % CYCLE_S), 1) if m.ac_source else INVERTER_V
+    out_hz = round(_shore_frequency(t % CYCLE_S), 2) if m.ac_source else SHORE_HZ
+    lit = {"Mains": m.ac_source is not None, "Bulk": state == "bulk", "Absorption": state == "absorption",
+           "Float": state == "float", "Inverter": state == "inverting", "Overload": False,
+           "Low battery": soc < LOW_BATTERY_ALARM_PERCENT,
+           "Temperature": any(a.name == "High temperature" for a in inverter_alarms)}
+    alarming = {a.name: a.level for a in inverter_alarms}
     inverter = InverterCharger(
         status=status.inverter_charger(state, inverter_alarms),
         mode="on",
@@ -250,6 +259,49 @@ def snapshot(t: float) -> System:
         # Shore power on AC input 1 and the generator on AC input 2.
         ac_inputs=2,
         active_input=1 if m.ac_source == "grid" else 2 if m.ac_source == "generator" else None,
+        product_name="Example 24/3000/70",
+        firmware_version="502",
+        rated_power_w=INVERTER_RATED_W,
+        phases=1,
+        units=1,
+        uptime_s=round(t % CYCLE_S * TIME_SCALE + 86400),
+        input_connected=m.ac_source is not None,
+        input_current_limit_a=SHORE_LIMIT_A,
+        input_phases=[AcPhase(
+            phase="L1", voltage_v=out_v, current_a=round(ac_in / out_v, 1), power_w=round(ac_in),
+            apparent_power_va=round(ac_in * 1.04), frequency_hz=out_hz,
+        )] if m.ac_source else [],
+        output_phases=[AcPhase(
+            phase="L1", voltage_v=out_v, current_a=round(m.on_output_w / out_v, 1), power_w=round(m.on_output_w),
+            apparent_power_va=round(m.on_output_w * 1.06), frequency_hz=out_hz,
+        )],
+        output_apparent_power_va=round(m.on_output_w * 1.06),
+        dc_voltage_v=voltage,
+        max_charge_current_a=INVERTER_MAX_CHARGE_A,
+        battery_ripple_v=round(0.02 + abs(m.inverter_dc_w) * 0.00004, 2),
+        battery_charge_voltage_v=28.2,
+        battery_charge_current_a=150.0 if soc < 100 else 0.0,
+        battery_discharge_current_a=200.0,
+        battery_low_voltage_v=24.0,
+        charging_disabled=False,
+        too_cold_to_charge=False,
+        too_low_to_invert=soc < 5,
+        power_assist=True,
+        ups_function=True,
+        weak_input=False,
+        output_voltage_setting_v=INVERTER_V,
+        energy=[
+            EnergyCounter(source="input_1", target="output", kwh=184.3),
+            EnergyCounter(source="input_1", target="battery", kwh=96.1),
+            EnergyCounter(source="input_2", target="output", kwh=21.7),
+            EnergyCounter(source="input_2", target="battery", kwh=38.4),
+            EnergyCounter(source="battery", target="output", kwh=142.9),
+        ],
+        checks=[AlarmCheck(name=name, level=alarming.get(name, "ok")) for name in (
+            "High temperature", "Overload", "Low battery", "DC ripple", "High DC voltage", "High DC current",
+            "Supply lost", "Temperature sensor", "Voltage sensor",
+        )],
+        leds=[Led(name=name, state="on" if on else "off") for name, on in lit.items()],
     )
 
     shore = m.ac_source == "grid"

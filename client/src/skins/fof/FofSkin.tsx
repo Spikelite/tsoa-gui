@@ -1,12 +1,12 @@
-import { useId, useLayoutEffect, useRef, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, type MouseEvent, type ReactNode } from "react";
 
 import { Clock } from "../../Clock";
 import type { PartName, Status, System } from "../../model/system";
 import { generatorState, gridState, inverterState, partTitle, solarState } from "../describe";
-import { detailedPart } from "../details";
+import { DETAILED, detailedPart } from "../details";
 import { Eased } from "../Eased";
 import { link, LINK_SENTENCES, LINK_WORDS } from "../link";
-import { closePart, openedFrom, useEscapeCloses, usePart } from "../partView";
+import { closePart, openedFrom, openPart, partAddress, useEscapeCloses, usePart } from "../partView";
 import * as f from "../format";
 import {
   acLoadsReadings, dcLoadsReadings, dcLoadsState, generatorReadings, gridReadings, inverterReadings, solarReadings,
@@ -14,6 +14,7 @@ import {
 } from "../readings";
 import { Title } from "../Title";
 import { BatteryDeck } from "./BatteryDeck";
+import { InverterDeck } from "./InverterDeck";
 import { Conduits } from "./Conduits";
 import { Core, Rows } from "./Core";
 import { GeneratorCore } from "./GeneratorCore";
@@ -57,15 +58,33 @@ function Readout(props: {
   const heading = useId();
   const offline = props.status === "offline";
   const rows = !offline && <dl className="fof-rows">{props.children}</dl>;
+  // A part with a page of its own opens it from anywhere on it; its name is
+  // the link to it, for the keyboard and for a screen reader.
+  const detailed = DETAILED.includes(props.part);
+  const open = (event: MouseEvent) => {
+    // A click on the name reaches the part's own handler too; open once.
+    if (event.defaultPrevented) {
+      return;
+    }
+    event.preventDefault();
+    openPart(props.part, event.currentTarget.closest("[data-part]"));
+  };
   return (
-    <section className={`fof-readout status-${props.status} fof-readout-${props.layout ?? "below"}`}
-      data-part={props.part} aria-labelledby={heading}>
+    <section className={`fof-readout status-${props.status} fof-readout-${props.layout ?? "below"}${
+      detailed ? " fof-opens" : ""}`} data-part={props.part} aria-labelledby={heading}
+      onClick={detailed ? open : undefined}>
       {/* Conduits plug into the part's graphic, or into its name where it has none. */}
       <div className="fof-name-row" data-anchor={props.art ? undefined : true}>
         <h2 className="fof-label-block">
-          <span id={heading}>
-            <Title text={props.title} />
-          </span>
+          {detailed ? (
+            <a id={heading} className="fof-open-link" href={partAddress(props.part)} onClick={open}>
+              <Title text={props.title} />
+            </a>
+          ) : (
+            <span id={heading}>
+              <Title text={props.title} />
+            </span>
+          )}
           <StatusWords status={props.status} separator />
         </h2>
       </div>
@@ -127,10 +146,13 @@ export function FofSkin({ model, connected = true }: { model: System; connected?
         <span className="fof-cap fof-cap-right" aria-hidden="true" />
       </div>
 
-      {part === "battery" && model.battery ? (
+      {part !== null ? (
         // The page grows out of where the part was on the overview.
         <div className="fof-page" style={from ? { transformOrigin: `${from.x * 100}% ${from.y * 100}%` } : undefined}>
-          <BatteryDeck battery={model.battery} />
+          {part === "battery" && model.battery && <BatteryDeck battery={model.battery} />}
+          {part === "inverter_charger" && model.inverter_charger && (
+            <InverterDeck inverter={model.inverter_charger} model={model} />
+          )}
         </div>
       ) : (
       <div className="fof-diagram">

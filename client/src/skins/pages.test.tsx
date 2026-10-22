@@ -12,10 +12,10 @@ afterEach(() => {
 });
 
 /** Every value a part's page shows, numbers and words alike, once each. */
-function shownOnPage(skin: ReactElement): string[] {
-  window.history.replaceState(null, "", "/?part=battery");
+function shownOnPage(skin: ReactElement, part = "battery", name = "Battery"): string[] {
+  window.history.replaceState(null, "", `/?part=${part}`);
   render(skin);
-  const page = screen.getByRole("region", { name: "Battery" });
+  const page = screen.getByRole("region", { name });
   const numbers = [...page.querySelectorAll(".reading-value")];
   const words = [...page.querySelectorAll("dd")].filter((dd) => dd.querySelector(".reading-value") === null);
   const values = [...new Set([...numbers, ...words].map((element) => element.textContent ?? ""))].sort();
@@ -31,6 +31,36 @@ describe("a part's own page", () => {
     // Every cell, its difference from the others, and the history and limits.
     expect(minimal).toEqual(expect.arrayContaining(["3.290 V", "3.310 V", "-11 mV", "18", "28.2 V", "Allowed"]));
     expect(minimal).toEqual(expect.arrayContaining(["Cell voltage", "Example Cells", "129.0 Ah"]));
+  });
+
+  it("shows the same inverter/charger detail in every skin", () => {
+    const minimal = shownOnPage(<MinimalSkin model={system} />, "inverter_charger", "Inverter");
+    const fof = shownOnPage(<FofSkin model={system} />, "inverter_charger", "Inverter");
+    expect(fof).toEqual(minimal);
+    // Its phases, its share of its rating, its routes' energy and its settings.
+    expect(minimal).toEqual(expect.arrayContaining(["742 VA", "29%", "120.50 kWh", "40 mV", "On", "502"]));
+  });
+
+  it("names each energy route by the supplies at its ends", () => {
+    window.history.replaceState(null, "", "/?part=inverter_charger");
+    render(<MinimalSkin model={system} />);
+    const energy = screen.getByRole("heading", { name: "Energy" }).parentElement!;
+    expect([...energy.querySelectorAll("dt")].map((dt) => dt.textContent)).toEqual([
+      "Shore power to Loads", "Shore power to Battery", "Battery to Loads",
+    ]);
+  });
+
+  it("shows the inverter/charger's front panel lights in every skin", () => {
+    for (const skin of [<MinimalSkin model={system} />, <FofSkin model={system} />]) {
+      window.history.replaceState(null, "", "/?part=inverter_charger");
+      render(skin);
+      const lights = within(screen.getByRole("list", { name: "Front panel lights" })).getAllByRole("listitem");
+      expect(lights.map((light) => light.textContent?.toLowerCase())).toEqual([
+        expect.stringContaining("mains"), expect.stringContaining("bulk"), expect.stringContaining("inverter"),
+      ]);
+      expect(lights[1]!.textContent?.toLowerCase()).toContain("blinking");
+      cleanup();
+    }
   });
 
   it("lists every condition the battery watches, alarming ones first, in every skin", () => {
