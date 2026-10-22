@@ -1018,6 +1018,9 @@
   .fof-deck-led-blinking,
   .fof-page,
   .fof-deck-balancing .fof-deck-pill::before { animation: none; }
+  .fof-relay-core,
+  .fof-relay-cell { animation: none; }
+  .fof-relay-pulse { display: none; }
   .fof-select-drop,
   .fof-select-bar,
   .fof-select-option { transition: none; }
@@ -1254,3 +1257,31 @@
 @keyframes fof-led-blink {
   50% { color: var(--fof-dim); background: transparent; border-color: #3d3852; }
 }
+/* The DC bus's plasma relay, over the corner where its conduits meet: a dark
+   body in the hub's rim color, a sand port for each conduit, cells chasing
+   round a plasma core, and pulses along the spokes, timed in Relay.tsx. */
+.fof-relay { --fof-cell-rest: #3d3852; --fof-cell-hot: var(--fof-plasma); }
+.fof-relay-body { fill: #000; stroke: #3d3852; }
+.fof-relay-port { fill: var(--fof-sand); }
+.fof-relay-port-idle { fill: #4a4436; }
+.fof-relay-spoke { stroke: #3d3852; stroke-linecap: round; }
+.fof-relay-core-ring { fill: none; stroke: #3d3852; }
+.fof-relay-core { fill: var(--fof-plasma-deep); animation: fof-hub-glow var(--fof-beat) ease-in-out infinite; }
+
+.fof-relay-cell {
+  fill: var(--fof-cell-rest);
+  animation: fof-surge var(--fof-beat) ease-in-out infinite;
+  animation-delay: calc((var(--wave) / var(--waves) - 1) * var(--fof-beat));
+}
+
+.fof-relay-pulse {
+  stroke: var(--fof-plasma);
+  stroke-linecap: round;
+  stroke-dasharray: 30 300;
+  opacity: 0;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.fof-relay-idle .fof-relay-core { animation: none; fill-opacity: 0.35; }
+.fof-relay-idle .fof-relay-cell { animation: none; }
