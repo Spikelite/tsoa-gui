@@ -9,9 +9,10 @@ type Rect = Point & { halfWidth: number; halfHeight: number };
 
 /**
  * Where flows meet a panel: its own box, or the box of the graphic inside it
- * that flows plug into, with the whole panel's box as `panel`.
+ * that flows plug into, with the whole panel's box as `panel`. A graphic
+ * marked `data-anchor="hub"` is one flows run on into, to its center.
  */
-export type Box = Rect & { panel?: Rect };
+export type Box = Rect & { panel?: Rect; hub?: boolean };
 
 /**
  * The box of every panel marked with `data-part`, or of the element inside it
@@ -45,7 +46,9 @@ export function usePanelBoxes(svg: RefObject<SVGSVGElement | null>, flows: Flow[
         };
         // A panel can mark the graphic inside it that flows plug into.
         const anchor = panel.querySelector<HTMLElement>("[data-anchor]");
-        next[panel.dataset.part ?? ""] = anchor ? { ...rect(anchor), panel: rect(panel) } : rect(panel);
+        next[panel.dataset.part ?? ""] = anchor
+          ? { ...rect(anchor), panel: rect(panel), hub: anchor.dataset.anchor === "hub" }
+          : rect(panel);
       });
       setBoxes(next);
     };
@@ -113,13 +116,9 @@ export function conduitPath(from: Box, to: Box, radius: number): Conduit {
   const sa = Math.sign(toPanel[main] - fromPanel[main]) || 1;
   const turn =
     (fromPanel[main] + sa * half(fromPanel, main) + toPanel[main] - sa * half(toPanel, main)) / 2;
-  // Across a gap between columns a conduit plugs into what each panel marks.
-  // Down a column it starts and ends at the panels' own edges instead, since
-  // a panel's readings sit between its name and its top or bottom.
-  const [ends, endsTo] = main === "x" ? [from, to] : [fromPanel, toPanel];
-  const a1 = ends[main] + sa * half(ends, main);
-  const a2 = endsTo[main] - sa * half(endsTo, main);
-  const [b1, b2] = levels(from[cross], half(from, cross), to[cross], half(to, cross), radius);
+  const a1 = end(from, main, sa);
+  const a2 = end(to, main, -sa);
+  const [b1, b2] = levels(from, to, cross, radius);
   const sb = Math.sign(b2 - b1);
   const r = Math.min(radius, Math.abs(b2 - b1) / 2, Math.abs(turn - a1), Math.abs(a2 - turn));
   const point = (a: number, b: number) => (main === "x" ? `${a},${b}` : `${b},${a}`);
@@ -148,15 +147,49 @@ export function conduitPath(from: Box, to: Box, radius: number): Conduit {
 }
 
 /**
- * Where a conduit meets two panels along their facing edges: at their
- * centers, unless those are so nearly level that the bends would make only a
- * jog. Then it runs straight, through the middle of the stretch both share.
+ * Where a conduit ends at a box, along the main axis, on the side facing the
+ * way it runs. Across a gap between columns it plugs into what the panel
+ * marks. Down a column it ends at the panel's own edge instead, since a
+ * panel's readings sit between its name and its top or bottom, unless what
+ * it marks sits at that edge. A hub it runs on into, to its center.
  */
-function levels(a: number, halfA: number, b: number, halfB: number, radius: number): [number, number] {
+function end(box: Box, main: Axis, toward: number): number {
+  const panel = box.panel ?? box;
+  const edge = (rect: Rect) => rect[main] + toward * half(rect, main);
+  const atEdge = Math.abs(edge(box) - edge(panel)) < 4;
+  if (box.hub && (main === "x" || atEdge)) {
+    return box[main];
+  }
+  return main === "x" || atEdge ? edge(box) : edge(panel);
+}
+
+/**
+ * Where a conduit meets two boxes along their facing edges: at their centers,
+ * unless those are so nearly level that the bends would make only a jog.
+ * Then it runs straight: through the center of a hub or a graphic a panel
+ * marks, if the other box reaches that far, or else through the middle of
+ * the stretch both share.
+ */
+function levels(from: Box, to: Box, cross: Axis, radius: number): [number, number] {
+  const [a, b] = [from[cross], to[cross]];
+  const reaches = (box: Box, level: number) => Math.abs(level - box[cross]) <= half(box, cross);
   if (Math.abs(b - a) >= radius) {
     return [a, b];
   }
-  const shared = (Math.max(a - halfA, b - halfB) + Math.min(a + halfA, b + halfB)) / 2;
+  // A hub is met at its center, through its port: straight if the other box
+  // reaches that level, or else with bends however small.
+  if (from.hub || to.hub) {
+    const level = from.hub ? a : b;
+    return reaches(from.hub ? to : from, level) ? [level, level] : [a, b];
+  }
+  if (from.panel && reaches(to, a)) {
+    return [a, a];
+  }
+  if (to.panel && reaches(from, b)) {
+    return [b, b];
+  }
+  const shared =
+    (Math.max(a - half(from, cross), b - half(to, cross)) + Math.min(a + half(from, cross), b + half(to, cross))) / 2;
   return [shared, shared];
 }
 

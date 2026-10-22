@@ -87,4 +87,17 @@ describe("conduitPath", () => {
     // It starts at the upper panel's bottom edge (y 100), below its readings, under its name.
     expect(conduitPath(top, below, 28).d).toBe("M40,100 L40,122 Q40,150 68,150 L72,150 Q100,150 100,178 L100,200");
   });
+
+  it("runs on into a hub, to its center", () => {
+    const hub = { x: 300, y: 100, halfWidth: 40, halfHeight: 40, hub: true,
+      panel: { x: 300, y: 60, halfWidth: 100, halfHeight: 80 } };
+    // Across, it reaches the hub's center rather than its edge.
+    expect(conduitPath(left, hub, 28).d.endsWith(" L300,100")).toBe(true);
+    // Below the hub, which sits at its panel's bottom, it leaves from the center too.
+    const below = { x: 300, y: 300, halfWidth: 50, halfHeight: 20 };
+    expect(conduitPath(hub, below, 28).d).toBe("M300,100 L300,280");
+    // Nearly level with something beside it, it still leaves through the port at the hub's center.
+    const beside = { x: 600, y: 90, halfWidth: 40, halfHeight: 10, panel: { x: 650, y: 140, halfWidth: 90, halfHeight: 60 } };
+    expect(conduitPath(hub, beside, 28).d.startsWith("M300,100 L")).toBe(true);
+  });
 });

@@ -229,7 +229,7 @@
   align-self: center;
   margin: 0;
 }
-.fof-ring-unit { width: 9em; }
+.fof-ring-unit { width: 11em; }
 
 .fof-duty-inverting { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #cfe6ff; --fof-ring: var(--fof-plasma-deep); }
 .fof-duty-charging { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #c9f3ea; --fof-ring: #3fb8a8; }
@@ -246,6 +246,9 @@
 .fof-plate-1 { fill: #8e8aa3; stroke: #8e8aa3; }
 .fof-unit-band { fill: none; stroke-width: 3; }
 .fof-unit-housing { fill: #e6e2ee; }
+
+/* The core sits over the junction where the hub's conduits meet. */
+.fof-unit-core { fill: #000; stroke: #3d3852; stroke-width: 3; }
 .fof-unit-port { fill: #000; }
 .fof-unit-ring { fill: none; stroke: var(--fof-ring); stroke-width: 5; }
 

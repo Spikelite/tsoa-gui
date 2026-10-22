@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import type { InverterCharger, InverterState } from "../../model/system";
 import { flowSpeed } from "../minimal/flowSpeed";
 
-/** What the inverter/charger is doing with power, which tints its ring. */
+/** What the inverter/charger is doing with power, which tints its core. */
 type Duty = "inverting" | "charging" | "passing" | "idle";
 
 const DUTIES: Partial<Record<InverterState, Duty>> = {
@@ -23,23 +23,29 @@ function duty(inverter: InverterCharger): Duty {
   return inverter.status === "offline" || inverter.state === null ? "idle" : (DUTIES[inverter.state] ?? "idle");
 }
 
-const SIZE = 160;
+const SIZE = 200;
 const CENTER = SIZE / 2;
-const CELLS = 16;
-const CELL = { length: 15, depth: 8 };
-// The two rings of cells, and the ribbed plates around them, by radius.
-const TRACKS = [44, 56];
-const PLATES = [66, 70, 74, 78];
+const CELLS = 12;
+const CELL = { length: 13, depth: 7 };
+// The core's two rings of cells, and the housing's ribbed bands, by radius.
+const TRACKS = [33, 43];
+const BANDS = [84, 88, 92, 96];
+// The housing's bands leave a port open to the right, below and to the left,
+// where the conduits run in to the core: in degrees clockwise from the right,
+// as dashes and gaps starting 15 degrees past the right-hand port.
+const PORTS = "60 30 60 30 150 30";
 
-// The inverter/charger drawn as a ring: the generator's column bent round on
-// itself, with ribbed plates around the outside, two rings of cells inside
-// them, and a hub at the center. Light chases round the cells, clockwise
-// while it charges the battery and the other way while it inverts from it,
-// faster with every tenfold increase in power. Passing the supply through, the
-// cells hold steady and the hub pulses. Idle, it is dim and still. The hub's
-// ring and the light are tinted by what it is doing, which its state also
-// says in words: blue plasma inverting, teal charging, lavender passing
-// through.
+// The inverter/charger drawn as a hub that power runs through. Its conduits
+// do not stop at its edge: they run on through open ports in its ribbed
+// housing to its core, so the waves on them carry on inside, in from where
+// the power comes and out to where it goes, each spoke as wide and as fast as
+// the flow it carries. Over the junction sits the core, two rings of cells
+// round a center, where light chases round, clockwise while it charges the
+// battery and the other way while it inverts, faster with every tenfold
+// increase in power. Passing the supply through, the cells hold steady and
+// the center pulses. Idle, it is dim and still. The core is tinted by what it
+// is doing, which its state also says in words: blue plasma inverting, teal
+// charging, lavender passing through.
 export function InverterCore({ inverter }: { inverter: InverterCharger }) {
   const work = duty(inverter);
   const power = Math.max(
@@ -50,11 +56,13 @@ export function InverterCore({ inverter }: { inverter: InverterCharger }) {
   const speed = flowSpeed(power);
 
   return (
-    <div className={`fof-unit fof-ring-unit fof-duty-${work} fof-flow-${speed}`} data-anchor aria-hidden="true">
+    <div className={`fof-unit fof-ring-unit fof-duty-${work} fof-flow-${speed}`} data-anchor="hub" aria-hidden="true">
       <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="fof-unit-art">
-        {PLATES.map((radius, index) => (
-          <circle key={radius} className={`fof-unit-band fof-plate-${index % 2}`} cx={CENTER} cy={CENTER} r={radius} />
+        {BANDS.map((radius, index) => (
+          <circle key={radius} className={`fof-unit-band fof-plate-${index % 2}`} cx={CENTER} cy={CENTER} r={radius}
+            pathLength="360" strokeDasharray={PORTS} strokeDashoffset="-15" />
         ))}
+        <circle className="fof-unit-core" cx={CENTER} cy={CENTER} r="52" />
         {TRACKS.map((radius) =>
           Array.from({ length: CELLS }, (_, cell) => {
             const angle = (cell * 360) / CELLS;
@@ -69,9 +77,9 @@ export function InverterCore({ inverter }: { inverter: InverterCharger }) {
             );
           }),
         )}
-        <circle className="fof-unit-housing" cx={CENTER} cy={CENTER} r="30" />
-        <circle className="fof-unit-port" cx={CENTER} cy={CENTER} r="17" />
-        <circle className="fof-unit-ring" cx={CENTER} cy={CENTER} r="11" />
+        <circle className="fof-unit-housing" cx={CENTER} cy={CENTER} r="22" />
+        <circle className="fof-unit-port" cx={CENTER} cy={CENTER} r="13" />
+        <circle className="fof-unit-ring" cx={CENTER} cy={CENTER} r="8" />
       </svg>
     </div>
   );

@@ -10,6 +10,7 @@ import { Conduits } from "./Conduits";
 import { Core, Row } from "./Core";
 import { GeneratorCore } from "./GeneratorCore";
 import { InverterCore } from "./InverterCore";
+import { throughHub } from "./throughHub";
 import "./fof.css";
 
 function Readout(props: {
@@ -55,7 +56,7 @@ export function FofSkin({ model }: { model: System }) {
       </div>
 
       <div className="fof-diagram">
-        <Conduits flows={model.flows} />
+        <Conduits flows={model.inverter_charger ? throughHub(model.flows) : model.flows} />
 
         {model.grid && (
           <Readout part="grid" title={partTitle("grid", model)} status={model.grid.status} state={gridState(model.grid)}>

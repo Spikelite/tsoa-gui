@@ -76,7 +76,8 @@ describe("FofSkin", () => {
   it("draws a conduit for every path power is taking", () => {
     const { container } = render(<FofSkin model={system} />);
     const drawn = [...container.querySelectorAll("[data-flow]")].map((conduit) => conduit.getAttribute("data-flow"));
-    expect(drawn).toEqual(system.flows.map((flow) => `${flow.source}-${flow.target}`));
+    // Shore power to the AC loads is drawn through the inverter/charger's hub, with the rest.
+    expect(drawn).toEqual(["grid-inverter_charger", "inverter_charger-ac_loads", "inverter_charger-battery", "solar-battery"]);
   });
 
   it("shows a part that is not reporting without its readings", () => {
