@@ -392,6 +392,22 @@
           ],
           "description": "How this part is doing. Every skin gives each level the same color: good green, normal blue, attention yellow, warning orange, fault red, offline black, always paired with an icon or a label so color is never the only signal."
         },
+        "ac_input": {
+          "anyOf": [
+            {
+              "enum": [
+                1,
+                2
+              ],
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Which of the inverter/charger's AC inputs the generator is wired to, where the system says."
+        },
         "running": {
           "anyOf": [
             {
@@ -430,6 +446,7 @@
       },
       "required": [
         "status",
+        "ac_input",
         "running",
         "power_w",
         "run_time_s"
@@ -456,6 +473,22 @@
             "shore"
           ],
           "type": "string"
+        },
+        "ac_input": {
+          "anyOf": [
+            {
+              "enum": [
+                1,
+                2
+              ],
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Which of the inverter/charger's AC inputs the supply is wired to, where the system says."
         },
         "connected": {
           "anyOf": [
@@ -530,6 +563,7 @@
       "required": [
         "status",
         "kind",
+        "ac_input",
         "connected",
         "power_w",
         "voltage_v",
@@ -629,6 +663,34 @@
             "$ref": "#/$defs/Alarm"
           },
           "type": "array"
+        },
+        "ac_inputs": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How many AC inputs it has: one on most models, two on those that switch between two supplies, such as shore power and a generator."
+        },
+        "active_input": {
+          "anyOf": [
+            {
+              "enum": [
+                1,
+                2
+              ],
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The AC input it is taking power from now, if any."
         }
       },
       "required": [
@@ -639,7 +701,9 @@
         "ac_out_power_w",
         "charge_current_a",
         "dc_power_w",
-        "alarms"
+        "alarms",
+        "ac_inputs",
+        "active_input"
       ],
       "title": "InverterCharger",
       "type": "object"

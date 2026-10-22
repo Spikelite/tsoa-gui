@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 
 import type { InverterCharger, InverterState } from "../../model/system";
 import { flowSpeed } from "../minimal/flowSpeed";
+import { HUB_VIEW, portShift } from "./hubPorts";
 
 /** What the inverter/charger is doing with power, which tints its core. */
 type Duty = "inverting" | "charging" | "passing" | "idle";
@@ -31,7 +32,10 @@ const CELL = { length: 13, depth: 7 };
 // the drawing is cropped to.
 const TRACKS = [33, 43];
 const CORE = 52;
-const VIEW = `${CENTER - CORE - 2} ${CENTER - CORE - 2} ${2 * CORE + 4} ${2 * CORE + 4}`;
+// The drawing is cropped to the core with room either side for input nodes,
+// square so its center stays the core's.
+const VIEW = `${CENTER - HUB_VIEW / 2} ${CENTER - HUB_VIEW / 2} ${HUB_VIEW} ${HUB_VIEW}`;
+const NODE = { width: 16, height: 12 };
 
 // The inverter/charger drawn as a hub that power runs through. Its conduits
 // do not stop at its edge: they run on to its center, so the waves on them
@@ -43,6 +47,10 @@ const VIEW = `${CENTER - CORE - 2} ${CENTER - CORE - 2} ${2 * CORE + 4} ${2 * CO
 // the cells hold steady and the center pulses. Idle, it is dim and still.
 // The core is tinted by what it is doing, which its state also says in
 // words: blue plasma inverting, teal charging, lavender passing through.
+//
+// An inverter/charger with two AC inputs has a node for each on its left
+// side, AC input 1 above and AC input 2 below, where the supplies wired to
+// them plug in; the input it is taking power from is lit.
 export function InverterCore({ inverter }: { inverter: InverterCharger }) {
   const work = duty(inverter);
   const power = Math.max(
@@ -73,6 +81,16 @@ export function InverterCore({ inverter }: { inverter: InverterCharger }) {
         <circle className="fof-unit-housing" cx={CENTER} cy={CENTER} r="22" />
         <circle className="fof-unit-port" cx={CENTER} cy={CENTER} r="13" />
         <circle className="fof-unit-ring" cx={CENTER} cy={CENTER} r="8" />
+        {(inverter.ac_inputs ?? 1) >= 2 && ([1, 2] as const).map((input) => {
+          const y = CENTER + portShift(input);
+          const x = CENTER - Math.sqrt(CORE * CORE - portShift(input) ** 2) - NODE.width + 4;
+          return (
+            <g key={input} className={`fof-hub-node${inverter.active_input === input ? " fof-hub-node-active" : ""}`}>
+              <rect x={x} y={y - NODE.height / 2} width={NODE.width} height={NODE.height} rx={NODE.height / 2} />
+              <text x={x + NODE.width / 2 - 1} y={y}>{input}</text>
+            </g>
+          );
+        })}
       </svg>
     </div>
   );

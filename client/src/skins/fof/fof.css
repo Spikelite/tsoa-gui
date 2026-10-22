@@ -317,22 +317,22 @@
 
 .fof-label-block .fof-status-words::before { content: "·"; margin-right: 0.4em; }
 
-/* A status on its own: a rounded button in its color. */
-.fof-status {
+/* A name within a part's readings, such as a solar array's or an alarm's: a
+   rounded button in the color of its status. */
+.fof-name-pill {
   display: inline-flex;
   align-items: center;
-  min-width: 1.8em;
-  min-height: 1em;
-  padding: 0.15em 0.9em;
+  gap: 0.4em;
+  padding: 0.05em 0.8em;
   color: #000;
   background: var(--status-color);
   border-radius: 1em;
-  font-size: 0.72em;
-  font-weight: 700;
+  font-size: 0.85em;
+  font-weight: 600;
   white-space: nowrap;
 }
 
-.fof-row .fof-status { font-size: 0.75em; padding: 0.05em 0.7em; }
+.fof-name-pill .fof-status-words::before { content: "·"; margin-right: 0.4em; }
 
 .fof-state-line {
   margin: 0.35em 0 0.35em;
@@ -486,7 +486,7 @@
    a narrow one there is no room beside the hub, so the readings go above it. */
 .fof-readout-hub {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 3.3em 3.3em minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 4.3em 4.3em minmax(0, 1fr);
   row-gap: 0.35em;
   align-items: start;
 }
@@ -502,7 +502,7 @@
 
 .fof-readout-hub > .fof-state-line { grid-row: 3; margin-top: 0.4em; margin-bottom: 0; }
 .fof-readout-hub > .fof-rows { grid-row: 4; width: auto; }
-.fof-ring-unit { width: 6.6em; }
+.fof-ring-unit { width: 8.6em; }
 
 .fof-duty-inverting { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #cfe6ff; --fof-ring: var(--fof-plasma-deep); }
 .fof-duty-charging { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #c9f3ea; --fof-ring: #3fb8a8; }
@@ -521,6 +521,18 @@
 .fof-unit-band { fill: none; stroke-width: 3; }
 .fof-unit-housing { fill: #e6e2ee; }
 .fof-panel-breaker { fill: var(--fof-cell-rest); }
+
+/* The hub's AC input nodes, the one in use lit. */
+.fof-hub-node rect { fill: #3d3852; stroke: #8e8aa3; stroke-width: 1.5; }
+.fof-hub-node text {
+  fill: #c9c6d6;
+  font-size: 8px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.fof-hub-node-active rect { fill: var(--fof-plasma); stroke: var(--fof-plasma); }
+.fof-hub-node-active text { fill: #000; }
 
 /* The core sits over the junction where the hub's conduits meet. */
 .fof-unit-core { fill: #000; stroke: #3d3852; stroke-width: 3; }

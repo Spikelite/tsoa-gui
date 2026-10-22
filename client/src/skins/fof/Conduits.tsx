@@ -1,8 +1,9 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 
-import type { Flow } from "../../model/system";
+import type { Flow, PartName } from "../../model/system";
 import { flowSpeed } from "../minimal/flowSpeed";
 import { conduitPath, usePanelMeasure, type Box } from "../panelBoxes";
+import { HUB_VIEW, portShift } from "./hubPorts";
 import { steadyPeriod } from "./wavePeriod";
 
 // A wave is many faint strokes centered on one another, each shorter, a
@@ -38,10 +39,13 @@ const WAVE_WIDTH = 1.4;
  * is nearly level with it runs straight; with none, no distance. The boxes are measured
  * with the hub already moved by `current`.
  */
-function hubNudge(boxes: Partial<Record<string, Box>>, flows: Flow[], current: number, smallest: number): number {
+function hubNudge(
+  boxes: Partial<Record<string, Box>>, flows: Flow[], current: number, smallest: number,
+  target: (flow: Flow) => Box | undefined,
+): number {
   for (const flow of flows) {
     const from = boxes[flow.source];
-    const to = boxes[flow.target];
+    const to = target(flow);
     if (from?.launch && to?.hub) {
       const apart = Math.round(from.y - to.y + current);
       if (Math.abs(apart) < smallest) {
@@ -71,7 +75,11 @@ const WAVE = 14;
 // for its breakers. A conduit launched from its source, as the grid's is from
 // its tower's row of pills, is timed from its start instead, so the source can
 // time the waves it sends.
-export function Conduits({ flows }: { flows: Flow[] }) {
+export function Conduits({ flows, inputs = {} }: {
+  flows: Flow[];
+  /** The AC input of the inverter/charger's hub each supply plugs into, where it has two. */
+  inputs?: Partial<Record<PartName, 1 | 2>>;
+}) {
   const svg = useRef<SVGSVGElement>(null);
   const [nudge, setNudge] = useState(0);
 
@@ -80,7 +88,15 @@ export function Conduits({ flows }: { flows: Flow[] }) {
     svg.current?.parentElement?.style.setProperty("--fof-hub-nudge", `${nudge}px`);
   }, [nudge]);
 
-  const { boxes, revision: measuredAt } = usePanelMeasure(svg, flows, nudge);
+  const { boxes: measured, revision: measuredAt } = usePanelMeasure(svg, flows, nudge);
+  // A supply wired to one of the hub's two AC inputs meets the hub at that
+  // input's node rather than at its center.
+  const target = (flow: Flow): Box | undefined => {
+    const box = measured[flow.target];
+    const input = inputs[flow.source];
+    return box?.hub && input ? { ...box, y: box.y + (portShift(input) * 2 * box.halfWidth) / HUB_VIEW } : box;
+  };
+  const boxes = measured;
   const [em, setEm] = useState(16);
 
   const [periods, setPeriods] = useState<Partial<Record<string, number>>>({});
@@ -98,7 +114,7 @@ export function Conduits({ flows }: { flows: Flow[] }) {
   // The boxes were measured with the hub moved by `measuredAt`; until they are
   // measured again with the latest move, there is nothing new to go on.
   if (measuredAt === nudge) {
-    const levelled = hubNudge(boxes, flows, nudge, 1.5 * WAVE_WIDTH * em);
+    const levelled = hubNudge(boxes, flows, nudge, 1.5 * WAVE_WIDTH * em, target);
     if (levelled !== nudge) {
       setNudge(levelled);
     }
@@ -128,7 +144,7 @@ export function Conduits({ flows }: { flows: Flow[] }) {
     <svg ref={svg} className="fof-conduits" aria-hidden="true">
       {flows.map((flow) => {
         const from = boxes[flow.source];
-        const to = boxes[flow.target];
+        const to = target(flow);
         if (from === undefined || to === undefined) {
           return null;
         }

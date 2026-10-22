@@ -38,6 +38,8 @@ class Grid(Part):
     """The AC supply the system connects to: a utility grid or shore power."""
 
     kind: Literal["grid", "shore"] = Field(description="Whether the supply is a utility grid or shore power.")
+    ac_input: Literal[1, 2] | None = Field(
+        None, description="Which of the inverter/charger's AC inputs the supply is wired to, where the system says.")
     connected: bool | None = Field(None, description="Whether the supply is present and connected now.")
     power_w: float | None = Field(
         None, description="Power drawn from the supply. Negative when power is fed back into it.")
@@ -49,6 +51,8 @@ class Grid(Part):
 
 
 class Generator(Part):
+    ac_input: Literal[1, 2] | None = Field(
+        None, description="Which of the inverter/charger's AC inputs the generator is wired to, where the system says.")
     running: bool | None = None
     power_w: float | None = Field(None, description="Power the generator supplies.")
     run_time_s: float | None = Field(None, description="How long the generator has been running this time.")
@@ -78,6 +82,11 @@ class InverterCharger(Part):
     dc_power_w: float | None = Field(
         None, description="DC power into the battery. Negative when it draws from the battery to invert.")
     alarms: list[Alarm] = Field(default_factory=list, description="Alarms and warnings active now.")
+    ac_inputs: int | None = Field(
+        None, description="How many AC inputs it has: one on most models, two on those that switch between "
+                          "two supplies, such as shore power and a generator.")
+    active_input: Literal[1, 2] | None = Field(
+        None, description="The AC input it is taking power from now, if any.")
 
 
 class Battery(Part):

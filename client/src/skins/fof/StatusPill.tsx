@@ -21,13 +21,13 @@ export function StatusWords({ status, separator = false }: { status: Status; sep
   );
 }
 
-// A status as the console shows one on its own: a free-standing rounded
-// button in the status's color, with the status in words when it needs
-// attention.
-export function StatusPill({ status }: { status: Status }) {
+// A name as the console labels one: a rounded button in the color of its
+// status, with the status in words after the name when it needs attention.
+export function NamePill({ name, status }: { name: string; status: Status }) {
   return (
-    <span className={`fof-status status-${status}`}>
-      <StatusWords status={status} />
+    <span className={`fof-name-pill status-${status}`}>
+      {name}
+      <StatusWords status={status} separator />
     </span>
   );
 }

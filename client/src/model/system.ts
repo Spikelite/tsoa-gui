@@ -84,6 +84,10 @@ export interface Grid {
    */
   kind: "grid" | "shore";
   /**
+   * Which of the inverter/charger's AC inputs the supply is wired to, where the system says.
+   */
+  ac_input: (1 | 2) | null;
+  /**
    * Whether the supply is present and connected now.
    */
   connected: boolean | null;
@@ -108,6 +112,10 @@ export interface Generator {
    * How this part is doing. Every skin gives each level the same color: good green, normal blue, attention yellow, warning orange, fault red, offline black, always paired with an icon or a label so color is never the only signal.
    */
   status: Status;
+  /**
+   * Which of the inverter/charger's AC inputs the generator is wired to, where the system says.
+   */
+  ac_input: (1 | 2) | null;
   running: boolean | null;
   /**
    * Power the generator supplies.
@@ -155,6 +163,14 @@ export interface InverterCharger {
    * Alarms and warnings active now.
    */
   alarms: Alarm[];
+  /**
+   * How many AC inputs it has: one on most models, two on those that switch between two supplies, such as shore power and a generator.
+   */
+  ac_inputs: number | null;
+  /**
+   * The AC input it is taking power from now, if any.
+   */
+  active_input: (1 | 2) | null;
 }
 /**
  * This interface was referenced by `System`'s JSON-Schema

@@ -29,6 +29,8 @@ DEVICE = {
     ("system", 0, "Dc/Pv/Power"): 310.0,
     ("system", 0, "Dc/System/Power"): 45.0,
     ("vebus", 276, "Connected"): 1,
+    ("vebus", 276, "Ac/NumberOfAcInputs"): 2,
+    ("vebus", 276, "Ac/ActiveIn/ActiveInput"): 0,
     ("vebus", 276, "Mode"): 3,
     ("vebus", 276, "State"): 3,
     ("vebus", 276, "Ac/ActiveIn/L1/V"): 231.5,
@@ -89,11 +91,16 @@ def test_build_reads_the_whole_installation():
 
     assert system.generator.running is False
 
+    # Shore power is wired to AC input 1 and the generator to AC input 2, and
+    # the inverter/charger, which has both, is taking power from input 1.
+    assert (system.grid.ac_input, system.generator.ac_input) == (1, 2)
+
     inverter = system.inverter_charger
     assert (inverter.mode, inverter.state, inverter.status) == ("on", "bulk", "warning")
     assert [a.name for a in inverter.alarms] == ["High temperature"]
     assert inverter.ac_in_power_w == 1050.0 and inverter.ac_out_power_w == 700.0
     assert inverter.dc_power_w == 26.4 * 12.0
+    assert (inverter.ac_inputs, inverter.active_input) == (2, 1)
 
     battery = system.battery
     assert (battery.soc_percent, battery.activity, battery.status) == (64.5, "charging", "good")
@@ -131,6 +138,18 @@ def test_a_running_generator_is_the_active_input():
     system = build(readings(values), live=True)
     assert system.generator.running and not system.grid.connected
     assert ("generator", "inverter_charger") in {(f.source, f.target) for f in system.flows}
+
+
+def test_an_inverter_charger_on_neither_input_says_so():
+    values = dict(DEVICE)
+    values[("vebus", 276, "Ac/ActiveIn/ActiveInput")] = 240
+    assert build(readings(values), live=True).inverter_charger.active_input is None
+
+
+def test_inputs_are_unknown_where_the_system_does_not_say():
+    values = {k: v for k, v in DEVICE.items() if not k[2].startswith(("Settings/SystemSetup", "Ac/NumberOf"))}
+    system = build(readings(values), live=True)
+    assert system.grid.ac_input is None and system.inverter_charger.ac_inputs is None
 
 
 def test_readings_go_stale_without_messages():

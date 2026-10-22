@@ -18,7 +18,7 @@ import logging
 import re
 import time
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Literal
 
 import aiomqtt
 
@@ -129,6 +129,19 @@ def _ac_inputs(r: Readings) -> list[str]:
     return [kind for n in (1, 2) if (kind := AC_INPUT_KINDS.get(r.get("settings", 0, f"Settings/SystemSetup/AcInput{n}")))]
 
 
+def _input_of(r: Readings, kinds: tuple[str, ...]) -> Literal[1, 2] | None:
+    """Which AC input the system's settings say a supply of one of these kinds is wired to."""
+    for n in (1, 2):
+        if AC_INPUT_KINDS.get(r.get("settings", 0, f"Settings/SystemSetup/AcInput{n}")) in kinds:
+            return n  # type: ignore[return-value]
+    return None
+
+
+# The inverter/charger reports the input it is using as 0 or 1; anything else
+# means it is using neither.
+ACTIVE_INPUTS: dict[object, Literal[1, 2]] = {0: 1, 1: 2}
+
+
 def _vebus(r: Readings) -> int | None:
     instance = r.get("system", 0, "VebusInstance")
     return instance if isinstance(instance, int) and not isinstance(instance, bool) else None
@@ -145,6 +158,7 @@ def _grid(r: Readings) -> Grid | None:
     return Grid(
         status="normal",
         kind="shore" if kind == "shore" else "grid",
+        ac_input=_input_of(r, ("grid", "shore")),
         connected=connected,
         power_w=power,
         voltage_v=r.number("vebus", vebus, "Ac/ActiveIn/L1/V"),
@@ -171,6 +185,7 @@ def _generator(r: Readings) -> Generator | None:
         running = None
     return Generator(
         status="normal",
+        ac_input=_input_of(r, ("generator",)),
         running=running,
         power_w=power,
         run_time_s=r.number("generator", 0, "Runtime") if running else None,
@@ -198,7 +213,13 @@ def _inverter_charger(r: Readings) -> InverterCharger | None:
         dc_power_w=_first(r.number("vebus", instance, "Dc/0/Power"),
                           voltage * current if voltage is not None and current is not None else None),
         alarms=alarms,
+        ac_inputs=_count(r.get("vebus", instance, "Ac/NumberOfAcInputs")),
+        active_input=ACTIVE_INPUTS.get(r.get("vebus", instance, "Ac/ActiveIn/ActiveInput")),
     )
+
+
+def _count(value: object) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) and value > 0 else None
 
 
 def _alarms(r: Readings, service: str, instance: int) -> list[Alarm]:

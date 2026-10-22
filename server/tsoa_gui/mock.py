@@ -194,12 +194,16 @@ def snapshot(t: float) -> System:
         charge_current_a=round(m.inverter_dc_w / voltage, 1),
         dc_power_w=round(m.inverter_dc_w),
         alarms=inverter_alarms,
+        # Shore power on AC input 1 and the generator on AC input 2.
+        ac_inputs=2,
+        active_input=1 if m.ac_source == "grid" else 2 if m.ac_source == "generator" else None,
     )
 
     shore = m.ac_source == "grid"
     grid = Grid(
         status="normal",
         kind="shore",
+        ac_input=1,
         connected=_shore_connected(m.phase),
         power_w=round((ac_in if shore else 0.0) + m.on_input_w),
         voltage_v=round(_shore_voltage(t % CYCLE_S), 1) if _shore_connected(m.phase) else 0.0,
@@ -211,6 +215,7 @@ def snapshot(t: float) -> System:
     running = m.ac_source == "generator"
     generator = Generator(
         status="normal",
+        ac_input=2,
         running=running,
         power_w=round(ac_in) if running else 0,
         run_time_s=round((m.phase - 0.20) * CYCLE_S * TIME_SCALE) if running else None,

@@ -7,6 +7,7 @@ export const system: System = {
   grid: {
     status: "normal",
     kind: "shore",
+    ac_input: 1,
     connected: true,
     power_w: 1250,
     voltage_v: 231.5,
@@ -24,6 +25,8 @@ export const system: System = {
     charge_current_a: 12,
     dc_power_w: 317,
     alarms: [{ name: "High temperature", level: "warning" }],
+    ac_inputs: 1,
+    active_input: 1,
   },
   battery: {
     status: "good",

@@ -14,10 +14,21 @@ import { InverterCore } from "./InverterCore";
 import { LoadPanel } from "./LoadPanel";
 import { SkinSegment } from "./SkinSegment";
 import { SolarArray } from "./SolarArray";
-import { StatusPill, StatusWords } from "./StatusPill";
+import { NamePill, StatusWords } from "./StatusPill";
 import { withIdleLinks } from "./links";
 import { throughHub } from "./throughHub";
 import "./fof.css";
+
+/** Which of the hub's two AC inputs each supply plugs into, where the inverter/charger has two. */
+function hubInputs(model: System): Partial<Record<PartName, 1 | 2>> {
+  if ((model.inverter_charger?.ac_inputs ?? 1) < 2) {
+    return {};
+  }
+  return {
+    ...(model.grid?.ac_input ? { grid: model.grid.ac_input } : {}),
+    ...(model.generator?.ac_input ? { generator: model.generator.ac_input } : {}),
+  };
+}
 
 function Readout(props: {
   part: PartName; title: string; status: Status; state: string; art?: ReactNode;
@@ -92,7 +103,8 @@ export function FofSkin({ model }: { model: System }) {
       </div>
 
       <div className="fof-diagram">
-        <Conduits flows={withIdleLinks(model.inverter_charger ? throughHub(model.flows) : model.flows, model)} />
+        <Conduits flows={withIdleLinks(model.inverter_charger ? throughHub(model.flows) : model.flows, model)}
+          inputs={hubInputs(model)} />
 
         {model.grid && (
           <Readout part="grid" title={partTitle("grid", model)} status={model.grid.status} state={gridState(model.grid)}
@@ -129,9 +141,8 @@ export function FofSkin({ model }: { model: System }) {
             {model.inverter_charger.alarms.map((alarm) => (
               <div key={alarm.name} className="fof-row fof-alarm">
                 <dt>
-                  <StatusPill status={alarm.level === "alarm" ? "fault" : "warning"} />
+                  <NamePill name={alarm.name} status={alarm.level === "alarm" ? "fault" : "warning"} />
                 </dt>
-                <dd>{alarm.name}</dd>
               </div>
             ))}
           </Readout>
@@ -148,7 +159,7 @@ export function FofSkin({ model }: { model: System }) {
               model.solar.chargers.map((charger) => (
                 <div key={charger.name} className="fof-row">
                   <dt>
-                    <StatusPill status={charger.status} /> {charger.name}
+                    <NamePill name={charger.name} status={charger.status} />
                   </dt>
                   <dd>
                     {charger.status === "offline" ? "Not reporting" : <Eased value={charger.power_w} format={f.power} />}
