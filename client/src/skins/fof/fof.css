@@ -504,10 +504,6 @@
 .fof-unit-housing { fill: #e6e2ee; }
 .fof-panel-breaker { fill: var(--fof-cell-rest); }
 
-/* The hub's AC input nodes, the one in use lit. */
-.fof-hub-node rect { fill: #3d3852; stroke: #8e8aa3; stroke-width: 1.5; }
-.fof-hub-node-active rect { fill: var(--fof-plasma); stroke: var(--fof-plasma); }
-
 /* The core sits over the junction where the hub's conduits meet. */
 .fof-unit-core { fill: #000; stroke: #3d3852; stroke-width: 3; }
 .fof-unit-port { fill: #000; }
