@@ -10,9 +10,12 @@ type Rect = Point & { halfWidth: number; halfHeight: number };
 /**
  * Where flows meet a panel: its own box, or the box of the graphic inside it
  * that flows plug into, with the whole panel's box as `panel`. A graphic
- * marked `data-anchor="hub"` is one flows run on into, to its center.
+ * marked `data-anchor="hub"` is one flows run on into, to its center; one
+ * marked `data-anchor="open"` has nothing in the way of a flow from any side
+ * but the panel's name, marked `data-anchor-label`, which a flow running down
+ * the column into the name plugs into instead.
  */
-export type Box = Rect & { panel?: Rect; hub?: boolean };
+export type Box = Rect & { panel?: Rect; hub?: boolean; open?: boolean; label?: Rect };
 
 /**
  * The box of every panel marked with `data-part`, or of the element inside it
@@ -46,8 +49,15 @@ export function usePanelBoxes(svg: RefObject<SVGSVGElement | null>, flows: Flow[
         };
         // A panel can mark the graphic inside it that flows plug into.
         const anchor = panel.querySelector<HTMLElement>("[data-anchor]");
+        const label = panel.querySelector<HTMLElement>("[data-anchor-label]");
         next[panel.dataset.part ?? ""] = anchor
-          ? { ...rect(anchor), panel: rect(panel), hub: anchor.dataset.anchor === "hub" }
+          ? {
+              ...rect(anchor),
+              panel: rect(panel),
+              hub: anchor.dataset.anchor === "hub",
+              open: anchor.dataset.anchor === "open",
+              ...(label ? { label: rect(label) } : {}),
+            }
           : rect(panel);
       });
       setBoxes(next);
@@ -116,9 +126,9 @@ export function conduitPath(from: Box, to: Box, radius: number): Conduit {
   const sa = Math.sign(toPanel[main] - fromPanel[main]) || 1;
   const turn =
     (fromPanel[main] + sa * half(fromPanel, main) + toPanel[main] - sa * half(toPanel, main)) / 2;
-  const a1 = end(from, main, sa);
-  const a2 = end(to, main, -sa);
   const [b1, b2] = levels(from, to, cross, radius);
+  const a1 = end(from, main, sa, b1);
+  const a2 = end(to, main, -sa, b2);
   const sb = Math.sign(b2 - b1);
   const r = Math.min(radius, Math.abs(b2 - b1) / 2, Math.abs(turn - a1), Math.abs(a2 - turn));
   const point = (a: number, b: number) => (main === "x" ? `${a},${b}` : `${b},${a}`);
@@ -151,12 +161,17 @@ export function conduitPath(from: Box, to: Box, radius: number): Conduit {
  * way it runs. Across a gap between columns it plugs into what the panel
  * marks. Down a column it ends at the panel's own edge instead, since a
  * panel's readings sit between its name and its top or bottom, unless what
- * it marks sits at that edge. A hub it runs on into, to its center.
+ * it marks sits at that edge or is open, and plugs into the panel's name
+ * if the name is in its way. A hub it runs on into, to its center.
  */
-function end(box: Box, main: Axis, toward: number): number {
+function end(box: Box, main: Axis, toward: number, level: number): number {
   const panel = box.panel ?? box;
   const edge = (rect: Rect) => rect[main] + toward * half(rect, main);
-  const atEdge = Math.abs(edge(box) - edge(panel)) < 4;
+  const cross: Axis = main === "x" ? "y" : "x";
+  if (main === "y" && box.label && Math.abs(level - box.label[cross]) <= half(box.label, cross)) {
+    return edge(box.label);
+  }
+  const atEdge = box.open || Math.abs(edge(box) - edge(panel)) < 4;
   if (box.hub && (main === "x" || atEdge)) {
     return box[main];
   }
@@ -173,14 +188,14 @@ function end(box: Box, main: Axis, toward: number): number {
 function levels(from: Box, to: Box, cross: Axis, radius: number): [number, number] {
   const [a, b] = [from[cross], to[cross]];
   const reaches = (box: Box, level: number) => Math.abs(level - box[cross]) <= half(box, cross);
-  if (Math.abs(b - a) >= radius) {
-    return [a, b];
-  }
   // A hub is met at its center, through its port: straight if the other box
   // reaches that level, or else with bends however small.
   if (from.hub || to.hub) {
     const level = from.hub ? a : b;
     return reaches(from.hub ? to : from, level) ? [level, level] : [a, b];
+  }
+  if (Math.abs(b - a) >= radius) {
+    return [a, b];
   }
   if (from.panel && reaches(to, a)) {
     return [a, a];

@@ -281,21 +281,37 @@
 .fof-flow-4 { --fof-beat: 0.9s; }
 
 /* The battery: a bank of cells between end caps */
+/* The battery: the block centered in its column, so a conduit from above
+   meets its middle; its name above the block's left end, its charge beside
+   the block's right end, its state and readings below, lined up on the block. */
 .fof-core {
+  --fof-bank-width: 18em;
   display: grid;
-  justify-items: start;
-  gap: 0.35em;
+  grid-template-columns: minmax(0, 1fr) var(--fof-bank-width) minmax(0, 1fr);
+  row-gap: 0.35em;
 }
 
-.fof-core .fof-bank { justify-self: center; margin-bottom: 0.4em; }
+.fof-core > * { grid-column: 2; }
+.fof-core > .fof-rows { grid-column: 2 / span 2; }
+.fof-core-name { justify-self: start; }
+
+/* The block and its charge together, reaching to the column's right edge,
+   so a conduit leaving to the right starts clear of the figure. */
+.fof-core > .fof-core-row {
+  grid-column: 2 / span 2;
+  display: grid;
+  grid-template-columns: var(--fof-bank-width) minmax(0, 1fr);
+  align-items: center;
+  column-gap: 0.6em;
+  margin: 0.2em 0;
+}
 
 /* One block: a pair of end caps spanning every row, with the cells between. */
 .fof-bank {
   display: grid;
   grid-template-columns: 1.6em minmax(0, 1fr) 1.6em;
   gap: 0.3em;
-  width: 100%;
-  max-width: 20em;
+  width: var(--fof-bank-width);
   height: 7em;
 }
 
@@ -361,10 +377,10 @@
 }
 
 .fof-core-figure {
-  justify-self: center;
   margin: 0;
   color: var(--fof-cell);
-  font-size: 2.6em;
+  font-size: 2.4em;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
@@ -451,9 +467,12 @@
 
   .fof-cap { width: 1.5em; }
   .fof-label { font-size: 1em; }
-  .fof-bank { height: 5.4em; grid-template-columns: 1.1em minmax(0, 1fr) 1.1em; }
+  .fof-core { --fof-bank-width: 6.6em; }
+  .fof-bank { height: 4.4em; grid-template-columns: 0.8em minmax(0, 1fr) 0.8em; }
+  .fof-bank-cap::before { display: none; }
+  .fof-core > .fof-core-row { column-gap: 0.3em; }
   .fof-bank-cells { gap: 0.35em 0.15em; }
-  .fof-core-figure { font-size: 2em; }
+  .fof-core-figure { font-size: 1.15em; }
 }
 
 /* A small panel keeps the motion but drops the cells' glow, the part that

@@ -100,4 +100,23 @@ describe("conduitPath", () => {
     const beside = { x: 600, y: 90, halfWidth: 40, halfHeight: 10, panel: { x: 650, y: 140, halfWidth: 90, halfHeight: 60 } };
     expect(conduitPath(hub, beside, 28).d.startsWith("M300,100 L")).toBe(true);
   });
+
+  it("runs straight out of a hub's port to anything level with it", () => {
+    const hub = { x: 300, y: 100, halfWidth: 40, halfHeight: 40, hub: true,
+      panel: { x: 300, y: 60, halfWidth: 100, halfHeight: 80 } };
+    // Well off the battery block's center, but over it: straight down, onto its top.
+    const block = { x: 360, y: 300, halfWidth: 120, halfHeight: 30, open: true,
+      panel: { x: 340, y: 320, halfWidth: 140, halfHeight: 60 } };
+    expect(conduitPath(hub, block, 28).d).toBe("M300,100 L300,270");
+  });
+
+  it("plugs into a panel's name when the name is in its way down a column", () => {
+    const hub = { x: 300, y: 100, halfWidth: 40, halfHeight: 40, hub: true,
+      panel: { x: 300, y: 60, halfWidth: 100, halfHeight: 80 } };
+    const block = { x: 300, y: 300, halfWidth: 120, halfHeight: 30, open: true,
+      panel: { x: 300, y: 320, halfWidth: 140, halfHeight: 60 },
+      label: { x: 280, y: 255, halfWidth: 60, halfHeight: 12 } };
+    // The name spans x 220 to 340, under the hub, so the conduit ends on its top at y 243.
+    expect(conduitPath(hub, block, 28).d).toBe("M300,100 L300,243");
+  });
 });

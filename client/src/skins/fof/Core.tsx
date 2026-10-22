@@ -13,8 +13,8 @@ const ROWS = 2;
 const CELLS = CELLS_PER_ROW * ROWS;
 
 // The battery as one block: two rows of five cells held between a single pair
-// of end caps, with its name and readings below, so conduits plug into the
-// block itself. Its light follows the charge: cells light from the bottom
+// of end caps, with its name above its left end, its charge beside its right
+// end and its state and readings below. Its light follows the charge: cells light from the bottom
 // row's left end, a tenth of the charge each, the last one partly. Its pulse follows the power: a wave
 // of light runs through the lit cells forward while the battery charges and
 // backward while it discharges, faster with every tenfold increase in power,
@@ -35,50 +35,53 @@ export function Core({ battery }: { battery: Battery }) {
 
   return (
     <section className={`fof-core status-${battery.status}`} data-part="battery" aria-labelledby={heading}>
-      <div
-        className={`fof-bank fof-${direction} fof-pulse-${pulse}`}
-        style={{ "--charge": `${charge}%` } as CSSProperties}
-        role="meter"
-        aria-label="State of charge"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={soc ?? undefined}
-        data-anchor
-      >
-        <span className="fof-bank-cap" aria-hidden="true" />
-        <div className="fof-bank-cells" aria-hidden="true">
-          {rows.flat().map((cell) => {
-            const level = Math.max(0, Math.min(1, lit - cell));
-            const wave = direction === "down" ? CELLS - 1 - cell : cell;
-            return (
-              <span
-                key={cell}
-                className={`fof-cell${level > 0 ? " fof-cell-lit" : ""}`}
-                style={{ "--level": level.toFixed(2), "--wave": wave } as CSSProperties}
-              />
-            );
-          })}
-        </div>
-        <span className="fof-bank-cap" aria-hidden="true" />
-      </div>
-      <h2 className="fof-label-block">
+      {/* A conduit that would cross the name plugs into it instead. */}
+      <h2 className="fof-label-block fof-core-name" data-anchor-label>
         <StatusIcon status={battery.status} />
         <span id={heading}>Battery</span>
       </h2>
-      <p className="fof-state-line">{offline ? "Not reporting" : batteryState(battery)}</p>
-      {!offline && (
-        <>
+      {/* Conduits plug into the block and its charge together, so none crosses the figure. */}
+      <div className="fof-core-row" data-anchor="open">
+        <div
+          className={`fof-bank fof-${direction} fof-pulse-${pulse}`}
+          style={{ "--charge": `${charge}%` } as CSSProperties}
+          role="meter"
+          aria-label="State of charge"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={soc ?? undefined}
+        >
+          <span className="fof-bank-cap" aria-hidden="true" />
+          <div className="fof-bank-cells" aria-hidden="true">
+            {rows.flat().map((cell) => {
+              const level = Math.max(0, Math.min(1, lit - cell));
+              const wave = direction === "down" ? CELLS - 1 - cell : cell;
+              return (
+                <span
+                  key={cell}
+                  className={`fof-cell${level > 0 ? " fof-cell-lit" : ""}`}
+                  style={{ "--level": level.toFixed(2), "--wave": wave } as CSSProperties}
+                />
+              );
+            })}
+          </div>
+          <span className="fof-bank-cap" aria-hidden="true" />
+        </div>
+        {!offline && (
           <p className="fof-core-figure">
             <Eased value={soc} format={f.percent} />
           </p>
-          <dl className="fof-rows">
-            <Row label="Power" value={battery.power_w} format={f.power} always />
-            <Row label="Voltage" value={battery.voltage_v} format={f.volts} always />
-            <Row label="Current" value={battery.current_a} format={f.amps} />
-            <Row label="Time to go" value={battery.time_to_go_s} format={f.duration} />
-            <Row label="Temperature" value={battery.temperature_c} format={f.celsius} />
-          </dl>
-        </>
+        )}
+      </div>
+      <p className="fof-state-line">{offline ? "Not reporting" : batteryState(battery)}</p>
+      {!offline && (
+        <dl className="fof-rows">
+          <Row label="Power" value={battery.power_w} format={f.power} always />
+          <Row label="Voltage" value={battery.voltage_v} format={f.volts} always />
+          <Row label="Current" value={battery.current_a} format={f.amps} />
+          <Row label="Time to go" value={battery.time_to_go_s} format={f.duration} />
+          <Row label="Temperature" value={battery.temperature_c} format={f.celsius} />
+        </dl>
       )}
     </section>
   );
