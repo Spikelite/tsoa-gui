@@ -460,30 +460,40 @@
   .fof-readout-schematic > .fof-rows { grid-column: 1 / span 2; grid-row: 3; margin-top: 0.3em; }
 }
 
-/* A hub: its name above its left edge, and its state and readings in the
-   corner below and right of it, clear of the spoke running down from its
-   center and the one running right. The two middle columns are the hub's
-   halves, so the spoke down runs between them. Conduits come in along the
-   hub's axes only, so that corner is never in one's way on a wide screen; on
-   a narrow one there is no room beside the hub, so the readings go above it. */
+/* A hub: its name above its left edge, and its state and readings at its
+   top right, from the name's row down, just clear of its right side. They
+   end above the hub's middle, where a conduit leaves its right side, and
+   where the column is too narrow for them they run on into the space
+   beyond it, which nothing crosses above that conduit. The two middle
+   columns are the hub's halves. On a narrow screen there is no room beside
+   the hub, so the readings go above it. */
 .fof-readout-hub {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 6em 6em minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr;
   row-gap: 0.35em;
   align-items: start;
 }
 
-.fof-readout-hub > .fof-name-row { grid-column: 2 / 5; grid-row: 1; }
+.fof-readout-hub > .fof-name-row { grid-column: 2 / 4; grid-row: 1; }
 .fof-readout-hub > .fof-unit { grid-column: 2 / 4; grid-row: 2; margin: 0.2em 0 0; }
 
 .fof-readout-hub > .fof-state-line,
 .fof-readout-hub > .fof-rows {
-  grid-column: 3 / 5;
-  margin-left: 1.5em;
+  grid-column: 4;
+  grid-row: 1 / span 2;
+  justify-self: start;
+  margin-left: 0.6em;
 }
 
-.fof-readout-hub > .fof-state-line { grid-row: 3; margin-top: 0.4em; margin-bottom: 0; }
-.fof-readout-hub > .fof-rows { grid-row: 4; width: auto; }
+.fof-readout-hub > .fof-state-line { margin-top: 0.35em; margin-bottom: 0; }
+/* As wide as it reads well, but never past the gap after the column, so
+   it stays clear of the next column's name. The gap is the diagram's own. */
+.fof-readout-hub > .fof-rows {
+  width: min(15em, calc(100% + clamp(3em, 7vw, 9em) - 1.2em));
+  max-width: none;
+  margin-top: 1.7em;
+}
 .fof-ring-unit { width: 12em; }
 
 .fof-duty-inverting { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #cfe6ff; --fof-ring: var(--fof-plasma-deep); }
@@ -988,6 +998,7 @@
   .fof-readout-hub > .fof-unit { margin: 0.8em auto 0; }
   .fof-readout-hub > .fof-state-line,
   .fof-readout-hub > .fof-rows { margin-left: 0; }
+  .fof-readout-hub > .fof-rows { width: 100%; margin-top: 0; }
   .fof-readout-lead > .fof-state-line { margin: 0.35em 0; }
 
   .fof-cap { width: 1.2em; }
