@@ -342,30 +342,31 @@
   stroke-width: var(--fof-width);
 }
 
-.fof-speed-0 { --fof-width: 1em; --fof-roll: 3.5s; }
-.fof-speed-1 { --fof-width: 1.2em; --fof-roll: 2.2s; }
-.fof-speed-2 { --fof-width: 1.4em; --fof-roll: 1.45s; }
-.fof-speed-3 { --fof-width: 1.6em; --fof-roll: 0.95s; }
-.fof-speed-4 { --fof-width: 1.8em; --fof-roll: 0.6s; }
+.fof-speed-0 { --fof-width: 1em; --fof-roll: 9s; }
+.fof-speed-1 { --fof-width: 1.2em; --fof-roll: 6s; }
+.fof-speed-2 { --fof-width: 1.4em; --fof-roll: 4s; }
+.fof-speed-3 { --fof-width: 1.6em; --fof-roll: 2.6s; }
+.fof-speed-4 { --fof-width: 1.8em; --fof-roll: 1.7s; }
 
-/* The energy: waves of plasma rolling along the conduit toward its target,
-   one every 7em, across its whole width and around its bends, with clear
-   yellow between them. Conduits.tsx stacks each wave from faint strokes that
-   deepen toward its middle, so it flares from deep blue through icy blue into
-   the yellow with no hard edge, and needs no blur filter, which would cost
-   too much on a small panel. Every stroke is centered in the 7em between
-   waves, after an empty first dash, so all of them share one animation. */
+/* The energy: long waves of plasma rolling along the conduit toward its
+   target, one every 14em, across its whole width and around its bends, with
+   clear yellow between them. Conduits.tsx stacks each wave from many faint
+   strokes that deepen and strengthen toward its middle, so it flares from deep blue through
+   icy blue into the yellow as a smooth gradient, and needs no blur filter,
+   which would cost too much on a small panel. Every stroke is centered in the
+   14em between waves, after an empty first dash, so all of them share one
+   animation. */
 .fof-conduit-wave {
   stroke: color-mix(in oklab, var(--fof-plasma-deep) calc(var(--depth) * 100%), var(--fof-plasma));
   stroke-width: var(--fof-width);
-  stroke-opacity: var(--alpha);
-  stroke-dasharray: 0 calc((7em - var(--length)) / 2) var(--length) calc((7em - var(--length)) / 2);
+  stroke-opacity: calc(0.05 + var(--depth) * 0.1);
+  stroke-dasharray: 0 calc((14em - var(--length)) / 2) var(--length) calc((14em - var(--length)) / 2);
   animation: fof-roll var(--fof-roll) linear infinite;
 }
 
 .fof-conduit .fof-conduit-wave { stroke-linecap: butt; }
 
-@keyframes fof-roll { to { stroke-dashoffset: -7em; } }
+@keyframes fof-roll { to { stroke-dashoffset: -14em; } }
 
 /* The motion shows the direction, so the chevron appears only without it. */
 .fof-conduit-chevron {
