@@ -5,6 +5,7 @@ import type { SystemStore } from "./model/store";
 import type { System } from "./model/system";
 import { useSystem } from "./model/useSystem";
 import { addressWithSkin, chosenSkin, rememberSkin, SKINS } from "./skins/registry";
+import { SkinChoiceContext } from "./skins/skinChoice";
 
 function browserStorage(): Storage | null {
   try {
@@ -29,30 +30,38 @@ export function App({ store }: { store?: SystemStore }) {
   };
 
   const Skin = skin.component;
+  const choice = { skins: SKINS.map(({ id, name }) => ({ id, name })), current: skin.id, choose };
   return (
     <div className={`app skin-${skin.id}`}>
       <header className="app-header">
         <h1>tsoa-gui</h1>
         <Notice model={model} connected={connected} />
-        <Clock />
-        <label className="skin-menu">
-          Skin
-          <select value={skin.id} onChange={(event) => choose(event.target.value)}>
-            {SKINS.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        {/* A framed skin shows these in its own frame. */}
+        {!skin.framed && (
+          <>
+            <Clock />
+            <label className="skin-menu">
+              Skin
+              <select value={skin.id} onChange={(event) => choose(event.target.value)}>
+                {SKINS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </>
+        )}
       </header>
       <main>
         {model === null ? (
           <p className="waiting">Waiting for the first readings.</p>
         ) : (
-          <Suspense fallback={<p className="waiting">Loading the skin.</p>}>
-            <Skin model={model} />
-          </Suspense>
+          <SkinChoiceContext.Provider value={choice}>
+            <Suspense fallback={<p className="waiting">Loading the skin.</p>}>
+              <Skin model={model} />
+            </Suspense>
+          </SkinChoiceContext.Provider>
         )}
       </main>
     </div>

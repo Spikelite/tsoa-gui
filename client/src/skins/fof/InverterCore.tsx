@@ -27,22 +27,19 @@ const SIZE = 200;
 const CENTER = SIZE / 2;
 const CELLS = 12;
 const CELL = { length: 13, depth: 7 };
-// The core's two rings of cells, and the housing's ribbed bands, by radius.
+// The core's two rings of cells, by radius, and the core's own radius, which
+// the drawing is cropped to.
 const TRACKS = [33, 43];
-const BANDS = [84, 88, 92, 96];
-// The housing's bands leave a port open to the right, below and to the left,
-// where the conduits run in to the core: in degrees clockwise from the right,
-// as dashes and gaps starting 15 degrees past the right-hand port.
-const PORTS = "60 30 60 30 150 30";
+const CORE = 52;
+const VIEW = `${CENTER - CORE - 2} ${CENTER - CORE - 2} ${2 * CORE + 4} ${2 * CORE + 4}`;
 
 // The inverter/charger drawn as a hub that power runs through. Its conduits
-// do not stop at its edge: they run on through open ports in its ribbed
-// housing to its core, so the waves on them carry on inside, in from where
-// the power comes and out to where it goes, each spoke as wide and as fast as
-// the flow it carries. Over the junction sits the core, two rings of cells
-// round a center, where light chases round, clockwise while it charges the
-// battery and the other way while it inverts, faster with every tenfold
-// increase in power. Passing the supply through, the cells hold steady and
+// do not stop at its edge: they run on to its center, so the waves on them
+// carry on in from where the power comes and out to where it goes, each spoke
+// as wide and as fast as the flow it carries. Over the junction sits the
+// core, two rings of cells round a center, where light chases round,
+// clockwise while it charges the battery and the other way while it inverts,
+// faster with every tenfold increase in power. Passing the supply through, the cells hold steady and
 // the center pulses. Idle, it is dim and still. The core is tinted by what it
 // is doing, which its state also says in words: blue plasma inverting, teal
 // charging, lavender passing through.
@@ -57,12 +54,8 @@ export function InverterCore({ inverter }: { inverter: InverterCharger }) {
 
   return (
     <div className={`fof-unit fof-ring-unit fof-duty-${work} fof-flow-${speed}`} data-anchor="hub" aria-hidden="true">
-      <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="fof-unit-art">
-        {BANDS.map((radius, index) => (
-          <circle key={radius} className={`fof-unit-band fof-plate-${index % 2}`} cx={CENTER} cy={CENTER} r={radius}
-            pathLength="360" strokeDasharray={PORTS} strokeDashoffset="-15" />
-        ))}
-        <circle className="fof-unit-core" cx={CENTER} cy={CENTER} r="52" />
+      <svg viewBox={VIEW} className="fof-unit-art">
+        <circle className="fof-unit-core" cx={CENTER} cy={CENTER} r={CORE} />
         {TRACKS.map((radius) =>
           Array.from({ length: CELLS }, (_, cell) => {
             const angle = (cell * 360) / CELLS;

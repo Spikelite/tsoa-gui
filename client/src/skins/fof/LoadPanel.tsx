@@ -19,9 +19,9 @@ const CLEAR = 16;
 // its waves carry on inside, with a terminal block at its end, and two rows
 // of breakers tapped off it above and below. The model has the loads' total
 // rather than each circuit's, so the breakers show the panel at work rather
-// than which circuit draws what: while power flows, light runs along them
-// from the feed toward the terminal block, faster with every tenfold increase
-// in power; with nothing drawn, the panel is dim and still.
+// than which circuit draws what: while power flows, each wave of plasma on
+// the bus flows into each breaker's tap as it passes and lights the breaker,
+// as fof.css times them; with nothing drawn, the panel is dim and still.
 export function LoadPanel({ loads }: { loads: AcLoads }) {
   const power = Math.abs(loads.power_w ?? 0);
   const working = loads.status !== "offline" && power > 0;
@@ -33,11 +33,13 @@ export function LoadPanel({ loads }: { loads: AcLoads }) {
       const y = above ? BUS - CLEAR - 10 - BREAKER.height : BUS + CLEAR + 10;
       const tap = above ? [y + BREAKER.height, BUS - CLEAR] : [BUS + CLEAR, y];
       const number = String(index * 2 + (above ? 1 : 2)).padStart(2, "0");
+      // How far the tap is from the bus's end, as a share of the panel's width.
+      const share = { "--tap": ((BUS_END - x - BREAKER.width / 2) / WIDTH).toFixed(3) } as CSSProperties;
       return (
-        <g key={`${above}-${index}`}>
+        <g key={`${above}-${index}`} style={share}>
           <line className="fof-panel-tap" x1={x + BREAKER.width / 2} y1={tap[0]} x2={x + BREAKER.width / 2} y2={tap[1]} />
-          <rect className="fof-unit-cell" x={x} y={y} width={BREAKER.width} height={BREAKER.height}
-            rx={BREAKER.width / 2} style={{ "--wave": index, "--waves": BREAKERS } as CSSProperties} />
+          <rect className="fof-panel-breaker" x={x} y={y} width={BREAKER.width} height={BREAKER.height}
+            rx={BREAKER.width / 2} />
           <text className="fof-panel-number" x={x + BREAKER.width / 2} y={y + BREAKER.height / 2}>
             {number}
           </text>
@@ -46,7 +48,7 @@ export function LoadPanel({ loads }: { loads: AcLoads }) {
     });
 
   return (
-    <div className={`fof-unit fof-panel-unit ${working ? "fof-duty-loaded" : "fof-duty-idle"} fof-flow-${speed}`}
+    <div className={`fof-unit fof-panel-unit ${working ? "fof-duty-loaded" : "fof-duty-idle"} fof-speed-${speed}`}
       aria-hidden="true">
       <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="fof-unit-art">
         <rect className="fof-panel-rail" x="0" y="2" width={WIDTH} height="6" rx="3" />

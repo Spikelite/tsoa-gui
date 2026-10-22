@@ -1,5 +1,6 @@
 import { useId, type ReactNode } from "react";
 
+import { Clock } from "../../Clock";
 import type { PartName, Status, System } from "../../model/system";
 import { generatorState, gridState, inverterState, MODES, partTitle, solarState } from "../describe";
 import { Eased } from "../Eased";
@@ -11,6 +12,7 @@ import { Core, Row } from "./Core";
 import { GeneratorCore } from "./GeneratorCore";
 import { InverterCore } from "./InverterCore";
 import { LoadPanel } from "./LoadPanel";
+import { SkinSegment } from "./SkinSegment";
 import { throughHub } from "./throughHub";
 import "./fof.css";
 
@@ -46,14 +48,18 @@ function Readout(props: {
 export function FofSkin({ model }: { model: System }) {
   return (
     <div className="fof">
-      <div className="fof-top" aria-hidden="true">
-        <span className="fof-cap fof-cap-left" />
-        <span className="fof-label">Power systems</span>
-        <span className="fof-bar" />
-        <span className={`fof-link ${model.live ? "fof-link-live" : "fof-link-stale"}`}>
+      <div className="fof-top">
+        <span className="fof-cap fof-cap-left" aria-hidden="true" />
+        <span className="fof-label" aria-hidden="true">Power systems</span>
+        <span className="fof-bar" aria-hidden="true" />
+        <span className="fof-segment fof-clock-segment">
+          <Clock />
+        </span>
+        <span className={`fof-link ${model.live ? "fof-link-live" : "fof-link-stale"}`} aria-hidden="true">
           {model.live ? "Feed live" : "Feed stale"}
         </span>
-        <span className="fof-cap fof-cap-right" />
+        <SkinSegment />
+        <span className="fof-cap fof-cap-right" aria-hidden="true" />
       </div>
 
       <div className="fof-diagram">

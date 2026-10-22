@@ -11,12 +11,17 @@ import { StatusIcon } from "../StatusIcon";
 const CELLS_PER_ROW = 5;
 const ROWS = 2;
 const CELLS = CELLS_PER_ROW * ROWS;
+// Within a row, cells light from the middle, where the conduit from above
+// feeds the block, outward to the nearest unlit cell each time, left first on
+// a tie. The next row starts again from its middle, under the last row's.
+const FILL = [2, 1, 3, 0, 4];
 
 // The battery as one block: two rows of five cells held between a single pair
 // of end caps, with its name above its left end, its charge beside its right
-// end and its state and readings below. Its light follows the charge: cells light from the bottom
-// row's left end, a tenth of the charge each, the last one partly. Its pulse follows the power: a wave
-// of light runs through the lit cells forward while the battery charges and
+// end and its state and readings below. Its light follows the charge, a
+// tenth of it to each cell, the last one partly, filling from the top row's
+// middle as FILL orders it. Its pulse follows the power: a wave of light runs
+// through the lit cells forward while the battery charges and
 // backward while it discharges, faster with every tenfold increase in power,
 // and stands still when it is idle.
 export function Core({ battery }: { battery: Battery }) {
@@ -28,9 +33,9 @@ export function Core({ battery }: { battery: Battery }) {
   const lit = (charge / 100) * CELLS;
   const offline = battery.status === "offline";
 
-  // The top row is drawn first, so it holds the later cells.
-  const rows = Array.from({ length: ROWS }, (_, row) => ROWS - 1 - row).map((row) =>
-    Array.from({ length: CELLS_PER_ROW }, (_, column) => row * CELLS_PER_ROW + column),
+  // The order the cells light in: each cell's place in it, top row first.
+  const ranks = Array.from({ length: ROWS }, (_, row) =>
+    Array.from({ length: CELLS_PER_ROW }, (_, column) => row * CELLS_PER_ROW + FILL.indexOf(column)),
   );
 
   return (
@@ -53,12 +58,12 @@ export function Core({ battery }: { battery: Battery }) {
         >
           <span className="fof-bank-cap" aria-hidden="true" />
           <div className="fof-bank-cells" aria-hidden="true">
-            {rows.flat().map((cell) => {
+            {ranks.flat().map((cell, place) => {
               const level = Math.max(0, Math.min(1, lit - cell));
               const wave = direction === "down" ? CELLS - 1 - cell : cell;
               return (
                 <span
-                  key={cell}
+                  key={place}
                   className={`fof-cell${level > 0 ? " fof-cell-lit" : ""}`}
                   style={{ "--level": level.toFixed(2), "--wave": wave } as CSSProperties}
                 />

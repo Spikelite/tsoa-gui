@@ -128,4 +128,10 @@ describe("conduitPath", () => {
     // From the hub's center straight along the bus to its end at x 490.
     expect(conduitPath(hub, bus, 28).d).toBe("M100,100 L490,100");
   });
+
+  it("measures its length along the bends", () => {
+    expect(conduitPath(left, { x: 300, y: 0, halfWidth: 50, halfHeight: 20 }, 28).length).toBe(200);
+    // 200 across and 100 down, less the corners the two elbows cut.
+    expect(conduitPath(left, { x: 300, y: 100, halfWidth: 50, halfHeight: 20 }, 28).length).toBeCloseTo(252.28, 2);
+  });
 });

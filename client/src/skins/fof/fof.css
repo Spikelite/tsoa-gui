@@ -18,12 +18,6 @@
   background: #000;
 }
 
-.skin-sci-fi-fof .clock {
-  color: var(--fof-sand);
-  font-size: 1.6rem;
-  letter-spacing: 0.08em;
-}
-
 .skin-sci-fi-fof .app-header h1 {
   color: var(--fof-sand);
   letter-spacing: 0.08em;
@@ -94,6 +88,108 @@
 }
 
 .fof-link-stale { background: var(--status-attention); }
+
+/* Segments of the top bar that hold something: the time, and the skin
+   choice, which drops its list down beside a bar as segments of their own. */
+.fof-segment {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin: 0;
+  padding: 0 0.8em;
+  color: #000;
+  border: 0;
+  font: inherit;
+  font-size: 0.85em;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  white-space: nowrap;
+}
+
+.fof-clock-segment { background: var(--fof-sand); }
+
+.fof-clock-segment .clock {
+  margin: 0;
+  color: inherit;
+  font-size: 1.15em;
+}
+
+.fof-select {
+  position: relative;
+  display: flex;
+}
+
+.fof-select-button {
+  background: var(--fof-lavender);
+  cursor: pointer;
+}
+
+.fof-select-caption { font-size: 0.8em; }
+
+.fof-select-button:focus-visible,
+.fof-select-option:focus-visible {
+  outline: 2px solid var(--fof-ink);
+  outline-offset: 2px;
+}
+
+/* The list, hidden until chosen, then a bar drops from the segment and the
+   skins slide in beside it, each a moment after the one above. */
+.fof-select-drop {
+  position: absolute;
+  top: calc(100% + 0.35em);
+  right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: stretch;
+  gap: 0.35em;
+  visibility: hidden;
+  transition: visibility 0s linear 0.25s;
+}
+
+.fof-select-open .fof-select-drop {
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.fof-select-bar {
+  order: 2;
+  width: 1.1em;
+  background: var(--fof-lavender);
+  border-radius: 0 0 0.55em 0.55em;
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 0.2s ease-out;
+}
+
+.fof-select-open .fof-select-bar { transform: scaleY(1); }
+
+.fof-select-list {
+  display: grid;
+  gap: 0.35em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fof-select-option {
+  justify-content: flex-end;
+  min-width: 9em;
+  padding: 0.45em 0.9em;
+  background: var(--fof-periwinkle);
+  border-radius: 1em 0 0 1em;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateX(1.5em);
+  transition: opacity 0.18s ease-out, transform 0.18s ease-out;
+}
+
+.fof-select-open .fof-select-option {
+  opacity: 1;
+  transform: none;
+}
+
+.fof-select-current { background: var(--fof-sand); }
+.fof-select-option:hover { background: var(--fof-ink); }
 
 /* The diagram: the same places as the minimal skin's, so switching skins
    keeps every part where it was. Supplies on the left, the inverter/charger
@@ -229,13 +325,12 @@
   align-self: center;
   margin: 0;
 }
-.fof-ring-unit { width: 11em; }
-.fof-panel-unit { position: relative; width: 14em; margin-left: 0; }
+.fof-ring-unit { width: 6.6em; }
 
 .fof-duty-inverting { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #cfe6ff; --fof-ring: var(--fof-plasma-deep); }
 .fof-duty-charging { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #c9f3ea; --fof-ring: #3fb8a8; }
 .fof-duty-passing { --fof-cell-rest: #e2d6b0; --fof-cell-hot: #e2d6b0; --fof-ring: #9c7fd0; }
-.fof-duty-loaded { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #cfe6ff; --fof-ring: var(--fof-plasma-deep); }
+.fof-duty-loaded { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #8fbcff; --fof-ring: var(--fof-plasma-deep); }
 .fof-duty-running { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #fff3d6; --fof-ring: #e0a84f; }
 
 .fof-unit-art {
@@ -248,6 +343,7 @@
 .fof-plate-1 { fill: #8e8aa3; stroke: #8e8aa3; }
 .fof-unit-band { fill: none; stroke-width: 3; }
 .fof-unit-housing { fill: #e6e2ee; }
+.fof-panel-breaker { fill: var(--fof-cell-rest); }
 
 /* The core sits over the junction where the hub's conduits meet. */
 .fof-unit-core { fill: #000; stroke: #3d3852; stroke-width: 3; }
@@ -255,10 +351,36 @@
 .fof-unit-ring { fill: none; stroke: var(--fof-ring); stroke-width: 5; }
 
 /* The AC loads' panel: rails, breakers tapped off the bus, and the terminal
-   block at the bus's end. */
+   block at the bus's end. The conduit's crests reach the bus's end as each
+   cycle starts, so a crest passes a breaker's tap its share of the panel's
+   width earlier, the panel being --fof-panel em wide and the crests 14em
+   apart. Each tap flashes as a crest passes it and its breaker lights just
+   after, so the plasma flows into each circuit as it reaches it. */
+.fof-panel-unit {
+  --fof-panel: 14;
+  position: relative;
+  width: calc(var(--fof-panel) * 1em);
+  margin-left: 0;
+}
+
 .fof-panel-rail { fill: #8e8aa3; }
 .fof-panel-terminal { fill: var(--fof-cap); }
 .fof-panel-tap { stroke: #8e8aa3; stroke-width: 2.5; }
+
+.fof-duty-loaded .fof-panel-tap {
+  animation: fof-tap var(--fof-roll) linear infinite;
+  animation-delay: calc(var(--fof-roll) * -1 * (var(--tap) * var(--fof-panel) / 14 + 0.25));
+}
+
+.fof-duty-loaded .fof-panel-breaker {
+  animation: fof-surge var(--fof-roll) ease-in-out infinite;
+  animation-delay: calc(var(--fof-roll) * -1 * (var(--tap) * var(--fof-panel) / 14 + 0.19));
+}
+
+@keyframes fof-tap {
+  0%, 15%, 40%, 100% { stroke: #8e8aa3; }
+  25% { stroke: var(--fof-plasma); }
+}
 
 .fof-panel-number {
   fill: #000;
@@ -473,6 +595,8 @@
   stroke-opacity: calc(0.05 + var(--depth) * 0.1);
   stroke-dasharray: 0 calc((14em - var(--length)) / 2) var(--length) calc((14em - var(--length)) / 2);
   animation: fof-roll var(--fof-roll) linear infinite;
+  /* Timed so that a crest reaches the conduit's far end as each cycle starts. */
+  animation-delay: calc(var(--fof-phase, 0) * var(--fof-roll) * -1);
 }
 
 @keyframes fof-roll { to { stroke-dashoffset: -14em; } }
@@ -503,9 +627,16 @@
   .fof-readout-beside { display: block; }
   .fof-readout-beside > .fof-unit { margin: 0.8em auto 0; }
 
-  .fof-cap { width: 1.5em; }
-  .fof-label { font-size: 1em; }
+  .fof-cap { width: 1.2em; }
+  .fof-label,
+  .fof-select-caption { display: none; }
+  .fof-segment,
+  .fof-link { padding: 0 0.5em; }
+
+  /* Tall enough to tap. */
+  .fof-select .fof-select-option { min-height: 2.75rem; padding: 0 0.9em; }
   .fof-core { --fof-bank-width: 6.6em; }
+  .fof-panel-unit { --fof-panel: 10.5; }
   .fof-bank { height: 4.4em; grid-template-columns: 0.8em minmax(0, 1fr) 0.8em; }
   .fof-bank-cap::before { display: none; }
   .fof-core > .fof-core-row { column-gap: 0.6em; }
@@ -520,6 +651,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .fof-select-drop,
+  .fof-select-bar,
+  .fof-select-option { transition: none; }
+  .fof-panel-tap,
+  .fof-panel-breaker { animation: none; }
   .fof-cell-lit::before,
   .fof-unit-cell,
   .fof-unit-ring { animation: none; }

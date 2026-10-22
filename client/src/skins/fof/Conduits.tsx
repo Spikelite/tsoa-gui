@@ -1,4 +1,4 @@
-import { useRef, type CSSProperties } from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 
 import type { Flow } from "../../model/system";
 import { flowSpeed } from "../minimal/flowSpeed";
@@ -17,14 +17,29 @@ const LAYERS = Array.from({ length: STROKES }, (_, index) => {
   return { length: Number((2 * half).toFixed(2)), depth: Number((rank / STROKES).toFixed(2)) };
 });
 
+/** The space between waves, in em. */
+const WAVE = 14;
+
 // Power moving between panels, drawn as the console's thick conduits, in right
 // angles with rounded elbows, plugged into the panels' edges. Waves of plasma
 // roll along each toward its target, faster and the conduit wider with every
 // tenfold increase in power; that motion shows the direction. With motion
 // turned off, a chevron in the middle shows the direction instead.
+//
+// Every conduit's waves are timed so that a crest reaches its far end at the
+// start of each cycle, whatever its length. What a conduit feeds can then
+// time its own light to the crests arriving, as the AC loads' panel does
+// for its breakers.
 export function Conduits({ flows }: { flows: Flow[] }) {
   const svg = useRef<SVGSVGElement>(null);
   const boxes = usePanelBoxes(svg, flows);
+  const [em, setEm] = useState(16);
+
+  useLayoutEffect(() => {
+    if (svg.current) {
+      setEm(parseFloat(getComputedStyle(svg.current).fontSize) || 16);
+    }
+  }, [boxes]);
 
   return (
     <svg ref={svg} className="fof-conduits" aria-hidden="true">
@@ -35,9 +50,13 @@ export function Conduits({ flows }: { flows: Flow[] }) {
           return null;
         }
         const speed = flowSpeed(flow.power_w);
-        const { d, middle, angle } = conduitPath(from, to, 36);
+        const { d, length, middle, angle } = conduitPath(from, to, 36);
+        // How far into its cycle a crest is at the far end when the cycle starts.
+        const wave = WAVE * em;
+        const phase = ((((length - wave / 2) % wave) + wave) % wave) / wave;
         return (
           <g key={`${flow.source}-${flow.target}`} className={`fof-conduit fof-speed-${speed}`}
+            style={{ "--fof-phase": phase.toFixed(3) } as CSSProperties}
             data-flow={`${flow.source}-${flow.target}`}>
             <path className="fof-conduit-body" d={d} />
             {LAYERS.map((layer, index) => (

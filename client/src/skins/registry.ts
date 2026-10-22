@@ -7,6 +7,8 @@ export interface Skin {
   id: string;
   name: string;
   component: ComponentType<{ model: System }>;
+  /** The skin shows the time of day and the skin choice in its own frame, in place of the page header's. */
+  framed?: boolean;
 }
 
 export const DEFAULT_SKIN = "minimal";
@@ -18,6 +20,7 @@ export const SKINS: Skin[] = [
   {
     id: "sci-fi-fof",
     name: "Sci-Fi FOF",
+    framed: true,
     component: lazy(() => import("./fof/FofSkin").then((module) => ({ default: module.FofSkin }))),
   },
 ];

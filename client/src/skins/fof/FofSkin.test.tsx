@@ -44,6 +44,17 @@ describe("FofSkin", () => {
     expect(container.querySelectorAll(".fof-cell")).toHaveLength(10);
   });
 
+  it("lights the battery's cells from the middle of the top row, where its conduit feeds it", () => {
+    const { container, rerender } = render(<FofSkin model={{ ...system, battery: { ...system.battery!, soc_percent: 10 } }} />);
+    // Cells sit top row first, left to right.
+    const lit = () => [...container.querySelectorAll(".fof-cell")].flatMap((cell, place) =>
+      cell.classList.contains("fof-cell-lit") ? [place] : []);
+    expect(lit()).toEqual([2]);
+    rerender(<FofSkin model={{ ...system, battery: { ...system.battery!, soc_percent: 60 } }} />);
+    // The top row fills outward from its middle, then the bottom row starts from its own.
+    expect(lit()).toEqual([0, 1, 2, 3, 4, 7]);
+  });
+
   it("stills the bank when the battery is idle, and runs it downward while discharging", () => {
     const { rerender } = render(<FofSkin model={{ ...system, battery: { ...system.battery!, activity: "idle" } }} />);
     expect(screen.getByRole("meter").className).toContain("fof-still");

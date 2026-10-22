@@ -101,8 +101,12 @@ export function flowPoints(from: Box, to: Box): string {
   return `${from.x},${from.y} ${middle.x},${middle.y} ${to.x},${to.y}`;
 }
 
-/** A conduit's route: its path, and a point and direction for a marker. */
-export type Conduit = { d: string; middle: Point; angle: number };
+/** A conduit's route: its path, its length, and a point and direction for a marker. */
+export type Conduit = { d: string; length: number; middle: Point; angle: number };
+
+// The length of a rounded elbow as a share of its radius: a quadratic curve
+// with its control point at the corner.
+const ELBOW = 1.1478;
 
 type Axis = "x" | "y";
 
@@ -140,6 +144,7 @@ export function conduitPath(from: Box, to: Box, radius: number): Conduit {
     // In line, or so nearly that the bends would vanish: a straight run.
     return {
       d: `M${point(a1, b1)} L${point(a2, b2)}`,
+      length: Math.hypot(a2 - a1, b2 - b1),
       middle: at(turn, (b1 + b2) / 2),
       angle: heading(at(sa, 0)),
     };
@@ -153,6 +158,7 @@ export function conduitPath(from: Box, to: Box, radius: number): Conduit {
       `Q${point(turn, b2)} ${point(turn + sa * r, b2)}`,
       `L${point(a2, b2)}`,
     ].join(" "),
+    length: Math.abs(a2 - a1) + Math.abs(b2 - b1) - 4 * r + 2 * ELBOW * r,
     middle: at(turn, (b1 + b2) / 2),
     angle: heading(at(0, sb)),
   };
