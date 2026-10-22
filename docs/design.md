@@ -16,7 +16,7 @@ One page is both the status board and the data view. Each part of the system has
 
 Every skin shows the same readings for each part, from one list the skins share: a skin changes how they look, never which there are. A part the system does not have is left out. A part that is installed but not reporting is drawn as offline.
 
-Power moves between the panels as animated flow whose direction and speed follow the readings. The inverter/charger, the battery, solar and the DC loads all meet at one DC bus, drawn as a junction on the line between the inverter/charger and the battery, and each is joined to it by its own reading, so DC loads running while the battery charges are shown fed by what comes in, not by the battery. A system whose DC side is only the battery and the inverter/charger joins those two directly. Readings arrive about once a second, and every displayed value eases from its last reading to the next instead of jumping.
+Power moves between the panels as animated flow whose direction and speed follow the readings. The inverter/charger, the battery, solar and the DC loads all meet at one DC bus, drawn as a junction on the line between the inverter/charger and the battery, which Sci-Fi FOF covers with a plasma relay that pulses pass through on their way between its conduits, and each is joined to it by its own reading, so DC loads running while the battery charges are shown fed by what comes in, not by the battery. A system whose DC side is only the battery and the inverter/charger joins those two directly. Readings arrive about once a second, and every displayed value eases from its last reading to the next instead of jumping.
 
 ## Status colors
 

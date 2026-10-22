@@ -4,6 +4,7 @@ import type { Flow, PartName } from "../../model/system";
 import { flowSpeed } from "../minimal/flowSpeed";
 import { approach, conduitPath, usePanelMeasure, type Box } from "../panelBoxes";
 import { HUB_EDGE, HUB_VIEW, portShift, type HubPort, type HubPorts } from "./hubPorts";
+import { Relay, RELAY, RELAY_CORE, type RelayLink } from "./Relay";
 import { LAYERS, WAVE } from "./waves";
 import { steadyPeriod } from "./wavePeriod";
 
@@ -178,6 +179,37 @@ export function Conduits({ flows, inputs = {}, onHubPorts }: {
     return { flow, from, path };
   });
   const cycleUnits = hub?.hub ? Number(((WAVE * em * HUB_VIEW) / (2 * hub.halfWidth)).toFixed(1)) : 0;
+
+  // The DC bus's conduits, where they meet its relay, and when their crests pass it.
+  const bus = boxes.dc_bus;
+  const relay: RelayLink[] = bus ? drawn.flatMap((entry) => {
+    if (entry === null || (entry.flow.source !== "dc_bus" && entry.flow.target !== "dc_bus")) {
+      return [];
+    }
+    const { flow, from, path } = entry;
+    const to = boxes[flow.target]!;
+    const outward = flow.source === "dc_bus";
+    const { main, sign } = approach(from, to);
+    const heading = outward ? sign : -sign;
+    const wave = WAVE * em;
+    const core = RELAY_CORE * em;
+    const rim = RELAY * em;
+    // A conduit into the bus has a crest at its end, the bus, as each cycle
+    // starts; one out of it has a crest at its far end then, so its crests
+    // leave the bus as far before as its length takes.
+    const start = outward ? (core - path.length) / wave : -rim / wave;
+    return [{
+      key: `${flow.source}-${flow.target}`,
+      side: main === "x" ? (heading > 0 ? "right" : "left") : heading > 0 ? "bottom" : "top",
+      outward,
+      idle: flow.power_w <= 0,
+      start,
+      share: (rim - core) / wave,
+      width: 1 + 0.2 * flowSpeed(flow.power_w),
+    }];
+  }) : [];
+  // The relay's core pulses quicker the more power passes through the bus.
+  const through = flows.filter((flow) => flow.target === "dc_bus").reduce((sum, flow) => sum + flow.power_w, 0);
   const heard = JSON.stringify({ ports, cycleUnits });
   useLayoutEffect(() => {
     onHubPorts?.(JSON.parse(heard) as HubPorts);
@@ -213,6 +245,9 @@ export function Conduits({ flows, inputs = {}, onHubPorts }: {
           </g>
         );
       })}
+      {bus && relay.length > 0 && (
+        <Relay x={bus.x} y={bus.y} em={em} links={relay} beat={Math.min(3, Math.max(0.6, 3 / Math.sqrt(1 + through / 500)))} />
+      )}
     </svg>
   );
 }
