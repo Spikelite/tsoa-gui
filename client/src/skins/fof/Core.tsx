@@ -5,7 +5,7 @@ import { batteryState } from "../describe";
 import { Eased } from "../Eased";
 import * as f from "../format";
 import { flowSpeed } from "../minimal/flowSpeed";
-import { StatusIcon } from "../StatusIcon";
+import { StatusPill } from "./StatusPill";
 
 // Ten cells, so each is a tenth of the charge, the share people read at a glance.
 const CELLS_PER_ROW = 5;
@@ -41,10 +41,12 @@ export function Core({ battery }: { battery: Battery }) {
   return (
     <section className={`fof-core status-${battery.status}`} data-part="battery" aria-labelledby={heading}>
       {/* A conduit that would cross the name plugs into it instead. */}
-      <h2 className="fof-label-block fof-core-name" data-anchor-label>
-        <StatusIcon status={battery.status} />
-        <span id={heading}>Battery</span>
-      </h2>
+      <div className="fof-name-row fof-core-name" data-anchor-label>
+        <h2 className="fof-label-block">
+          <span id={heading}>Battery</span>
+        </h2>
+        <StatusPill status={battery.status} />
+      </div>
       {/* Conduits plug into the block and its charge together, so none crosses the figure. */}
       <div className="fof-core-row" data-anchor="open">
         <div

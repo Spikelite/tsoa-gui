@@ -5,7 +5,6 @@ import type { PartName, Status, System } from "../../model/system";
 import { generatorState, gridState, inverterState, MODES, partTitle, solarState } from "../describe";
 import { Eased } from "../Eased";
 import * as f from "../format";
-import { StatusIcon } from "../StatusIcon";
 import { Title } from "../Title";
 import { Conduits } from "./Conduits";
 import { Core, Row } from "./Core";
@@ -13,6 +12,7 @@ import { GeneratorCore } from "./GeneratorCore";
 import { InverterCore } from "./InverterCore";
 import { LoadPanel } from "./LoadPanel";
 import { SkinSegment } from "./SkinSegment";
+import { StatusPill } from "./StatusPill";
 import { throughHub } from "./throughHub";
 import "./fof.css";
 
@@ -26,13 +26,15 @@ function Readout(props: {
   return (
     <section className={`fof-readout status-${props.status}${props.beside ? " fof-readout-beside" : ""}`}
       data-part={props.part} aria-labelledby={heading}>
-      {/* Conduits plug into the part's graphic, or into its name where it has none. */}
-      <h2 className="fof-label-block" data-anchor={props.art ? undefined : true}>
-        <StatusIcon status={props.status} />
-        <span id={heading}>
-          <Title text={props.title} />
-        </span>
-      </h2>
+      {/* Conduits plug into the part's graphic, or where it has none into its name and status together. */}
+      <div className="fof-name-row" data-anchor={props.art ? undefined : true}>
+        <h2 className="fof-label-block">
+          <span id={heading}>
+            <Title text={props.title} />
+          </span>
+        </h2>
+        <StatusPill status={props.status} />
+      </div>
       <p className="fof-state-line">{offline ? "Not reporting" : props.state}</p>
       {rows}
       {props.art}
@@ -98,7 +100,7 @@ export function FofSkin({ model }: { model: System }) {
             {model.inverter_charger.alarms.map((alarm) => (
               <div key={alarm.name} className="fof-row fof-alarm">
                 <dt>
-                  <StatusIcon status={alarm.level === "alarm" ? "fault" : "warning"} />
+                  <StatusPill status={alarm.level === "alarm" ? "fault" : "warning"} />
                 </dt>
                 <dd>{alarm.name}</dd>
               </div>
@@ -116,7 +118,7 @@ export function FofSkin({ model }: { model: System }) {
               model.solar.chargers.map((charger) => (
                 <div key={charger.name} className="fof-row">
                   <dt>
-                    <StatusIcon status={charger.status} /> {charger.name}
+                    <StatusPill status={charger.status} /> {charger.name}
                   </dt>
                   <dd>
                     {charger.status === "offline" ? "Not reporting" : <Eased value={charger.power_w} format={f.power} />}

@@ -250,11 +250,28 @@
   font-weight: 600;
 }
 
-.fof-label-block .status-icon {
-  padding: 2px;
-  background: #000;
-  border-radius: 50%;
+/* A part's name and its status, side by side, standing free of each other. */
+.fof-name-row {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 0.35em;
+  justify-self: start;
 }
+
+/* A status: a rounded button in its color, with the status in words. */
+.fof-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15em 0.9em;
+  color: #000;
+  background: var(--status-color);
+  border-radius: 1em;
+  font-size: 0.72em;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.fof-row .fof-status { font-size: 0.75em; padding: 0.05em 0.7em; }
 
 .fof-state-line {
   margin: 0.35em 0 0.35em;
