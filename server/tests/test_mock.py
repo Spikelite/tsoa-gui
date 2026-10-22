@@ -1,6 +1,5 @@
 from collections import Counter
 
-from tsoa_gui.flows import derive_flows
 from tsoa_gui.mock import CYCLE_S, snapshot
 
 
@@ -26,12 +25,30 @@ def test_a_day_covers_the_ways_power_is_supplied():
     assert {(False, False), (False, True), (True, False)} <= inputs
 
 
-def test_readings_stay_in_range_and_flows_match_them():
+def test_power_takes_the_paths_the_day_describes():
+    def paths(fraction_of_day):
+        return {(f.source, f.target) for f in snapshot(fraction_of_day * CYCLE_S).flows}
+
+    # Midnight: the battery runs everything through the inverter.
+    assert paths(0.0) == {("battery", "inverter_charger"), ("inverter_charger", "ac_loads"), ("battery", "dc_loads")}
+    # Dawn: the generator runs the loads and charges the battery.
+    assert paths(0.22) == {("generator", "inverter_charger"), ("inverter_charger", "ac_loads"),
+                           ("inverter_charger", "battery"), ("battery", "dc_loads")}
+    # Midday: solar charges the battery, which still runs the inverter.
+    assert paths(0.45) == {("solar", "battery"), ("battery", "inverter_charger"), ("inverter_charger", "ac_loads"),
+                           ("battery", "dc_loads")}
+    # Evening: shore power runs the loads, charges the battery, and feeds the
+    # water heater on its own side of the inverter.
+    assert paths(0.80) == {("grid", "inverter_charger"), ("grid", "ac_loads"), ("inverter_charger", "ac_loads"),
+                           ("inverter_charger", "battery"), ("battery", "dc_loads")}
+
+
+def test_readings_stay_in_range():
     for second in range(0, CYCLE_S, 7):
         system = snapshot(second)
         assert 0 <= system.battery.soc_percent <= 100
         assert system.solar.power_w >= 0
-        assert system.flows == derive_flows(system)
+        assert all(flow.power_w > 0 for flow in system.flows)
         battery = system.battery
         if battery.activity == "discharging":
             assert battery.power_w < 0 and battery.time_to_go_s > 0
