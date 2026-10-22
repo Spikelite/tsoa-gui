@@ -1,0 +1,14 @@
+#!/bin/sh
+# Started and supervised by daemontools from /service/tsoa-gui.
+exec 2>&1
+root=${TSOA_GUI_ROOT:-/data/tsoa-gui}
+release=$root/current
+PORT=8088
+. "$root/etc/tsoa-gui.conf"
+# The release's own packages come first, ahead of the ones Venus ships.
+export PYTHONPATH="$release/vendor:$release/app"
+exec python3 -m tsoa_gui \
+    --host 0.0.0.0 --port "$PORT" \
+    --client "$release/app/client" \
+    --certfile "$root/tls/cert.pem" --keyfile "$root/tls/key.pem" \
+    --tested-versions "$release/tested.json"
