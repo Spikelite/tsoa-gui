@@ -13,3 +13,7 @@ typing-extensions==4.16.0
 uvicorn==0.54.0
 click==8.5.0
 h11==0.16.0
+# Venus ships its own MQTT libraries, but at versions that do not agree with
+# each other, so the server brings these.
+aiomqtt==2.5.1
+paho-mqtt==2.1.0
