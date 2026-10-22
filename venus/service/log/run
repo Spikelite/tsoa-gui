@@ -1,0 +1,5 @@
+#!/bin/sh
+# The server logs warnings and errors only. /data/log is on the device's SD
+# card, so the log is capped at four files of about 100 kB.
+mkdir -p /data/log/tsoa-gui
+exec multilog t s99999 n4 /data/log/tsoa-gui

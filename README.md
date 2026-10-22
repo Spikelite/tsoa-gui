@@ -28,6 +28,26 @@ The browser client is in `client/` and needs Node.js 24. The server is in `serve
 
 The browser reads the system model from `GET /api/system/events`, a stream of server-sent events: a `model` event with the whole model when the stream opens, then a `patch` event each time it changes, holding only what changed. `GET /api/system` returns the current model once.
 
+## Installing on a Venus OS device
+
+tsoa-gui runs on the Venus OS device itself, as an add-on under `/data`, which firmware updates keep. It uses the Python, pydantic and cryptography that Venus ships and brings its other packages with it, all pure Python, so nothing is installed with opkg or into the root filesystem.
+
+Build a release with the server's development environment, after building the client:
+
+    cd client
+    npm run build
+    cd ..
+    python venus/build.py
+
+This writes `dist/tsoa-gui-<version>.tar.gz`. CI builds the same archive. Copy it to the device, unpack it anywhere, and run its installer as root:
+
+    tar xzf tsoa-gui-<version>.tar.gz
+    sh tsoa-gui-<version>/install.sh
+
+The installer puts the release under `/data/tsoa-gui/releases/`, points `/data/tsoa-gui/current` at it, writes `/data/tsoa-gui/etc/tsoa-gui.conf` and a self-signed certificate the first time, and adds one line to `/data/rc.local` that starts the service at every boot. The server then answers on `https://<device>:8088`. Installing a newer release the same way updates it and keeps the one before, so going back is a matter of pointing `current` at it and restarting the service with `svc -t /service/tsoa-gui`. `sh /data/tsoa-gui/current/uninstall.sh` removes it.
+
+The server logs warnings and errors only, to `/data/log/tsoa-gui`. A firmware update can change Venus's Python or pydantic; a release that was not tested with the new versions says so in its log and waits, instead of running, until a release that was is installed. The device's own console is unaffected either way.
+
 ## The system model
 
 Everything a skin draws comes from one structure, the system model, defined in `server/tsoa_gui/model.py`. The client's TypeScript types are generated from it. After changing it, regenerate both files the client uses; the tests on both sides fail until they match:

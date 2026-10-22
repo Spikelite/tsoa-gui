@@ -1,10 +1,12 @@
 """Run the tsoa-gui server, serving the built client and the API."""
 import argparse
+import sys
+import time
 from pathlib import Path
 
 import uvicorn
 
-from . import mock, venus
+from . import mock, venus, versions
 from .app import create_app
 
 BUILT_CLIENT = Path(__file__).resolve().parents[2] / "client" / "dist"
@@ -25,9 +27,21 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--keyfile", type=Path, help="TLS private key, to serve HTTPS")
     parser.add_argument("--log-level", default="warning", choices=["debug", "info", "warning", "error"],
                         help="(default: %(default)s)")
+    parser.add_argument("--tested-versions", type=Path, metavar="FILE",
+                        help="refuse to serve on a Python or pydantic other than the ones FILE names")
     args = parser.parse_args(argv)
     if (args.certfile is None) != (args.keyfile is None):
         parser.error("--certfile and --keyfile go together")
+
+    if args.tested_versions is not None:
+        problems = versions.mismatches(versions.read(args.tested_versions))
+        if problems:
+            for problem in problems:
+                print(f"tsoa-gui will not start: {problem}", file=sys.stderr, flush=True)
+            # Exiting would have the supervisor restart it every second and
+            # log the same lines each time, so it waits for a new release.
+            while True:
+                time.sleep(3600)
 
     if args.mock:
         jobs = [mock.run]
