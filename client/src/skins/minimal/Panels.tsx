@@ -183,6 +183,9 @@ export function AcLoadsPanel({ loads }: { loads: AcLoads }) {
     <Panel part="ac_loads" title="AC loads" status={loads.status} state="In use">
       <Headline value={loads.power_w} format={f.power} />
       <dl>
+        <Reading label="Voltage" value={loads.voltage_v} format={f.volts} />
+        <Reading label="Current" value={loads.current_a} format={f.amps} />
+        <Reading label="Frequency" value={loads.frequency_hz} format={f.hertz} />
         <Reading label="On the inverter" value={loads.on_output_w} format={f.power} />
         <Reading label="On the supply side" value={loads.on_input_w} format={f.power} />
       </dl>

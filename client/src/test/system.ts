@@ -49,7 +49,15 @@ export const system: System = {
       { status: "offline", name: "West array", power_w: null, state: null, yield_today_kwh: null },
     ],
   },
-  ac_loads: { status: "normal", power_w: 900, on_output_w: 700, on_input_w: 200 },
+  ac_loads: {
+    status: "normal",
+    power_w: 900,
+    on_output_w: 700,
+    on_input_w: 200,
+    voltage_v: 230.4,
+    current_a: 3.1,
+    frequency_hz: 50.01,
+  },
   dc_loads: { status: "normal", power_w: null, measured_by: "calculation" },
   flows: [
     { source: "grid", target: "inverter_charger", power_w: 1050 },

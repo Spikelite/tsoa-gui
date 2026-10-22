@@ -37,6 +37,9 @@ DEVICE = {
     ("vebus", 276, "Ac/ActiveIn/L1/P"): 1050.0,
     ("vebus", 276, "Ac/ActiveIn/CurrentLimit"): 16.0,
     ("vebus", 276, "Ac/Out/L1/P"): 700.0,
+    ("vebus", 276, "Ac/Out/L1/V"): 230.2,
+    ("vebus", 276, "Ac/Out/L1/I"): 3.1,
+    ("vebus", 276, "Ac/Out/L1/F"): 50.01,
     ("vebus", 276, "Dc/0/Voltage"): 26.4,
     ("vebus", 276, "Dc/0/Current"): 12.0,
     ("vebus", 276, "Alarms/HighTemperature"): 1,
@@ -102,6 +105,8 @@ def test_build_reads_the_whole_installation():
     assert [(c.name, c.status) for c in solar.chargers] == [("East array", "good"), ("Solar charger", "offline")]
 
     assert (system.ac_loads.on_output_w, system.ac_loads.on_input_w) == (700.0, 200.0)
+    loads = system.ac_loads
+    assert (loads.voltage_v, loads.current_a, loads.frequency_hz) == (230.2, 3.1, 50.01)
     assert (system.dc_loads.power_w, system.dc_loads.measured_by) == (45.0, "calculation")
     assert {(f.source, f.target) for f in system.flows} == {
         ("grid", "inverter_charger"), ("grid", "ac_loads"), ("inverter_charger", "ac_loads"),

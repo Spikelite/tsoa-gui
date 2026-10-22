@@ -122,6 +122,12 @@ class AcLoads(Part):
         None, description="Loads on the inverter/charger's AC output, which the battery keeps powered.")
     on_input_w: float | None = Field(
         None, description="Loads on the supply side of the inverter/charger, which lose power with the supply.")
+    voltage_v: float | None = Field(
+        None, description="Voltage on the inverter/charger's AC output, the first phase on a multi-phase system: "
+                          "what the loads on it see, from the supply when it passes through, from the inverter "
+                          "when it inverts.")
+    current_a: float | None = Field(None, description="Current on the inverter/charger's AC output, all phases together.")
+    frequency_hz: float | None = Field(None, description="Frequency on the inverter/charger's AC output.")
 
 
 class DcLoads(Part):

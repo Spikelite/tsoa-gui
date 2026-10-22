@@ -46,13 +46,52 @@
           ],
           "default": null,
           "description": "Loads on the supply side of the inverter/charger, which lose power with the supply."
+        },
+        "voltage_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Voltage on the inverter/charger's AC output, the first phase on a multi-phase system: what the loads on it see, from the supply when it passes through, from the inverter when it inverts."
+        },
+        "current_a": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Current on the inverter/charger's AC output, all phases together."
+        },
+        "frequency_hz": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Frequency on the inverter/charger's AC output."
         }
       },
       "required": [
         "status",
         "power_w",
         "on_output_w",
-        "on_input_w"
+        "on_input_w",
+        "voltage_v",
+        "current_a",
+        "frequency_hz"
       ],
       "title": "AcLoads",
       "type": "object"

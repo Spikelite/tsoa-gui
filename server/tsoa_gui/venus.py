@@ -297,7 +297,17 @@ def _ac_loads(r: Readings) -> AcLoads | None:
     on_input = r.total("system", 0, "Ac/ConsumptionOnInput/{}/Power")
     if total is None and on_output is None and on_input is None:
         return None
-    return AcLoads(status="normal", power_w=total, on_output_w=on_output, on_input_w=on_input)
+    # What the loads see comes from the inverter/charger's own output.
+    vebus = _vebus(r)
+    return AcLoads(
+        status="normal",
+        power_w=total,
+        on_output_w=on_output,
+        on_input_w=on_input,
+        voltage_v=r.number("vebus", vebus, "Ac/Out/L1/V"),
+        current_a=r.total("vebus", vebus, "Ac/Out/{}/I"),
+        frequency_hz=r.number("vebus", vebus, "Ac/Out/L1/F"),
+    )
 
 
 def _dc_loads(r: Readings) -> DcLoads | None:
