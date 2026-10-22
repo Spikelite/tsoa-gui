@@ -18,8 +18,12 @@ import "./fof.css";
 
 function Readout(props: {
   part: PartName; title: string; status: Status; state: string; art?: ReactNode;
-  /** Where the equipment sits: below the readings, beside them, or leading them with the name above it. */
-  layout?: "below" | "beside" | "lead";
+  /**
+   * Where the equipment sits: below the readings, beside them, leading them
+   * with the name above it, or as a hub with the name above it and the
+   * readings tucked into the corner below and right of it, between its spokes.
+   */
+  layout?: "below" | "beside" | "lead" | "hub";
   children: ReactNode;
 }) {
   const heading = useId();
@@ -89,7 +93,8 @@ export function FofSkin({ model }: { model: System }) {
 
         {model.inverter_charger && (
           <Readout part="inverter_charger" title="Inverter/charger" status={model.inverter_charger.status}
-            state={inverterState(model.inverter_charger)} art={<InverterCore inverter={model.inverter_charger} />}>
+            state={inverterState(model.inverter_charger)} art={<InverterCore inverter={model.inverter_charger} />}
+            layout="hub">
             {model.inverter_charger.mode !== null && (
               <div className="fof-row">
                 <dt>Mode</dt>

@@ -134,4 +134,12 @@ describe("conduitPath", () => {
     // 200 across and 100 down, less the corners the two elbows cut.
     expect(conduitPath(left, { x: 300, y: 100, halfWidth: 50, halfHeight: 20 }, 28).length).toBeCloseTo(252.28, 2);
   });
+
+  it("runs straight down from a hub's center even when its readings lie below it", () => {
+    // The hub sits high in its panel, with readings below and to the right of it.
+    const hub = { x: 300, y: 100, halfWidth: 40, halfHeight: 40, hub: true,
+      panel: { x: 300, y: 140, halfWidth: 150, halfHeight: 120 } };
+    const below = { x: 300, y: 400, halfWidth: 50, halfHeight: 20 };
+    expect(conduitPath(hub, below, 28).d).toBe("M300,100 L300,380");
+  });
 });

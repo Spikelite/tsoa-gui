@@ -181,7 +181,9 @@ function end(box: Box, main: Axis, toward: number, level: number): number {
     return edge(box.label);
   }
   const atEdge = box.open || Math.abs(edge(box) - edge(panel)) < 4;
-  if (box.hub && (main === "x" || atEdge)) {
+  // A hub's readings never sit straight below it, so a conduit leaving or
+  // reaching its underside runs on to its center too.
+  if (box.hub && (main === "x" || atEdge || toward > 0)) {
     return box[main];
   }
   if (box.bus && main === "x") {
