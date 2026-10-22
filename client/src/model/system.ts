@@ -273,6 +273,18 @@ export interface AcLoads {
    * Loads on the supply side of the inverter/charger, which lose power with the supply.
    */
   on_input_w: number | null;
+  /**
+   * Voltage on the inverter/charger's AC output, the first phase on a multi-phase system: what the loads on it see, from the supply when it passes through, from the inverter when it inverts.
+   */
+  voltage_v: number | null;
+  /**
+   * Current on the inverter/charger's AC output, all phases together.
+   */
+  current_a: number | null;
+  /**
+   * Frequency on the inverter/charger's AC output.
+   */
+  frequency_hz: number | null;
 }
 /**
  * This interface was referenced by `System`'s JSON-Schema

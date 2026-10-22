@@ -43,6 +43,15 @@ def test_power_takes_the_paths_the_day_describes():
                            ("inverter_charger", "battery"), ("battery", "dc_loads")}
 
 
+def test_the_output_follows_its_source():
+    inverting = snapshot(0.0).ac_loads  # midnight, on the battery
+    assert (inverting.voltage_v, inverting.frequency_hz) == (230.0, 50.0)
+    for fraction_of_day in (0.22, 0.80):  # the generator, then shore power
+        loads = snapshot(fraction_of_day * CYCLE_S).ac_loads
+        assert 220 < loads.voltage_v < 240 and 49.5 < loads.frequency_hz < 50.5
+        assert loads.current_a == round(loads.on_output_w / loads.voltage_v, 1)
+
+
 def test_readings_stay_in_range():
     for second in range(0, CYCLE_S, 7):
         system = snapshot(second)

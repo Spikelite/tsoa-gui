@@ -35,6 +35,10 @@ describe("MinimalSkin", () => {
     expect(within(panel("Battery")).getByText("65%")).toBeInTheDocument();
     expect(within(panel("Shore power")).getByText("1.25 kW")).toBeInTheDocument();
     expect(within(panel("DC loads")).getByText("unknown")).toBeInTheDocument();
+    const loads = panel("AC loads");
+    expect(within(loads).getByText("230.4 V")).toBeInTheDocument();
+    expect(within(loads).getByText("3.1 A")).toBeInTheDocument();
+    expect(within(loads).getByText("50.01 Hz")).toBeInTheDocument();
   });
 
   it("leaves out details the system does not report", () => {

@@ -33,6 +33,7 @@ TIME_SCALE = 24 * 3600 / CYCLE_S  # each real second covers this many seconds of
 BATTERY_CAPACITY_WH = 25.6 * 200
 SOC_AT_MIDNIGHT_PERCENT = 62.0
 SHORE_V = 230.0
+INVERTER_V = 230.0
 SHORE_HZ = 50.0
 SHORE_LIMIT_A = 16.0
 GENERATOR_W = 3000.0
@@ -50,6 +51,14 @@ def _sun(phase: float, rise: float, set_: float, peak_w: float) -> float:
     if not rise <= phase < set_:
         return 0.0
     return peak_w * math.sin(math.pi * (phase - rise) / (set_ - rise)) ** 1.5
+
+
+def _shore_voltage(local: float) -> float:
+    return SHORE_V + 2.0 * math.sin(local / 11.0)
+
+
+def _shore_frequency(local: float) -> float:
+    return SHORE_HZ + 0.02 * math.sin(local / 13.0)
 
 
 def _shore_connected(phase: float) -> bool:
@@ -193,9 +202,9 @@ def snapshot(t: float) -> System:
         kind="shore",
         connected=_shore_connected(m.phase),
         power_w=round((ac_in if shore else 0.0) + m.on_input_w),
-        voltage_v=round(SHORE_V + 2.0 * math.sin(t % CYCLE_S / 11.0), 1) if _shore_connected(m.phase) else 0.0,
+        voltage_v=round(_shore_voltage(t % CYCLE_S), 1) if _shore_connected(m.phase) else 0.0,
         current_a=round(((ac_in if shore else 0.0) + m.on_input_w) / SHORE_V, 1),
-        frequency_hz=round(SHORE_HZ + 0.02 * math.sin(t % CYCLE_S / 13.0), 2) if _shore_connected(m.phase) else None,
+        frequency_hz=round(_shore_frequency(t % CYCLE_S), 2) if _shore_connected(m.phase) else None,
         input_current_limit_a=SHORE_LIMIT_A,
     )
 
@@ -221,6 +230,17 @@ def snapshot(t: float) -> System:
         chargers=chargers,
     )
 
+    # What the loads on the output see: the supply in passthrough, a generator
+    # that wanders more than shore power does, or the inverter's own steady
+    # output.
+    local = t % CYCLE_S
+    if m.ac_source == "grid":
+        out_v, out_hz = _shore_voltage(local), _shore_frequency(local)
+    elif m.ac_source == "generator":
+        out_v, out_hz = 228.0 + 3.0 * math.sin(local / 5.0), SHORE_HZ + 0.3 * math.sin(local / 7.0)
+    else:
+        out_v, out_hz = INVERTER_V, SHORE_HZ
+
     system = System(
         live=True,
         grid=grid,
@@ -233,6 +253,9 @@ def snapshot(t: float) -> System:
             power_w=round(m.on_output_w + m.on_input_w),
             on_output_w=round(m.on_output_w),
             on_input_w=round(m.on_input_w),
+            voltage_v=round(out_v, 1),
+            current_a=round(m.on_output_w / out_v, 1),
+            frequency_hz=round(out_hz, 2),
         ),
         dc_loads=DcLoads(status="normal", power_w=round(m.dc_w), measured_by="calculation"),
     )
