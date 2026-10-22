@@ -230,10 +230,12 @@
   margin: 0;
 }
 .fof-ring-unit { width: 11em; }
+.fof-panel-unit { position: relative; width: 14em; margin-left: 0; }
 
 .fof-duty-inverting { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #cfe6ff; --fof-ring: var(--fof-plasma-deep); }
 .fof-duty-charging { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #c9f3ea; --fof-ring: #3fb8a8; }
 .fof-duty-passing { --fof-cell-rest: #e2d6b0; --fof-cell-hot: #e2d6b0; --fof-ring: #9c7fd0; }
+.fof-duty-loaded { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #cfe6ff; --fof-ring: var(--fof-plasma-deep); }
 .fof-duty-running { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #fff3d6; --fof-ring: #e0a84f; }
 
 .fof-unit-art {
@@ -251,6 +253,27 @@
 .fof-unit-core { fill: #000; stroke: #3d3852; stroke-width: 3; }
 .fof-unit-port { fill: #000; }
 .fof-unit-ring { fill: none; stroke: var(--fof-ring); stroke-width: 5; }
+
+/* The AC loads' panel: rails, breakers tapped off the bus, and the terminal
+   block at the bus's end. */
+.fof-panel-rail { fill: #8e8aa3; }
+.fof-panel-terminal { fill: var(--fof-cap); }
+.fof-panel-tap { stroke: #8e8aa3; stroke-width: 2.5; }
+
+.fof-panel-number {
+  fill: #000;
+  font-size: 9px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.fof-panel-bus {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 0;
+}
 
 /* Light runs through the cells in order, each a step behind the one before. */
 .fof-unit-cell {
@@ -302,7 +325,7 @@
   display: grid;
   grid-template-columns: var(--fof-bank-width) minmax(0, 1fr);
   align-items: center;
-  column-gap: 0.6em;
+  column-gap: 1.2em;
   margin: 0.2em 0;
 }
 
@@ -365,15 +388,29 @@
 .fof-cell-lit {
   background: color-mix(in srgb, var(--fof-cell) calc(var(--level) * 100%), #2a2316);
   box-shadow: 0 0 calc(0.6em * var(--level)) rgba(240, 223, 168, 0.45);
-  animation: fof-wave var(--fof-beat, 2.4s) ease-in-out infinite;
-  animation-delay: calc(var(--wave) * var(--fof-beat, 2.4s) / -12);
 }
 
-.fof-still .fof-cell-lit { animation: none; }
+/* A pulse of plasma through each lit cell, deep blue at its middle and
+   fading out to its edges, in the same blues and at the same rhythm as the
+   waves on the conduits at that power, running through the cells forward
+   while charging and backward while discharging. */
+.fof-cell-lit::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at center, var(--fof-plasma-deep) 0%,
+    color-mix(in srgb, var(--fof-plasma) 70%, transparent) 55%, transparent 100%);
+  opacity: 0;
+  animation: fof-cell-pulse var(--fof-beat, 4s) ease-in-out infinite;
+  animation-delay: calc(var(--wave) * var(--fof-beat, 4s) / -10);
+}
 
-@keyframes fof-wave {
-  0%, 100% { filter: brightness(1); }
-  30% { filter: brightness(1.35); }
+.fof-still .fof-cell-lit::before { animation: none; }
+
+@keyframes fof-cell-pulse {
+  0%, 60%, 100% { opacity: 0; }
+  25% { opacity: 0.75; }
 }
 
 .fof-core-figure {
@@ -384,11 +421,12 @@
   font-variant-numeric: tabular-nums;
 }
 
-.fof-pulse-0 { --fof-beat: 3s; }
-.fof-pulse-1 { --fof-beat: 2s; }
-.fof-pulse-2 { --fof-beat: 1.2s; }
-.fof-pulse-3 { --fof-beat: 0.7s; }
-.fof-pulse-4 { --fof-beat: 0.4s; }
+/* The time between waves on a conduit at the same power (--fof-roll). */
+.fof-pulse-0 { --fof-beat: 9s; }
+.fof-pulse-1 { --fof-beat: 6s; }
+.fof-pulse-2 { --fof-beat: 4s; }
+.fof-pulse-3 { --fof-beat: 2.6s; }
+.fof-pulse-4 { --fof-beat: 1.7s; }
 
 /* Conduits, underneath the panels */
 .fof-conduits {
@@ -470,7 +508,7 @@
   .fof-core { --fof-bank-width: 6.6em; }
   .fof-bank { height: 4.4em; grid-template-columns: 0.8em minmax(0, 1fr) 0.8em; }
   .fof-bank-cap::before { display: none; }
-  .fof-core > .fof-core-row { column-gap: 0.3em; }
+  .fof-core > .fof-core-row { column-gap: 0.6em; }
   .fof-bank-cells { gap: 0.35em 0.15em; }
   .fof-core-figure { font-size: 1.15em; }
 }
@@ -482,7 +520,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fof-cell-lit,
+  .fof-cell-lit::before,
   .fof-unit-cell,
   .fof-unit-ring { animation: none; }
   .fof-conduit-wave { display: none; }

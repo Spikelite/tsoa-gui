@@ -10,6 +10,7 @@ import { Conduits } from "./Conduits";
 import { Core, Row } from "./Core";
 import { GeneratorCore } from "./GeneratorCore";
 import { InverterCore } from "./InverterCore";
+import { LoadPanel } from "./LoadPanel";
 import { throughHub } from "./throughHub";
 import "./fof.css";
 
@@ -120,7 +121,8 @@ export function FofSkin({ model }: { model: System }) {
         )}
 
         {model.ac_loads && (
-          <Readout part="ac_loads" title="AC loads" status={model.ac_loads.status} state="In use">
+          <Readout part="ac_loads" title="AC loads" status={model.ac_loads.status} state="In use"
+            art={<LoadPanel loads={model.ac_loads} />}>
             <Row label="Power" value={model.ac_loads.power_w} format={f.power} always />
             <Row label="Voltage" value={model.ac_loads.voltage_v} format={f.volts} />
             <Row label="Current" value={model.ac_loads.current_a} format={f.amps} />

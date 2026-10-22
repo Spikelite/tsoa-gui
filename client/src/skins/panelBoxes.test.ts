@@ -119,4 +119,13 @@ describe("conduitPath", () => {
     // The name spans x 220 to 340, under the hub, so the conduit ends on its top at y 243.
     expect(conduitPath(hub, block, 28).d).toBe("M300,100 L300,243");
   });
+
+  it("runs on along a bus to its far end", () => {
+    const hub = { x: 100, y: 100, halfWidth: 40, halfHeight: 40, hub: true,
+      panel: { x: 100, y: 60, halfWidth: 100, halfHeight: 80 } };
+    const bus = { x: 400, y: 100, halfWidth: 90, halfHeight: 0, bus: true,
+      panel: { x: 420, y: 60, halfWidth: 110, halfHeight: 80 } };
+    // From the hub's center straight along the bus to its end at x 490.
+    expect(conduitPath(hub, bus, 28).d).toBe("M100,100 L490,100");
+  });
 });

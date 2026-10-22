@@ -11,11 +11,12 @@ type Rect = Point & { halfWidth: number; halfHeight: number };
  * Where flows meet a panel: its own box, or the box of the graphic inside it
  * that flows plug into, with the whole panel's box as `panel`. A graphic
  * marked `data-anchor="hub"` is one flows run on into, to its center; one
+ * marked `data-anchor="bus"` is one they run on along, to its far end; one
  * marked `data-anchor="open"` has nothing in the way of a flow from any side
  * but the panel's name, marked `data-anchor-label`, which a flow running down
  * the column into the name plugs into instead.
  */
-export type Box = Rect & { panel?: Rect; hub?: boolean; open?: boolean; label?: Rect };
+export type Box = Rect & { panel?: Rect; hub?: boolean; bus?: boolean; open?: boolean; label?: Rect };
 
 /**
  * The box of every panel marked with `data-part`, or of the element inside it
@@ -55,6 +56,7 @@ export function usePanelBoxes(svg: RefObject<SVGSVGElement | null>, flows: Flow[
               ...rect(anchor),
               panel: rect(panel),
               hub: anchor.dataset.anchor === "hub",
+              bus: anchor.dataset.anchor === "bus",
               open: anchor.dataset.anchor === "open",
               ...(label ? { label: rect(label) } : {}),
             }
@@ -162,7 +164,8 @@ export function conduitPath(from: Box, to: Box, radius: number): Conduit {
  * marks. Down a column it ends at the panel's own edge instead, since a
  * panel's readings sit between its name and its top or bottom, unless what
  * it marks sits at that edge or is open, and plugs into the panel's name
- * if the name is in its way. A hub it runs on into, to its center.
+ * if the name is in its way. A hub it runs on into, to its center, and a bus
+ * along, to its far end.
  */
 function end(box: Box, main: Axis, toward: number, level: number): number {
   const panel = box.panel ?? box;
@@ -174,6 +177,9 @@ function end(box: Box, main: Axis, toward: number, level: number): number {
   const atEdge = box.open || Math.abs(edge(box) - edge(panel)) < 4;
   if (box.hub && (main === "x" || atEdge)) {
     return box[main];
+  }
+  if (box.bus && main === "x") {
+    return box[main] - toward * half(box, main);
   }
   return main === "x" || atEdge ? edge(box) : edge(panel);
 }
@@ -188,11 +194,12 @@ function end(box: Box, main: Axis, toward: number, level: number): number {
 function levels(from: Box, to: Box, cross: Axis, radius: number): [number, number] {
   const [a, b] = [from[cross], to[cross]];
   const reaches = (box: Box, level: number) => Math.abs(level - box[cross]) <= half(box, cross);
-  // A hub is met at its center, through its port: straight if the other box
-  // reaches that level, or else with bends however small.
-  if (from.hub || to.hub) {
-    const level = from.hub ? a : b;
-    return reaches(from.hub ? to : from, level) ? [level, level] : [a, b];
+  // A hub or a bus is met at its own level, through its port: straight if
+  // the other box reaches that level, or else with bends however small.
+  const fixed = (box: Box) => box.hub || box.bus;
+  if (fixed(from) || fixed(to)) {
+    const level = fixed(from) ? a : b;
+    return reaches(fixed(from) ? to : from, level) ? [level, level] : [a, b];
   }
   if (Math.abs(b - a) >= radius) {
     return [a, b];
