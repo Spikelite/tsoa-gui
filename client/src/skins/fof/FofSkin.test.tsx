@@ -13,7 +13,7 @@ describe("FofSkin", () => {
     expect(screen.queryByRole("region", { name: "Generator" })).not.toBeInTheDocument();
   });
 
-  it("shows every part's status in words on a button of its color, and its state in words", () => {
+  it("colors every part's name by its status, says the status in words, and its state", () => {
     render(<FofSkin model={system} />);
     const expected = {
       "Shore power": ["Normal", "Connected"],
@@ -25,7 +25,8 @@ describe("FofSkin", () => {
     };
     for (const [name, [status, state]] of Object.entries(expected)) {
       const part = screen.getByRole("region", { name });
-      expect(part.querySelector(".fof-status")).toHaveTextContent(status!);
+      expect(part.querySelector(".fof-label-block")).toHaveTextContent(status!);
+      expect(part).toHaveClass(`status-${status!.toLowerCase()}`);
       expect(within(part).getByText(state!)).toBeInTheDocument();
     }
   });

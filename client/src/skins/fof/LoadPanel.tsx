@@ -51,8 +51,6 @@ export function LoadPanel({ loads }: { loads: AcLoads }) {
     <div className={`fof-unit fof-panel-unit ${working ? "fof-duty-loaded" : "fof-duty-idle"} fof-speed-${speed}`}
       aria-hidden="true">
       <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="fof-unit-art">
-        <rect className="fof-panel-rail" x="0" y="2" width={WIDTH} height="6" rx="3" />
-        <rect className="fof-panel-rail" x="0" y={HEIGHT - 8} width={WIDTH} height="6" rx="3" />
         {row(true)}
         {row(false)}
         <rect className="fof-panel-terminal" x={BUS_END} y={BUS - CLEAR - 6} width={WIDTH - BUS_END} height={(CLEAR + 6) * 2}

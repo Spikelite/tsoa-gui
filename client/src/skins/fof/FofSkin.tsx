@@ -12,7 +12,7 @@ import { GeneratorCore } from "./GeneratorCore";
 import { InverterCore } from "./InverterCore";
 import { LoadPanel } from "./LoadPanel";
 import { SkinSegment } from "./SkinSegment";
-import { StatusPill } from "./StatusPill";
+import { StatusPill, StatusWords } from "./StatusPill";
 import { throughHub } from "./throughHub";
 import "./fof.css";
 
@@ -26,14 +26,14 @@ function Readout(props: {
   return (
     <section className={`fof-readout status-${props.status}${props.beside ? " fof-readout-beside" : ""}`}
       data-part={props.part} aria-labelledby={heading}>
-      {/* Conduits plug into the part's graphic, or where it has none into its name and status together. */}
+      {/* Conduits plug into the part's graphic, or into its name where it has none. */}
       <div className="fof-name-row" data-anchor={props.art ? undefined : true}>
         <h2 className="fof-label-block">
           <span id={heading}>
             <Title text={props.title} />
           </span>
+          <StatusWords status={props.status} separator />
         </h2>
-        <StatusPill status={props.status} />
       </div>
       <p className="fof-state-line">{offline ? "Not reporting" : props.state}</p>
       {rows}

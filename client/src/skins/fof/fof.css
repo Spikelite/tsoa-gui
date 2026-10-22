@@ -244,16 +244,17 @@
 
 .fof-readout { justify-self: stretch; }
 
-/* A part's name is a block of color, as the console labels everything. Its
-   status icon sits on black, so every status color reads on it. */
+/* A part's name is a rounded button in the color of its status, as the
+   console labels everything. */
 .fof-label-block {
   display: inline-flex;
   align-items: center;
   gap: 0.4em;
   margin: 0;
-  padding: 0.25em 0.6em 0.25em 0.35em;
+  padding: 0.25em 0.95em;
   color: #000;
-  background: var(--fof-sand);
+  background: var(--status-color, var(--fof-sand));
+  border-radius: 1em;
   font-size: 0.95em;
   font-weight: 600;
 }
@@ -266,10 +267,25 @@
   justify-self: start;
 }
 
-/* A status: a rounded button in its color, with the status in words. */
+/* A status a viewer needs to notice is written out; any other is read only
+   to a screen reader. */
+.fof-quiet {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.fof-label-block .fof-status-words::before { content: "·"; margin-right: 0.4em; }
+
+/* A status on its own: a rounded button in its color. */
 .fof-status {
   display: inline-flex;
   align-items: center;
+  min-width: 1.8em;
+  min-height: 1em;
   padding: 0.15em 0.9em;
   color: #000;
   background: var(--status-color);
@@ -375,7 +391,7 @@
 .fof-unit-port { fill: #000; }
 .fof-unit-ring { fill: none; stroke: var(--fof-ring); stroke-width: 5; }
 
-/* The AC loads' panel: rails, breakers tapped off the bus, and the terminal
+/* The AC loads' panel: breakers tapped off the bus, and the terminal
    block at the bus's end. The conduit's crests reach the bus's end as each
    cycle starts, so a crest passes a breaker's tap its share of the panel's
    width earlier, the panel being --fof-panel em wide and the crests 14em
@@ -388,7 +404,6 @@
   margin-left: 0;
 }
 
-.fof-panel-rail { fill: #8e8aa3; }
 .fof-panel-terminal { fill: var(--fof-cap); }
 .fof-panel-tap { stroke: #8e8aa3; stroke-width: 2.5; }
 
