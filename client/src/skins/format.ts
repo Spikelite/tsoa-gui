@@ -20,3 +20,9 @@ export const duration: Format = (seconds) => {
   const hours = Math.floor(minutes / 60);
   return hours > 0 ? `${hours} h ${minutes % 60} min` : `${minutes} min`;
 };
+export const ampHours: Format = (ah) => `${ah.toFixed(1)} Ah`;
+export const count: Format = (n) => `${Math.round(n)}`;
+export const offsetMillivolts: Format = (v) => {
+  const mv = Math.round(v * 1000);
+  return `${mv >= 0 ? "+" : "-"}${Math.abs(mv)} mV`;
+};

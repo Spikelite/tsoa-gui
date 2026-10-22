@@ -984,6 +984,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .fof-page,
+  .fof-deck-balancing .fof-deck-pill::before { animation: none; }
   .fof-select-drop,
   .fof-select-bar,
   .fof-select-option { transition: none; }
@@ -1000,3 +1002,169 @@
   .fof-conduit-wave { display: none; }
   .fof-conduit-chevron { display: inline; }
 }
+
+/* A part that opens its own page. */
+.fof-opens { cursor: pointer; }
+.fof-open-link { color: inherit; text-decoration: none; }
+.fof-open-link:focus-visible { outline: 2px solid var(--fof-ink); outline-offset: 0.3em; border-radius: 1em; }
+.fof-back-segment { background: var(--fof-sand); cursor: pointer; }
+
+/* A part's own page takes the diagram's place inside the frame, growing out
+   of where the part sat on the overview. The frame holds to the screen and
+   a page with more than fits scrolls inside it. */
+.fof-paged { height: 100vh; min-height: 0; }
+
+.fof-page {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-color: var(--fof-dim) transparent;
+  animation: fof-zoom 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes fof-zoom {
+  from { opacity: 0; transform: scale(0.12); }
+  to { opacity: 1; transform: none; }
+}
+
+.fof-deck {
+  display: grid;
+  gap: 1.4em;
+  align-content: start;
+}
+
+.fof-deck-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6em 1.2em;
+}
+
+.fof-deck-head .fof-state-line { margin: 0; }
+
+.fof-deck-figure {
+  margin: 0 0 0 auto;
+  color: var(--fof-cell);
+  font-size: 2.6em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The block: end caps spanning the cells, as on the overview, with every
+   cell between them, its number above it and its readings below. */
+.fof-deck-packs { display: grid; gap: 1.2em; }
+
+.fof-deck-pack {
+  display: grid;
+  grid-template-columns: 1.6em repeat(var(--cells), minmax(0, 7em)) 1.6em;
+  justify-content: start;
+  grid-template-rows: auto 9em auto auto;
+  column-gap: 0.3em;
+  row-gap: 0.35em;
+}
+
+.fof-deck-cap { grid-column: 1; grid-row: 2; }
+
+.fof-deck-cell {
+  display: grid;
+  grid-row: 1 / span 4;
+  grid-template-rows: subgrid;
+  justify-items: center;
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.fof-deck-number {
+  padding: 0 0.6em;
+  color: #000;
+  background: var(--fof-dim);
+  border-radius: 1em;
+  font-size: 0.75em;
+  font-weight: 700;
+}
+
+.fof-deck-lowest .fof-deck-number { background: var(--status-attention); }
+.fof-deck-highest .fof-deck-number { background: var(--fof-teal); }
+
+.fof-deck-pill {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #2a2316;
+  border-radius: 0.8em;
+}
+
+/* Lit from the bottom to the cell's own charge. */
+.fof-deck-pill > span {
+  position: absolute;
+  inset: auto 0 0;
+  height: calc(var(--level) * 100%);
+  background: var(--fof-cell);
+  border-radius: inherit;
+  box-shadow: 0 0 0.6em rgba(240, 223, 168, 0.45);
+}
+
+/* A cell the battery is balancing pulses with plasma. */
+.fof-deck-balancing .fof-deck-pill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at center, var(--fof-plasma-deep) 0%,
+    color-mix(in srgb, var(--fof-plasma) 70%, transparent) 55%, transparent 100%);
+  animation: fof-cell-pulse 1.6s ease-in-out infinite;
+}
+
+.fof-deck-volts { font-size: 0.8em; white-space: nowrap; }
+.fof-deck-offset { color: var(--fof-dim); font-size: 0.7em; white-space: nowrap; }
+
+/* Every reading, in groups headed by rounded tags, flowing down balanced
+   columns; the conditions the battery watches run across under them. */
+.fof-deck-groups {
+  columns: 17em;
+  column-gap: 2.4em;
+}
+
+.fof-deck-group {
+  display: grid;
+  gap: 0.45em;
+  justify-items: start;
+  margin-bottom: 1.3em;
+  break-inside: avoid;
+}
+
+.fof-deck-checks { column-span: all; margin-top: 0.6em; }
+.fof-deck-group .fof-rows { max-width: none; }
+
+.fof-deck-tag {
+  margin: 0;
+  padding: 0.15em 0.9em;
+  color: #000;
+  border-radius: 1em;
+  font-size: 0.8em;
+  font-weight: 700;
+}
+
+.fof-deck-tag-0 { background: var(--fof-lavender); }
+.fof-deck-tag-1 { background: var(--fof-periwinkle); }
+.fof-deck-tag-2 { background: var(--fof-sand); }
+.fof-deck-tag-alarms { background: var(--fof-teal); }
+
+.fof-deck-checks ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* On a narrow screen the cells' voltages turn on their side, so that a
+   block of many cells keeps every one; their differences go. */
+@container (max-width: 40em) {
+  .fof-deck-offset { display: none; }
+  .fof-deck-volts { writing-mode: vertical-rl; transform: rotate(180deg); }
+}
+
+.fof-deck { container-type: inline-size; }

@@ -1,23 +1,39 @@
-import { useId, type ReactNode } from "react";
+import { useId, type MouseEvent, type ReactNode } from "react";
 
 import type {
   AcLoads, Alarm, Battery, DcLoads, Generator, Grid, InverterCharger, PartName, Solar, Status, System,
 } from "../../model/system";
 import { batteryState, generatorState, gridState, inverterState, partTitle, solarState } from "../describe";
+import { DETAILED } from "../details";
 import { Eased } from "../Eased";
 import * as f from "../format";
 import {
   acLoadsReadings, batteryReadings, dcLoadsReadings, dcLoadsState, generatorReadings, gridReadings,
-  inverterReadings, isWorded, solarReadings, type Measured, type Readings,
+  inverterReadings, isWorded, solarReadings, type Measured, type Reading, type Readings,
 } from "../readings";
+import { openPart, partAddress } from "../partView";
 import { StatusIcon } from "../StatusIcon";
 
 function Panel(props: { part: PartName; title: ReactNode; status: Status; state: string; children: ReactNode }) {
   const heading = useId();
+  // A part with a page of its own opens it from anywhere on its panel; its
+  // name is the link to it, for the keyboard and for a screen reader.
+  const detailed = DETAILED.includes(props.part);
+  const open = (event: MouseEvent) => {
+    // A click on the name reaches the part's own handler too; open once.
+    if (event.defaultPrevented) {
+      return;
+    }
+    event.preventDefault();
+    openPart(props.part, event.currentTarget.closest("[data-part]"));
+  };
   return (
-    <section className={`panel status-${props.status}`} data-part={props.part} aria-labelledby={heading}>
+    <section className={`panel status-${props.status}${detailed ? " panel-opens" : ""}`} data-part={props.part}
+      aria-labelledby={heading} onClick={detailed ? open : undefined}>
       <header className="panel-header">
-        <h2 id={heading}>{props.title}</h2>
+        <h2 id={heading}>
+          {detailed ? <a href={partAddress(props.part)} onClick={open}>{props.title}</a> : props.title}
+        </h2>
         <p className="panel-state">
           <StatusIcon status={props.status} />
           <span>{props.status === "offline" ? "Not reporting" : props.state}</span>
@@ -38,12 +54,13 @@ function Headline({ reading }: { reading: Measured }) {
 }
 
 function Details({ readings }: { readings: Readings }) {
-  if (readings.details.length === 0) {
-    return null;
-  }
+  return readings.details.length === 0 ? null : <ReadingList readings={readings.details} />;
+}
+
+export function ReadingList({ readings }: { readings: Reading[] }) {
   return (
     <dl>
-      {readings.details.map((reading) => {
+      {readings.map((reading) => {
         if (isWorded(reading)) {
           return (
             <div key={reading.label} className="reading">

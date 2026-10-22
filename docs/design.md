@@ -16,6 +16,8 @@ One page is both the status board and the data view. Each part of the system has
 
 Every skin shows the same readings for each part, from one list the skins share: a skin changes how they look, never which there are. A part the system does not have is left out. A part that is installed but not reporting is drawn as offline.
 
+A part can open into a page of its own with everything the device reports about it, in every skin and with the same readings in each. The battery is the first: every cell it reports, each with its voltage, its difference from the others and whether it is being balanced, then its charge, power, cells, temperatures, limits, history and device details, and every condition it watches with where each stands. Clicking a part opens its page, which Sci-Fi FOF draws inside its frame, growing out of where the part sat. The page has its own address, `?part=battery`, so a kiosk can open straight onto it, and the browser's back button, Escape or the page's Overview control returns to the whole system.
+
 Power moves between the panels as animated flow whose direction and speed follow the readings. Readings arrive about once a second, and every displayed value eases from its last reading to the next instead of jumping.
 
 ## Status colors

@@ -24,7 +24,8 @@ from . import status
 from .feed import Feed
 from .flows import derive_flows
 from .model import (
-    AcLoads, Alarm, Battery, DcLoads, Generator, Grid, InverterCharger, Solar, SolarCharger, System,
+    AcLoads, Alarm, AlarmCheck, Battery, BatteryHistory, Cell, DcLoads, Generator, Grid, InverterCharger, Solar,
+    SolarCharger, System, TemperatureSensor,
 )
 
 CYCLE_S = 600
@@ -41,6 +42,11 @@ CHARGER_MAX_W = 1600.0
 CHARGER_EFFICIENCY = 0.94
 INVERTER_EFFICIENCY = 0.92
 LOW_BATTERY_ALARM_PERCENT = 20.0
+BATTERY_AH = 200.0
+# Eight cells in series, each a few millivolts off the pack's mean, the last
+# running high enough near full that the battery balances it.
+CELL_OFFSETS_V = (-0.004, 0.002, 0.000, -0.002, 0.003, -0.001, 0.001, 0.001)
+BALANCE_ABOVE_PERCENT = 95.0
 
 
 def _window(phase: float, start: float, end: float) -> bool:
@@ -162,20 +168,67 @@ def snapshot(t: float) -> System:
     activity = "charging" if m.battery_w > 5 else "discharging" if m.battery_w < -5 else "idle"
     remaining_wh = max(0.0, soc - 10) / 100 * BATTERY_CAPACITY_WH
     alarms = [Alarm(name="Low battery", level="warning")] if soc < LOW_BATTERY_ALARM_PERCENT else []
+    topping = max(0.0, soc - BALANCE_ABOVE_PERCENT)
+    cell_voltages = [voltage / len(CELL_OFFSETS_V) + offset for offset in CELL_OFFSETS_V]
+    cell_voltages[-1] += topping * 0.004
+    cells = [Cell(voltage_v=round(v, 3), balancing=n == len(cell_voltages) - 1 and topping > 0)
+             for n, v in enumerate(cell_voltages)]
+    battery_temperature = 21.0 + abs(m.battery_w) * 0.002
+    checks = [
+        AlarmCheck(name=name, level=level) for name, level in (
+            ("Low battery", "warning" if soc < LOW_BATTERY_ALARM_PERCENT else "ok"),
+            ("High voltage", "ok"), ("Low cell voltage", "ok"), ("High cell voltage", "ok"),
+            ("Cell imbalance", "ok"), ("High temperature", "ok"), ("Low temperature", "ok"),
+            ("High charge current", "ok"), ("High discharge current", "ok"), ("Internal failure", "ok"),
+        )
+    ]
     battery = Battery(
         status=status.battery(soc, activity, alarms),
         soc_percent=round(soc, 1),
         voltage_v=voltage,
         current_a=current,
         power_w=round(m.battery_w),
-        temperature_c=round(21.0 + abs(m.battery_w) * 0.002, 1),
+        temperature_c=round(battery_temperature, 1),
         time_to_go_s=round(remaining_wh / -m.battery_w * 3600) if activity == "discharging" else None,
         activity=activity,
         max_charge_voltage_v=28.4,
         max_charge_current_a=150.0,
         max_discharge_current_a=200.0,
-        min_cell_voltage_v=round(voltage / 8 - 0.004, 3),
-        max_cell_voltage_v=round(voltage / 8 + 0.006 + max(0.0, soc - 95) * 0.004, 3),
+        min_cell_voltage_v=min(cell.voltage_v for cell in cells),
+        max_cell_voltage_v=max(cell.voltage_v for cell in cells),
+        alarms=alarms,
+        checks=checks,
+        capacity_ah=round(soc / 100 * BATTERY_AH, 1),
+        installed_capacity_ah=BATTERY_AH,
+        consumed_ah=round((100 - soc) / 100 * BATTERY_AH, 1),
+        health_percent=97.0,
+        cells=cells,
+        balancing=topping > 0,
+        temperatures=[
+            TemperatureSensor(name="Cells 1-4", temperature_c=round(battery_temperature - 0.2, 1)),
+            TemperatureSensor(name="Cells 5-8", temperature_c=round(battery_temperature + 0.3, 1)),
+        ],
+        switch_temperature_c=round(battery_temperature + 2.5 + abs(m.battery_w) * 0.002, 1),
+        charge_allowed=soc < 100,
+        discharge_allowed=soc > 5,
+        charge_limited_by="Cell voltage" if topping > 0 else None,
+        discharge_limited_by=None,
+        applied_charge_voltage_v=28.2,
+        max_cell_charge_voltage_v=3.55,
+        low_voltage_v=24.0,
+        modules_online=1,
+        modules_offline=0,
+        modules_blocking_charge=1 if soc >= 100 else 0,
+        modules_blocking_discharge=0,
+        manufacturer="Example Cells",
+        firmware_version="1.4.2",
+        history=BatteryHistory(
+            charge_cycles=41.0, full_discharges=0.0, deepest_discharge_ah=142.0, last_discharge_ah=96.5,
+            average_discharge_ah=74.0, total_drawn_ah=8210.0, charged_kwh=221.4, discharged_kwh=209.8,
+            min_voltage_v=23.9, max_voltage_v=28.5, min_cell_voltage_v=2.98, max_cell_voltage_v=3.58,
+            min_temperature_c=4.5, max_temperature_c=36.0, low_voltage_alarms=1.0, high_voltage_alarms=0.0,
+            since_full_charge_s=None if soc >= 99.5 else round((100 - soc) * 2400),
+        ),
     )
 
     ac_in = (m.on_output_w + m.charger_dc_w / CHARGER_EFFICIENCY) if m.ac_source else 0.0

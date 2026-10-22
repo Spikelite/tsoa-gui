@@ -89,6 +89,48 @@ class InverterCharger(Part):
         None, description="The AC input it is taking power from now, if any.")
 
 
+class Cell(_Model):
+    """One cell of a battery that reports its cells, in the order the battery numbers them."""
+
+    voltage_v: float | None = None
+    balancing: bool | None = Field(
+        None, description="Whether the battery is bleeding charge from this cell to bring it level with the rest.")
+
+
+class TemperatureSensor(_Model):
+    name: str = Field(description="The sensor's name as the battery reports it.")
+    temperature_c: float | None = None
+
+
+class AlarmCheck(_Model):
+    """One condition a battery watches for, and where it stands now."""
+
+    name: str = Field(description="What the battery watches, worded for the person reading it.")
+    level: Literal["ok", "warning", "alarm"]
+
+
+class BatteryHistory(_Model):
+    """What the battery has kept track of since it was last reset. Amounts drawn are positive."""
+
+    charge_cycles: float | None = None
+    full_discharges: float | None = None
+    deepest_discharge_ah: float | None = None
+    last_discharge_ah: float | None = None
+    average_discharge_ah: float | None = None
+    total_drawn_ah: float | None = None
+    charged_kwh: float | None = None
+    discharged_kwh: float | None = None
+    min_voltage_v: float | None = None
+    max_voltage_v: float | None = None
+    min_cell_voltage_v: float | None = None
+    max_cell_voltage_v: float | None = None
+    min_temperature_c: float | None = None
+    max_temperature_c: float | None = None
+    low_voltage_alarms: float | None = None
+    high_voltage_alarms: float | None = None
+    since_full_charge_s: float | None = Field(None, description="Time since the battery was last fully charged.")
+
+
 class Battery(Part):
     soc_percent: float | None = Field(None, description="State of charge.")
     voltage_v: float | None = None
@@ -105,6 +147,40 @@ class Battery(Part):
         None, description="Lowest cell voltage, for batteries that report their cells.")
     max_cell_voltage_v: float | None = Field(
         None, description="Highest cell voltage, for batteries that report their cells.")
+
+    # The detail, for the battery's own page. A battery reports some of it,
+    # all of it or none, depending on what manages it.
+    alarms: list[Alarm] = Field(default_factory=list, description="Alarms and warnings active now.")
+    checks: list[AlarmCheck] = Field(
+        default_factory=list, description="Every condition the battery watches for, alarming or not.")
+    capacity_ah: float | None = Field(None, description="Charge left, in amp-hours.")
+    installed_capacity_ah: float | None = Field(None, description="Capacity when full.")
+    consumed_ah: float | None = Field(None, description="Charge drawn since the battery was last full.")
+    health_percent: float | None = Field(None, description="State of health: capacity now against when new.")
+    cells: list[Cell] = Field(default_factory=list, description="Each cell, for batteries that report them.")
+    balancing: bool | None = Field(None, description="Whether the battery is balancing its cells now.")
+    temperatures: list[TemperatureSensor] = Field(
+        default_factory=list, description="The battery's own temperature sensors, each by name.")
+    switch_temperature_c: float | None = Field(
+        None, description="Temperature of the battery's power switches, which open to stop charge or discharge.")
+    charge_allowed: bool | None = Field(None, description="Whether the battery lets itself be charged now.")
+    discharge_allowed: bool | None = Field(None, description="Whether the battery lets itself be discharged now.")
+    charge_limited_by: str | None = Field(
+        None, description="What is setting the charge current limit now, in the battery's own words.")
+    discharge_limited_by: str | None = Field(
+        None, description="What is setting the discharge current limit now, in the battery's own words.")
+    applied_charge_voltage_v: float | None = Field(
+        None, description="The charge voltage the system applies, which a system limit can hold below the "
+                          "battery's own charge voltage limit.")
+    max_cell_charge_voltage_v: float | None = Field(None, description="The highest voltage a cell is charged to.")
+    low_voltage_v: float | None = Field(None, description="The voltage the battery counts as empty.")
+    modules_online: int | None = None
+    modules_offline: int | None = None
+    modules_blocking_charge: int | None = None
+    modules_blocking_discharge: int | None = None
+    manufacturer: str | None = Field(None, description="Who made the battery or its management system.")
+    firmware_version: str | None = None
+    history: BatteryHistory | None = None
 
 
 ChargerState = TypeAliasType("ChargerState", Literal[

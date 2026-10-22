@@ -152,6 +152,54 @@ def test_inputs_are_unknown_where_the_system_does_not_say():
     assert system.grid.ac_input is None and system.inverter_charger.ac_inputs is None
 
 
+def test_a_battery_that_reports_its_cells_gives_its_detail():
+    values = dict(DEVICE)
+    for n, voltage in enumerate([3.301, 3.305, 3.298, 3.310], start=1):
+        values[("battery", 512, f"Voltages/Cell{n}")] = voltage
+        values[("battery", 512, f"Balances/Cell{n}")] = 1 if n == 4 else 0
+    values.update({
+        ("battery", 512, "System/Temperature1"): 21.0,
+        ("battery", 512, "System/Temperature1Name"): "Front",
+        ("battery", 512, "System/Temperature2"): 21.4,
+        ("battery", 512, "System/MOSTemperature"): 24.5,
+        ("battery", 512, "Io/AllowToCharge"): 0,
+        ("battery", 512, "Io/AllowToDischarge"): 1,
+        ("battery", 512, "Info/ChargeLimitation"): "SoC",
+        ("battery", 512, "Info/DischargeLimitation"): "  ",
+        ("battery", 512, "ConsumedAmphours"): -12.5,
+        ("battery", 512, "InstalledCapacity"): 200.0,
+        ("battery", 512, "Soh"): 98,
+        ("battery", 512, "Alarms/LowSoc"): 0,
+        ("battery", 512, "Alarms/HighCellVoltage"): 1,
+        ("battery", 512, "History/ChargeCycles"): 12,
+        ("battery", 512, "History/DeepestDischarge"): -150.0,
+        ("system", 0, "Control/EffectiveChargeVoltage"): 27.6,
+    })
+    battery = build(readings(values), live=True).battery
+
+    assert [(c.voltage_v, c.balancing) for c in battery.cells] == [
+        (3.301, False), (3.305, False), (3.298, False), (3.310, True)]
+    assert [(t.name, t.temperature_c) for t in battery.temperatures] == [("Front", 21.0), ("Sensor 2", 21.4)]
+    assert battery.switch_temperature_c == 24.5
+    assert (battery.charge_allowed, battery.discharge_allowed) == (False, True)
+    # A blank reason is no reason.
+    assert (battery.charge_limited_by, battery.discharge_limited_by) == ("SoC", None)
+    # Amp-hours drawn read as positive amounts.
+    assert battery.consumed_ah == 12.5
+    assert battery.history.deepest_discharge_ah == 150.0
+    assert battery.history.charge_cycles == 12
+    assert (battery.installed_capacity_ah, battery.health_percent) == (200.0, 98)
+    assert battery.applied_charge_voltage_v == 27.6
+    assert [(c.name, c.level) for c in battery.checks] == [
+        ("High cell voltage", "warning"), ("Low state of charge", "ok")]
+    assert [(a.name, a.level) for a in battery.alarms] == [("High cell voltage", "warning")]
+
+
+def test_a_battery_that_reports_no_detail_has_none():
+    battery = build(readings(DEVICE), live=True).battery
+    assert (battery.cells, battery.temperatures, battery.checks, battery.history) == ([], [], [], None)
+
+
 def test_readings_go_stale_without_messages():
     now = [100.0]
     r = Readings(clock=lambda: now[0])

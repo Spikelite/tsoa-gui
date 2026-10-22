@@ -3,14 +3,17 @@ import { useId, useLayoutEffect, useRef, type ReactNode } from "react";
 import { Clock } from "../../Clock";
 import type { PartName, Status, System } from "../../model/system";
 import { generatorState, gridState, inverterState, partTitle, solarState } from "../describe";
+import { detailedPart } from "../details";
 import { Eased } from "../Eased";
 import { link, LINK_SENTENCES, LINK_WORDS } from "../link";
+import { closePart, openedFrom, useEscapeCloses, usePart } from "../partView";
 import * as f from "../format";
 import {
   acLoadsReadings, dcLoadsReadings, dcLoadsState, generatorReadings, gridReadings, inverterReadings, solarReadings,
   type Readings,
 } from "../readings";
 import { Title } from "../Title";
+import { BatteryDeck } from "./BatteryDeck";
 import { Conduits } from "./Conduits";
 import { Core, Rows } from "./Core";
 import { GeneratorCore } from "./GeneratorCore";
@@ -81,6 +84,9 @@ function Readout(props: {
 export function FofSkin({ model, connected = true }: { model: System; connected?: boolean }) {
   const root = useRef<HTMLDivElement>(null);
   const state = link(model, connected);
+  const part = detailedPart(usePart(), model);
+  useEscapeCloses(part !== null);
+  const from = openedFrom();
 
   // A CSS animation counts from when it starts, and the skin's start at
   // different moments: a conduit once the panels are measured, and any
@@ -96,11 +102,15 @@ export function FofSkin({ model, connected = true }: { model: System; connected?
   });
 
   return (
-    <div ref={root} className="fof">
+    <div ref={root} className={`fof${part !== null ? " fof-paged" : ""}`}>
       <div className="fof-top">
         <span className="fof-cap fof-cap-left" aria-hidden="true" />
         <span className="fof-label" aria-hidden="true">Power systems</span>
         <span className="fof-bar" aria-hidden="true" />
+        {/* On a part's own page, the way back to the whole system. */}
+        {part !== null && (
+          <button type="button" className="fof-segment fof-back-segment" onClick={closePart}>Overview</button>
+        )}
         <span className="fof-segment fof-clock-segment">
           <Clock />
         </span>
@@ -113,6 +123,12 @@ export function FofSkin({ model, connected = true }: { model: System; connected?
         <span className="fof-cap fof-cap-right" aria-hidden="true" />
       </div>
 
+      {part === "battery" && model.battery ? (
+        // The page grows out of where the part was on the overview.
+        <div className="fof-page" style={from ? { transformOrigin: `${from.x * 100}% ${from.y * 100}%` } : undefined}>
+          <BatteryDeck battery={model.battery} />
+        </div>
+      ) : (
       <div className="fof-diagram">
         <Conduits flows={withIdleLinks(model.inverter_charger ? throughHub(model.flows) : model.flows, model)}
           inputs={hubInputs(model)} />
@@ -183,6 +199,7 @@ export function FofSkin({ model, connected = true }: { model: System; connected?
           </Readout>
         )}
       </div>
+      )}
 
       <div className="fof-bottom">
         {/* The frame carries the application's name, in place of the page header's. */}

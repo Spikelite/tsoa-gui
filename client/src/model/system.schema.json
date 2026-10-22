@@ -118,6 +118,30 @@
       "title": "Alarm",
       "type": "object"
     },
+    "AlarmCheck": {
+      "additionalProperties": false,
+      "description": "One condition a battery watches for, and where it stands now.",
+      "properties": {
+        "name": {
+          "description": "What the battery watches, worded for the person reading it.",
+          "type": "string"
+        },
+        "level": {
+          "enum": [
+            "ok",
+            "warning",
+            "alarm"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "level"
+      ],
+      "title": "AlarmCheck",
+      "type": "object"
+    },
     "Battery": {
       "additionalProperties": false,
       "properties": {
@@ -274,6 +298,268 @@
           ],
           "default": null,
           "description": "Highest cell voltage, for batteries that report their cells."
+        },
+        "alarms": {
+          "description": "Alarms and warnings active now.",
+          "items": {
+            "$ref": "#/$defs/Alarm"
+          },
+          "type": "array"
+        },
+        "checks": {
+          "description": "Every condition the battery watches for, alarming or not.",
+          "items": {
+            "$ref": "#/$defs/AlarmCheck"
+          },
+          "type": "array"
+        },
+        "capacity_ah": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Charge left, in amp-hours."
+        },
+        "installed_capacity_ah": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Capacity when full."
+        },
+        "consumed_ah": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Charge drawn since the battery was last full."
+        },
+        "health_percent": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "State of health: capacity now against when new."
+        },
+        "cells": {
+          "description": "Each cell, for batteries that report them.",
+          "items": {
+            "$ref": "#/$defs/Cell"
+          },
+          "type": "array"
+        },
+        "balancing": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether the battery is balancing its cells now."
+        },
+        "temperatures": {
+          "description": "The battery's own temperature sensors, each by name.",
+          "items": {
+            "$ref": "#/$defs/TemperatureSensor"
+          },
+          "type": "array"
+        },
+        "switch_temperature_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Temperature of the battery's power switches, which open to stop charge or discharge."
+        },
+        "charge_allowed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether the battery lets itself be charged now."
+        },
+        "discharge_allowed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether the battery lets itself be discharged now."
+        },
+        "charge_limited_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What is setting the charge current limit now, in the battery's own words."
+        },
+        "discharge_limited_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What is setting the discharge current limit now, in the battery's own words."
+        },
+        "applied_charge_voltage_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The charge voltage the system applies, which a system limit can hold below the battery's own charge voltage limit."
+        },
+        "max_cell_charge_voltage_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The highest voltage a cell is charged to."
+        },
+        "low_voltage_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The voltage the battery counts as empty."
+        },
+        "modules_online": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "modules_offline": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "modules_blocking_charge": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "modules_blocking_discharge": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Who made the battery or its management system."
+        },
+        "firmware_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "history": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BatteryHistory"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -289,9 +575,283 @@
         "max_charge_current_a",
         "max_discharge_current_a",
         "min_cell_voltage_v",
-        "max_cell_voltage_v"
+        "max_cell_voltage_v",
+        "alarms",
+        "checks",
+        "capacity_ah",
+        "installed_capacity_ah",
+        "consumed_ah",
+        "health_percent",
+        "cells",
+        "balancing",
+        "temperatures",
+        "switch_temperature_c",
+        "charge_allowed",
+        "discharge_allowed",
+        "charge_limited_by",
+        "discharge_limited_by",
+        "applied_charge_voltage_v",
+        "max_cell_charge_voltage_v",
+        "low_voltage_v",
+        "modules_online",
+        "modules_offline",
+        "modules_blocking_charge",
+        "modules_blocking_discharge",
+        "manufacturer",
+        "firmware_version",
+        "history"
       ],
       "title": "Battery",
+      "type": "object"
+    },
+    "BatteryHistory": {
+      "additionalProperties": false,
+      "description": "What the battery has kept track of since it was last reset. Amounts drawn are positive.",
+      "properties": {
+        "charge_cycles": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "full_discharges": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "deepest_discharge_ah": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "last_discharge_ah": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "average_discharge_ah": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "total_drawn_ah": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "charged_kwh": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "discharged_kwh": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "min_voltage_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_voltage_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "min_cell_voltage_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_cell_voltage_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "min_temperature_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_temperature_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "low_voltage_alarms": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "high_voltage_alarms": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "since_full_charge_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Time since the battery was last fully charged."
+        }
+      },
+      "required": [
+        "charge_cycles",
+        "full_discharges",
+        "deepest_discharge_ah",
+        "last_discharge_ah",
+        "average_discharge_ah",
+        "total_drawn_ah",
+        "charged_kwh",
+        "discharged_kwh",
+        "min_voltage_v",
+        "max_voltage_v",
+        "min_cell_voltage_v",
+        "max_cell_voltage_v",
+        "min_temperature_c",
+        "max_temperature_c",
+        "low_voltage_alarms",
+        "high_voltage_alarms",
+        "since_full_charge_s"
+      ],
+      "title": "BatteryHistory",
+      "type": "object"
+    },
+    "Cell": {
+      "additionalProperties": false,
+      "description": "One cell of a battery that reports its cells, in the order the battery numbers them.",
+      "properties": {
+        "voltage_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "balancing": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether the battery is bleeding charge from this cell to bring it level with the rest."
+        }
+      },
+      "required": [
+        "voltage_v",
+        "balancing"
+      ],
+      "title": "Cell",
       "type": "object"
     },
     "ChargerState": {
@@ -869,6 +1429,32 @@
         "offline"
       ],
       "type": "string"
+    },
+    "TemperatureSensor": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "The sensor's name as the battery reports it.",
+          "type": "string"
+        },
+        "temperature_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "name",
+        "temperature_c"
+      ],
+      "title": "TemperatureSensor",
+      "type": "object"
     }
   },
   "additionalProperties": false,

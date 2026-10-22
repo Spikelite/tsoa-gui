@@ -26,8 +26,8 @@ from . import status
 from .feed import Feed
 from .flows import derive_flows
 from .model import (
-    AcLoads, Alarm, Battery, ChargerState, DcLoads, Generator, Grid, InverterCharger, InverterMode, InverterState,
-    Solar, SolarCharger, System,
+    AcLoads, Alarm, AlarmCheck, Battery, BatteryHistory, Cell, ChargerState, DcLoads, Generator, Grid,
+    InverterCharger, InverterMode, InverterState, Solar, SolarCharger, System, TemperatureSensor,
 )
 
 log = logging.getLogger(__name__)
@@ -54,7 +54,12 @@ BATTERY_ACTIVITY = {0: "idle", 1: "charging", 2: "discharging"}
 ALARM_NAMES = {
     "LowBattery": "Low battery", "HighTemperature": "High temperature", "Overload": "Overload",
     "Ripple": "DC ripple", "LowSoc": "Low state of charge", "CellImbalance": "Cell imbalance",
+    "BmsCable": "Battery management cable", "StateOfHealth": "State of health",
 }
+# Batteries that report their cells and temperature sensors number them from
+# 1, up to these many.
+MOST_CELLS = 32
+MOST_SENSORS = 8
 
 
 class Readings:
@@ -123,6 +128,10 @@ def build(readings: Readings, live: bool) -> System:
 
 def _first(*values: float | None) -> float | None:
     return next((v for v in values if v is not None), None)
+
+
+def _abs(value: float | None) -> float | None:
+    return None if value is None else abs(value)
 
 
 def _ac_inputs(r: Readings) -> list[str]:
@@ -222,17 +231,24 @@ def _count(value: object) -> int | None:
     return value if isinstance(value, int) and not isinstance(value, bool) and value > 0 else None
 
 
-def _alarms(r: Readings, service: str, instance: int) -> list[Alarm]:
-    alarms: dict[str, Alarm] = {}
+def _checks(r: Readings, service: str, instance: int) -> list[AlarmCheck]:
+    """Every condition a service watches for, from its Alarms/ paths: 0 clear, 1 a warning, 2 an alarm."""
+    levels: dict[int, Literal["ok", "warning", "alarm"]] = {0: "ok", 1: "warning", 2: "alarm"}
+    rank = {"ok": 0, "warning": 1, "alarm": 2}
+    checks: dict[str, AlarmCheck] = {}
     for (s, i, path), value in sorted(r.values.items()):
-        # 1 is a warning and 2 an alarm; per-phase alarms such as Alarms/L1/Overload count once.
-        if s == service and i == instance and path.startswith("Alarms/") and value in (1, 2):
+        # Per-phase alarms such as Alarms/L1/Overload count once, at their worst.
+        if s == service and i == instance and path.startswith("Alarms/") and value in levels:
             word = path.rsplit("/", 1)[-1]
             name = ALARM_NAMES.get(word) or re.sub(r"(?<!^)(?=[A-Z])", " ", word).capitalize()
-            level = "warning" if value == 1 else "alarm"
-            if name not in alarms or level == "alarm":
-                alarms[name] = Alarm(name=name, level=level)
-    return list(alarms.values())
+            level = levels[value]
+            if name not in checks or rank[level] > rank[checks[name].level]:
+                checks[name] = AlarmCheck(name=name, level=level)
+    return list(checks.values())
+
+
+def _alarms(r: Readings, service: str, instance: int) -> list[Alarm]:
+    return [Alarm(name=c.name, level=c.level) for c in _checks(r, service, instance) if c.level != "ok"]
 
 
 def _active_battery(r: Readings) -> int | None:
@@ -256,10 +272,58 @@ def _battery(r: Readings) -> Battery | None:
     if monitor is not None and r.get("battery", monitor, "Connected") == 0:
         return Battery(status="offline")
     activity = BATTERY_ACTIVITY.get(r.get("system", 0, "Dc/Battery/State"))
-    alarms = _alarms(r, "battery", monitor) if monitor is not None else []
+    checks = _checks(r, "battery", monitor) if monitor is not None else []
+    alarms = [Alarm(name=c.name, level=c.level) for c in checks if c.level != "ok"]
 
     def detail(path: str) -> float | None:
         return r.number("battery", monitor, path)
+
+    def flag(path: str) -> bool | None:
+        value = detail(path)
+        return None if value is None else value != 0
+
+    def words(path: str) -> str | None:
+        value = r.get("battery", monitor, path)
+        return (value.strip() or None) if isinstance(value, str) else None
+
+    def drawn(path: str) -> float | None:
+        # Venus reports charge drawn as negative amp-hours.
+        return _abs(detail(path))
+
+    def whole(path: str) -> int | None:
+        value = detail(path)
+        return None if value is None else int(value)
+
+    cells = []
+    for n in range(1, MOST_CELLS + 1):
+        voltage = detail(f"Voltages/Cell{n}")
+        if voltage is None:
+            break
+        cells.append(Cell(voltage_v=voltage, balancing=flag(f"Balances/Cell{n}")))
+    sensors = [
+        TemperatureSensor(name=words(f"System/Temperature{n}Name") or f"Sensor {n}", temperature_c=reading)
+        for n in range(1, MOST_SENSORS + 1)
+        if (reading := detail(f"System/Temperature{n}")) is not None
+    ]
+    history = BatteryHistory(
+        charge_cycles=detail("History/ChargeCycles"),
+        full_discharges=detail("History/FullDischarges"),
+        deepest_discharge_ah=drawn("History/DeepestDischarge"),
+        last_discharge_ah=drawn("History/LastDischarge"),
+        average_discharge_ah=drawn("History/AverageDischarge"),
+        total_drawn_ah=drawn("History/TotalAhDrawn"),
+        charged_kwh=detail("History/ChargedEnergy"),
+        discharged_kwh=detail("History/DischargedEnergy"),
+        min_voltage_v=detail("History/MinimumVoltage"),
+        max_voltage_v=detail("History/MaximumVoltage"),
+        min_cell_voltage_v=detail("History/MinimumCellVoltage"),
+        max_cell_voltage_v=detail("History/MaximumCellVoltage"),
+        min_temperature_c=detail("History/MinimumTemperature"),
+        max_temperature_c=detail("History/MaximumTemperature"),
+        low_voltage_alarms=detail("History/LowVoltageAlarms"),
+        high_voltage_alarms=detail("History/HighVoltageAlarms"),
+        since_full_charge_s=detail("History/TimeSinceLastFullCharge"),
+    )
 
     return Battery(
         status=status.battery(soc, activity, alarms),
@@ -275,6 +339,30 @@ def _battery(r: Readings) -> Battery | None:
         max_discharge_current_a=detail("Info/MaxDischargeCurrent"),
         min_cell_voltage_v=detail("System/MinCellVoltage"),
         max_cell_voltage_v=detail("System/MaxCellVoltage"),
+        alarms=alarms,
+        checks=checks,
+        capacity_ah=detail("Capacity"),
+        installed_capacity_ah=detail("InstalledCapacity"),
+        consumed_ah=_first(drawn("ConsumedAmphours"), _abs(r.number("system", 0, "Dc/Battery/ConsumedAmphours"))),
+        health_percent=detail("Soh"),
+        cells=cells,
+        balancing=flag("Balancing"),
+        temperatures=sensors,
+        switch_temperature_c=detail("System/MOSTemperature"),
+        charge_allowed=flag("Io/AllowToCharge"),
+        discharge_allowed=flag("Io/AllowToDischarge"),
+        charge_limited_by=words("Info/ChargeLimitation"),
+        discharge_limited_by=words("Info/DischargeLimitation"),
+        applied_charge_voltage_v=r.number("system", 0, "Control/EffectiveChargeVoltage"),
+        max_cell_charge_voltage_v=detail("Info/MaxChargeCellVoltage"),
+        low_voltage_v=detail("Info/BatteryLowVoltage"),
+        modules_online=whole("System/NrOfModulesOnline"),
+        modules_offline=whole("System/NrOfModulesOffline"),
+        modules_blocking_charge=whole("System/NrOfModulesBlockingCharge"),
+        modules_blocking_discharge=whole("System/NrOfModulesBlockingDischarge"),
+        manufacturer=words("Manufacturer"),
+        firmware_version=words("FirmwareVersion"),
+        history=history if any(v is not None for v in history.model_dump().values()) else None,
     )
 
 

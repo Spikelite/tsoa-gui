@@ -1,8 +1,9 @@
-import { useId, type CSSProperties } from "react";
+import { useId, type CSSProperties, type MouseEvent } from "react";
 
 import type { Battery } from "../../model/system";
 import { batteryState } from "../describe";
 import { Eased } from "../Eased";
+import { openPart, partAddress } from "../partView";
 import { batteryReadings, isWorded, type Reading } from "../readings";
 import { StatusWords } from "./StatusPill";
 
@@ -37,12 +38,24 @@ export function Core({ battery }: { battery: Battery }) {
     Array.from({ length: CELLS_PER_ROW }, (_, column) => row * CELLS_PER_ROW + FILL.indexOf(column)),
   );
 
+  // The battery opens its own page from anywhere on it; its name is the
+  // link to it, for the keyboard and for a screen reader.
+  const open = (event: MouseEvent) => {
+    // A click on the name reaches the part's own handler too; open once.
+    if (event.defaultPrevented) {
+      return;
+    }
+    event.preventDefault();
+    openPart("battery", event.currentTarget.closest("[data-part]"));
+  };
+
   return (
-    <section className={`fof-core status-${battery.status}`} data-part="battery" aria-labelledby={heading}>
+    <section className={`fof-core fof-opens status-${battery.status}`} data-part="battery" aria-labelledby={heading}
+      onClick={open}>
       {/* A conduit that would cross the name plugs into it instead. */}
       <div className="fof-name-row fof-core-name" data-anchor-label>
         <h2 className="fof-label-block">
-          <span id={heading}>Battery</span>
+          <a id={heading} className="fof-open-link" href={partAddress("battery")} onClick={open}>Battery</a>
           <StatusWords status={battery.status} separator />
         </h2>
       </div>

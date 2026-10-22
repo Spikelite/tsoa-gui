@@ -231,6 +231,149 @@ export interface Battery {
    * Highest cell voltage, for batteries that report their cells.
    */
   max_cell_voltage_v: number | null;
+  /**
+   * Alarms and warnings active now.
+   */
+  alarms: Alarm[];
+  /**
+   * Every condition the battery watches for, alarming or not.
+   */
+  checks: AlarmCheck[];
+  /**
+   * Charge left, in amp-hours.
+   */
+  capacity_ah: number | null;
+  /**
+   * Capacity when full.
+   */
+  installed_capacity_ah: number | null;
+  /**
+   * Charge drawn since the battery was last full.
+   */
+  consumed_ah: number | null;
+  /**
+   * State of health: capacity now against when new.
+   */
+  health_percent: number | null;
+  /**
+   * Each cell, for batteries that report them.
+   */
+  cells: Cell[];
+  /**
+   * Whether the battery is balancing its cells now.
+   */
+  balancing: boolean | null;
+  /**
+   * The battery's own temperature sensors, each by name.
+   */
+  temperatures: TemperatureSensor[];
+  /**
+   * Temperature of the battery's power switches, which open to stop charge or discharge.
+   */
+  switch_temperature_c: number | null;
+  /**
+   * Whether the battery lets itself be charged now.
+   */
+  charge_allowed: boolean | null;
+  /**
+   * Whether the battery lets itself be discharged now.
+   */
+  discharge_allowed: boolean | null;
+  /**
+   * What is setting the charge current limit now, in the battery's own words.
+   */
+  charge_limited_by: string | null;
+  /**
+   * What is setting the discharge current limit now, in the battery's own words.
+   */
+  discharge_limited_by: string | null;
+  /**
+   * The charge voltage the system applies, which a system limit can hold below the battery's own charge voltage limit.
+   */
+  applied_charge_voltage_v: number | null;
+  /**
+   * The highest voltage a cell is charged to.
+   */
+  max_cell_charge_voltage_v: number | null;
+  /**
+   * The voltage the battery counts as empty.
+   */
+  low_voltage_v: number | null;
+  modules_online: number | null;
+  modules_offline: number | null;
+  modules_blocking_charge: number | null;
+  modules_blocking_discharge: number | null;
+  /**
+   * Who made the battery or its management system.
+   */
+  manufacturer: string | null;
+  firmware_version: string | null;
+  history: BatteryHistory | null;
+}
+/**
+ * One condition a battery watches for, and where it stands now.
+ *
+ * This interface was referenced by `System`'s JSON-Schema
+ * via the `definition` "AlarmCheck".
+ */
+export interface AlarmCheck {
+  /**
+   * What the battery watches, worded for the person reading it.
+   */
+  name: string;
+  level: "ok" | "warning" | "alarm";
+}
+/**
+ * One cell of a battery that reports its cells, in the order the battery numbers them.
+ *
+ * This interface was referenced by `System`'s JSON-Schema
+ * via the `definition` "Cell".
+ */
+export interface Cell {
+  voltage_v: number | null;
+  /**
+   * Whether the battery is bleeding charge from this cell to bring it level with the rest.
+   */
+  balancing: boolean | null;
+}
+/**
+ * This interface was referenced by `System`'s JSON-Schema
+ * via the `definition` "TemperatureSensor".
+ */
+export interface TemperatureSensor {
+  /**
+   * The sensor's name as the battery reports it.
+   */
+  name: string;
+  temperature_c: number | null;
+}
+/**
+ * What the battery has kept track of since it was last reset. Amounts drawn are positive.
+ *
+ * This interface was referenced by `System`'s JSON-Schema
+ * via the `definition` "BatteryHistory".
+ */
+export interface BatteryHistory {
+  charge_cycles: number | null;
+  full_discharges: number | null;
+  deepest_discharge_ah: number | null;
+  last_discharge_ah: number | null;
+  average_discharge_ah: number | null;
+  total_drawn_ah: number | null;
+  charged_kwh: number | null;
+  discharged_kwh: number | null;
+  min_voltage_v: number | null;
+  max_voltage_v: number | null;
+  min_cell_voltage_v: number | null;
+  max_cell_voltage_v: number | null;
+  min_temperature_c: number | null;
+  max_temperature_c: number | null;
+  low_voltage_alarms: number | null;
+  high_voltage_alarms: number | null;
+  /**
+   * Time since the battery was last fully charged.
+   */
+  since_full_charge_s: number | null;
 }
 /**
  * This interface was referenced by `System`'s JSON-Schema

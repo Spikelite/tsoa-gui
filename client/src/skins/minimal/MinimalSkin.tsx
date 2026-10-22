@@ -1,4 +1,7 @@
 import type { System } from "../../model/system";
+import { detailedPart } from "../details";
+import { useEscapeCloses, usePart } from "../partView";
+import { BatteryPage } from "./BatteryPage";
 import { Flows } from "./Flows";
 import "./minimal.css";
 import {
@@ -6,8 +9,18 @@ import {
 } from "./Panels";
 
 // The default skin: minimal and technical. One panel per part the system
-// has, with power moving between them as animated flow.
+// has, with power moving between them as animated flow, and a page of its
+// own for a part that has one.
 export function MinimalSkin({ model }: { model: System }) {
+  const part = detailedPart(usePart(), model);
+  useEscapeCloses(part !== null);
+  if (part === "battery" && model.battery) {
+    return (
+      <div className="minimal minimal-page">
+        <BatteryPage battery={model.battery} />
+      </div>
+    );
+  }
   return (
     <div className="minimal">
       <Flows flows={model.flows} />
