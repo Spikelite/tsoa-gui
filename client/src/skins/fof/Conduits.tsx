@@ -3,21 +3,9 @@ import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { Flow, PartName } from "../../model/system";
 import { flowSpeed } from "../minimal/flowSpeed";
 import { approach, conduitPath, usePanelMeasure, type Box } from "../panelBoxes";
-import { HUB_EDGE, HUB_STRANDS, HUB_VIEW, portShift, type HubPort, type HubPorts } from "./hubPorts";
+import { HUB_EDGE, HUB_VIEW, portShift, type HubPort, type HubPorts } from "./hubPorts";
+import { LAYERS, WAVE } from "./waves";
 import { steadyPeriod } from "./wavePeriod";
-
-// A wave is many faint strokes centered on one another, each shorter, a
-// deeper blue and a touch stronger than the one under it. Their half-lengths
-// follow a bell curve, so the blue builds smoothly to a deep middle and every step
-// between strokes is too slight to see. Lengths are in em, out of the 14em
-// between waves; depth runs from fof.css's icy blue (0) to its deep blue (1).
-const STROKES = 18;
-const REACH = 6;
-const LAYERS = Array.from({ length: STROKES }, (_, index) => {
-  const rank = index + 1;
-  const half = REACH * Math.sqrt(Math.log((STROKES + 1) / rank) / Math.log(STROKES + 1));
-  return { length: Number((2 * half).toFixed(2)), depth: Number((rank / STROKES).toFixed(2)) };
-});
 
 /** Each conduit's period, kept from before where its power has not moved far enough to change it. */
 function settle(previous: Partial<Record<string, number>>, flows: Flow[]): Partial<Record<string, number>> {
@@ -56,14 +44,11 @@ function hubNudge(
   return 0;
 }
 
-/** The space between waves, in em. */
-const WAVE = 14;
-
 const fraction = (value: number) => Number((((value % 1) + 1) % 1).toFixed(3));
 
 /**
  * Where a conduit meets the hub, if it does, and when in its cycle a crest
- * reaches where it has narrowed into its strands there: a conduit into the hub has a crest at its end,
+ * reaches the edge of the hub's square there: a conduit into the hub has a crest at its end,
  * the hub's center, as each cycle starts, and one out of it has a crest at
  * its far end then, so a crest crosses the disc as far before or after as the
  * distance takes at the waves' pace.
@@ -81,7 +66,7 @@ function hubPort(flow: Flow, from: Box, to: Box, hub: Box, length: number, em: n
   const side = main === "x" ? (heading > 0 ? "right" : "left") : heading > 0 ? "bottom" : "top";
   const cross = main === "x" ? "y" : "x";
   const offset = outward ? 0 : (to[cross] - hub[cross]) / scale;
-  const toEdge = (HUB_EDGE - HUB_STRANDS) * scale;
+  const toEdge = HUB_EDGE * scale;
   return {
     key: `${flow.source}-${flow.target}`,
     side,
