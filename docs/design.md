@@ -39,7 +39,9 @@ A skin is a view over the same system model. It receives the model and its updat
 
 ## Control and users
 
-The interface will also control the system, starting with inverter mode, AC input current limit and charge current. What a user may do depends on their role: read-only viewers, operators with day-to-day controls, administrators with everything including users and settings, and kiosk accounts for a fixed display that signs in without a password at the screen. More roles may follow.
+Viewing is read-only and needs no sign-in for now: anyone who can reach the server sees the readings, and a fixed display just opens the page. Nobody can change anything without signing in.
+
+The interface will also control the system, starting with inverter mode, AC input current limit and charge current. What a signed-in user may do depends on their role: read-only viewers, operators with day-to-day controls, and administrators with everything including users and settings. The first account made on a new installation is its administrator. More roles may follow.
 
 The device's own login grants full control, so roles are enforced by a server between the browser and the device. It holds the device connection, signs users in, and checks every change against the user's role.
 
