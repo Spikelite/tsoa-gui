@@ -17,14 +17,16 @@ import { throughHub } from "./throughHub";
 import "./fof.css";
 
 function Readout(props: {
-  part: PartName; title: string; status: Status; state: string; art?: ReactNode; beside?: boolean;
+  part: PartName; title: string; status: Status; state: string; art?: ReactNode;
+  /** Where the equipment sits: below the readings, beside them, or leading them with the name above it. */
+  layout?: "below" | "beside" | "lead";
   children: ReactNode;
 }) {
   const heading = useId();
   const offline = props.status === "offline";
   const rows = !offline && <dl className="fof-rows">{props.children}</dl>;
   return (
-    <section className={`fof-readout status-${props.status}${props.beside ? " fof-readout-beside" : ""}`}
+    <section className={`fof-readout status-${props.status} fof-readout-${props.layout ?? "below"}`}
       data-part={props.part} aria-labelledby={heading}>
       {/* Conduits plug into the part's graphic, or into its name where it has none. */}
       <div className="fof-name-row" data-anchor={props.art ? undefined : true}>
@@ -79,7 +81,7 @@ export function FofSkin({ model }: { model: System }) {
 
         {model.generator && (
           <Readout part="generator" title="Generator" status={model.generator.status}
-            state={generatorState(model.generator)} art={<GeneratorCore generator={model.generator} />} beside>
+            state={generatorState(model.generator)} art={<GeneratorCore generator={model.generator} />} layout="beside">
             <Row label="Power" value={model.generator.power_w} format={f.power} always />
             <Row label="Running for" value={model.generator.run_time_s} format={f.duration} />
           </Readout>
@@ -130,7 +132,7 @@ export function FofSkin({ model }: { model: System }) {
 
         {model.ac_loads && (
           <Readout part="ac_loads" title="AC loads" status={model.ac_loads.status} state="In use"
-            art={<LoadPanel loads={model.ac_loads} />}>
+            art={<LoadPanel loads={model.ac_loads} />} layout="lead">
             <Row label="Power" value={model.ac_loads.power_w} format={f.power} always />
             <Row label="Voltage" value={model.ac_loads.voltage_v} format={f.volts} />
             <Row label="Current" value={model.ac_loads.current_a} format={f.amps} />

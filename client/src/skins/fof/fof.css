@@ -366,6 +366,22 @@
   align-self: center;
   margin: 0;
 }
+
+/* A part whose equipment leads: its name above the equipment's left end, its
+   state and readings beside the equipment, on the side away from its conduit. */
+.fof-readout-lead {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr;
+  column-gap: 1.2em;
+  row-gap: 0.35em;
+  align-items: start;
+}
+
+.fof-readout-lead > .fof-name-row { grid-column: 1 / span 2; }
+.fof-readout-lead > .fof-unit { grid-column: 1; grid-row: 2 / span 2; margin: 0.2em 0 0; }
+.fof-readout-lead > .fof-state-line { grid-column: 2; grid-row: 2; margin: 0; }
+.fof-readout-lead > .fof-rows { grid-column: 2; grid-row: 3; }
 .fof-ring-unit { width: 6.6em; }
 
 .fof-duty-inverting { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #cfe6ff; --fof-ring: var(--fof-plasma-deep); }
@@ -668,8 +684,11 @@
 
   /* Here the generator can sit on either side of where its conduit goes, so
      its column goes below its readings, clear of them. */
-  .fof-readout-beside { display: block; }
-  .fof-readout-beside > .fof-unit { margin: 0.8em auto 0; }
+  .fof-readout-beside,
+  .fof-readout-lead { display: block; }
+  .fof-readout-beside > .fof-unit,
+  .fof-readout-lead > .fof-unit { margin: 0.8em auto 0; }
+  .fof-readout-lead > .fof-state-line { margin: 0.35em 0; }
 
   .fof-cap { width: 1.2em; }
   .fof-label,
