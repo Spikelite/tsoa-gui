@@ -383,6 +383,18 @@
 .fof-readout-lead > .fof-state-line { grid-column: 2; grid-row: 2; margin: 0; }
 .fof-readout-lead > .fof-rows { grid-column: 2; grid-row: 3; }
 
+/* Equipment on top: the name, then the equipment, then the state and
+   readings, clear of a conduit leaving the equipment to the side. */
+.fof-readout-top {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.fof-readout-top > .fof-unit { order: 1; margin: 0.4em 0 0.3em; }
+.fof-readout-top > .fof-state-line { order: 2; }
+.fof-readout-top > .fof-rows { order: 3; }
+
 /* A hub: its name above its left edge, and its state and readings in the
    corner below and right of it, clear of the spoke running down from its
    center and the one running right. The two middle columns are the hub's
@@ -477,6 +489,31 @@
   left: 0;
   height: 0;
 }
+
+/* The grid's tower: steel, its wire down to a row of pills, and a wave of
+   plasma building along the row. Each pill lights --lead of a cycle before
+   the wave leaves the row's far end, which is when one sets off along the
+   grid's conduit; the keyframes peak a quarter into the cycle. */
+.fof-tower-unit {
+  position: relative;
+  width: min(15em, 100%);
+  --fof-cell-rest: #6e6450;
+}
+
+.fof-duty-feeding { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #6aa8ff; }
+
+.fof-tower-steel { fill: none; stroke: #c9c6d6; stroke-width: 3; stroke-linejoin: round; }
+.fof-tower-brace { fill: none; stroke: #8e8aa3; stroke-width: 1.6; }
+.fof-tower-insulator { stroke: var(--fof-teal); stroke-width: 3.5; stroke-linecap: round; stroke-dasharray: 2 1.5; }
+.fof-tower-wire { fill: none; stroke: #8e8aa3; stroke-width: 1.6; }
+.fof-tower-pill { fill: var(--fof-cell-rest); }
+
+.fof-duty-feeding .fof-tower-pill {
+  animation: fof-surge var(--fof-roll) ease-in-out infinite;
+  animation-delay: calc(var(--fof-roll) * -1 * (var(--lead) + 0.25));
+}
+
+.fof-tower-row { position: absolute; }
 
 /* Light runs through the cells in order, each a step behind the one before. */
 .fof-unit-cell {
@@ -747,7 +784,8 @@
   .fof-select-bar,
   .fof-select-option { transition: none; }
   .fof-panel-tap,
-  .fof-panel-breaker { animation: none; }
+  .fof-panel-breaker,
+  .fof-tower-pill { animation: none; }
   .fof-cell-lit::before,
   .fof-unit-cell,
   .fof-unit-ring { animation: none; }

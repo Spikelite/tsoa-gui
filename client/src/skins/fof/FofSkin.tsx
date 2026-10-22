@@ -9,6 +9,7 @@ import { Title } from "../Title";
 import { Conduits } from "./Conduits";
 import { Core, Row } from "./Core";
 import { GeneratorCore } from "./GeneratorCore";
+import { GridTower } from "./GridTower";
 import { InverterCore } from "./InverterCore";
 import { LoadPanel } from "./LoadPanel";
 import { SkinSegment } from "./SkinSegment";
@@ -20,10 +21,11 @@ function Readout(props: {
   part: PartName; title: string; status: Status; state: string; art?: ReactNode;
   /**
    * Where the equipment sits: below the readings, beside them, leading them
-   * with the name above it, or as a hub with the name above it and the
-   * readings tucked into the corner below and right of it, between its spokes.
+   * with the name above it, as a hub with the name above it and the readings
+   * tucked into the corner below and right of it, between its spokes, or on
+   * top, between the name and the readings.
    */
-  layout?: "below" | "beside" | "lead" | "hub";
+  layout?: "below" | "beside" | "lead" | "hub" | "top";
   children: ReactNode;
 }) {
   const heading = useId();
@@ -74,7 +76,8 @@ export function FofSkin({ model }: { model: System }) {
         <Conduits flows={model.inverter_charger ? throughHub(model.flows) : model.flows} />
 
         {model.grid && (
-          <Readout part="grid" title={partTitle("grid", model)} status={model.grid.status} state={gridState(model.grid)}>
+          <Readout part="grid" title={partTitle("grid", model)} status={model.grid.status} state={gridState(model.grid)}
+            art={<GridTower grid={model.grid} />} layout="top">
             <Row label="Power" value={model.grid.power_w} format={f.power} always />
             <Row label="Voltage" value={model.grid.voltage_v} format={f.volts} />
             <Row label="Current" value={model.grid.current_a} format={f.amps} />

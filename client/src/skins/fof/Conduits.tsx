@@ -29,7 +29,9 @@ const WAVE = 14;
 // Every conduit's waves are timed so that a crest reaches its far end at the
 // start of each cycle, whatever its length. What a conduit feeds can then
 // time its own light to the crests arriving, as the AC loads' panel does
-// for its breakers.
+// for its breakers. A conduit launched from its source, as the grid's is from
+// its tower's row of pills, is timed from its start instead, so the source can
+// time the waves it sends.
 export function Conduits({ flows }: { flows: Flow[] }) {
   const svg = useRef<SVGSVGElement>(null);
   const boxes = usePanelBoxes(svg, flows);
@@ -51,9 +53,11 @@ export function Conduits({ flows }: { flows: Flow[] }) {
         }
         const speed = flowSpeed(flow.power_w);
         const { d, length, middle, angle } = conduitPath(from, to, 36);
-        // How far into its cycle a crest is at the far end when the cycle starts.
+        // How far into its cycle a crest is at the far end when the cycle
+        // starts, or for a conduit launched from its source, at its start,
+        // which with each crest centered in its wave is always half a cycle.
         const wave = WAVE * em;
-        const phase = ((((length - wave / 2) % wave) + wave) % wave) / wave;
+        const phase = from.launch ? 0.5 : ((((length - wave / 2) % wave) + wave) % wave) / wave;
         return (
           <g key={`${flow.source}-${flow.target}`} className={`fof-conduit fof-speed-${speed}`}
             style={{ "--fof-phase": phase.toFixed(3) } as CSSProperties}

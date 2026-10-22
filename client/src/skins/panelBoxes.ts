@@ -12,11 +12,14 @@ type Rect = Point & { halfWidth: number; halfHeight: number };
  * that flows plug into, with the whole panel's box as `panel`. A graphic
  * marked `data-anchor="hub"` is one flows run on into, to its center; one
  * marked `data-anchor="bus"` is one they run on along, to its far end; one
+ * marked `data-anchor="launch"` is one they set off from, timed from there; one
  * marked `data-anchor="open"` has nothing in the way of a flow from any side
  * but the panel's name, marked `data-anchor-label`, which a flow running down
  * the column into the name plugs into instead.
  */
-export type Box = Rect & { panel?: Rect; hub?: boolean; bus?: boolean; open?: boolean; label?: Rect };
+export type Box = Rect & {
+  panel?: Rect; hub?: boolean; bus?: boolean; launch?: boolean; open?: boolean; label?: Rect;
+};
 
 /**
  * The box of every panel marked with `data-part`, or of the element inside it
@@ -57,6 +60,7 @@ export function usePanelBoxes(svg: RefObject<SVGSVGElement | null>, flows: Flow[
               panel: rect(panel),
               hub: anchor.dataset.anchor === "hub",
               bus: anchor.dataset.anchor === "bus",
+              launch: anchor.dataset.anchor === "launch",
               open: anchor.dataset.anchor === "open",
               ...(label ? { label: rect(label) } : {}),
             }

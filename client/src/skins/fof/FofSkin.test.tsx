@@ -67,7 +67,7 @@ describe("FofSkin", () => {
     const inverter = system.inverter_charger!;
     const ring = (state: typeof inverter.state, status: typeof inverter.status = inverter.status) => {
       const { container, unmount } = render(<FofSkin model={{ ...system, inverter_charger: { ...inverter, state, status } }} />);
-      const unit = container.querySelector(".fof-unit")!.className;
+      const unit = container.querySelector(".fof-ring-unit")!.className;
       unmount();
       return unit;
     };
