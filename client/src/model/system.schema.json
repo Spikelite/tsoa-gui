@@ -1028,10 +1028,10 @@
       "description": "Power moving from one part to another, drawn as animated flow between their panels.",
       "properties": {
         "source": {
-          "$ref": "#/$defs/PartName"
+          "$ref": "#/$defs/FlowEnd"
         },
         "target": {
-          "$ref": "#/$defs/PartName"
+          "$ref": "#/$defs/FlowEnd"
         },
         "power_w": {
           "description": "Power moving from source to target. Never negative.",
@@ -1046,6 +1046,20 @@
       ],
       "title": "Flow",
       "type": "object"
+    },
+    "FlowEnd": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PartName"
+        },
+        {
+          "const": "dc_bus",
+          "enum": [
+            "dc_bus"
+          ],
+          "type": "string"
+        }
+      ]
     },
     "Generator": {
       "additionalProperties": false,

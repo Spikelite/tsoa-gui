@@ -15,11 +15,35 @@ type Rect = Point & { halfWidth: number; halfHeight: number };
  * marked `data-anchor="launch"` is one they set off from, timed from there; one
  * marked `data-anchor="open"` has nothing above it in the way of a flow but
  * the panel's name, marked `data-anchor-label`, which a flow running down
- * the column into the name plugs into instead.
+ * the column into the name plugs into instead. A `point` is a junction with
+ * no panel of its own, which flows meet at its exact place.
  */
 export type Box = Rect & {
-  panel?: Rect; hub?: boolean; bus?: boolean; launch?: boolean; open?: boolean; label?: Rect;
+  panel?: Rect; hub?: boolean; bus?: boolean; launch?: boolean; open?: boolean; label?: Rect; point?: boolean;
 };
+
+/**
+ * The DC bus, where the inverter/charger, the battery, solar and the DC loads
+ * meet: on the line from the inverter/charger down to the battery, halfway
+ * across the gap between their panels, so that the flows joining it from
+ * either side run along that gap. It stands in the battery's column, so a flow
+ * from beside it bends in the gap between columns, as one to the battery would.
+ */
+export function dcBus(boxes: Partial<Record<string, Box>>): Box | undefined {
+  const inverter = boxes.inverter_charger;
+  const battery = boxes.battery;
+  if (!inverter || !battery) {
+    return undefined;
+  }
+  const above = inverter.panel ?? inverter;
+  const below = battery.panel ?? battery;
+  const [upper, lower] = above.y < below.y ? [above, below] : [below, above];
+  const y = (upper.y + upper.halfHeight + lower.y - lower.halfHeight) / 2;
+  return {
+    x: inverter.x, y, halfWidth: 0, halfHeight: 0, point: true,
+    panel: { x: below.x, y, halfWidth: below.halfWidth, halfHeight: 0 },
+  };
+}
 
 /**
  * The box of every panel marked with `data-part`, or of the element inside it
@@ -76,6 +100,10 @@ export function usePanelMeasure(svg: RefObject<SVGSVGElement | null>, flows: Flo
             }
           : rect(panel);
       });
+      const bus = dcBus(next);
+      if (bus) {
+        next.dc_bus = bus;
+      }
       setMeasured({ boxes: next, revision });
     };
     measure();
@@ -199,6 +227,9 @@ export function conduitPath(from: Box, to: Box, radius: number): Conduit {
  * along, to its far end.
  */
 function end(box: Box, main: Axis, toward: number, level: number): number {
+  if (box.point) {
+    return box[main];
+  }
   const panel = box.panel ?? box;
   const edge = (rect: Rect) => rect[main] + toward * half(rect, main);
   const cross: Axis = main === "x" ? "y" : "x";
@@ -231,7 +262,7 @@ function levels(from: Box, to: Box, cross: Axis, radius: number): [number, numbe
   // A hub, a bus or a row that launches a conduit is met at its own level,
   // through its port: straight if the other box reaches that level, or else
   // with bends however small; between two of them, always at both levels.
-  const fixed = (box: Box) => box.hub || box.bus || box.launch;
+  const fixed = (box: Box) => box.hub || box.bus || box.launch || box.point;
   if (fixed(from) && fixed(to)) {
     return [a, b];
   }

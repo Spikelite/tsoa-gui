@@ -1,6 +1,6 @@
-import type { Flow, PartName } from "../../model/system";
+import type { Flow, FlowEnd } from "../../model/system";
 
-const HUB: PartName = "inverter_charger";
+const HUB: FlowEnd = "inverter_charger";
 
 /**
  * The flows as Sci-Fi FOF draws them, through the inverter/charger's hub.
@@ -12,7 +12,7 @@ const HUB: PartName = "inverter_charger";
  */
 export function throughHub(flows: Flow[]): Flow[] {
   const legs = new Map<string, Flow>();
-  const add = (source: PartName, target: PartName, power: number) => {
+  const add = (source: FlowEnd, target: FlowEnd, power: number) => {
     const key = `${source}-${target}`;
     const leg = legs.get(key);
     legs.set(key, { source, target, power_w: (leg?.power_w ?? 0) + power });

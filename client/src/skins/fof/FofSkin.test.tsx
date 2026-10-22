@@ -96,12 +96,14 @@ describe("FofSkin", () => {
   it("draws a conduit for every path power is taking", () => {
     const { container } = render(<FofSkin model={system} />);
     const drawn = [...container.querySelectorAll("[data-flow]")].map((conduit) => conduit.getAttribute("data-flow"));
-    // Shore power to the AC loads is drawn through the inverter/charger's hub, with the rest, and
-    // the battery and DC loads, which carry nothing just now, are still joined, by an idle conduit.
+    // Shore power to the AC loads is drawn through the inverter/charger's hub, with the rest; the
+    // DC side meets at the DC bus; and the DC loads, which take nothing just now, are still joined
+    // to it, by an idle conduit.
     expect(drawn).toEqual([
-      "grid-inverter_charger", "inverter_charger-ac_loads", "inverter_charger-battery", "solar-battery", "battery-dc_loads",
+      "grid-inverter_charger", "inverter_charger-ac_loads", "inverter_charger-dc_bus", "solar-dc_bus",
+      "dc_bus-battery", "dc_bus-dc_loads",
     ]);
-    expect(container.querySelector("[data-flow='battery-dc_loads']")).toHaveClass("fof-conduit-idle");
+    expect(container.querySelector("[data-flow='dc_bus-dc_loads']")).toHaveClass("fof-conduit-idle");
   });
 
   it("shows a part that is not reporting without its readings", () => {

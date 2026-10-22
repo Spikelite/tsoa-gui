@@ -117,7 +117,7 @@ def test_build_reads_the_whole_installation():
     assert (system.dc_loads.power_w, system.dc_loads.measured_by) == (45.0, "calculation")
     assert {(f.source, f.target) for f in system.flows} == {
         ("grid", "inverter_charger"), ("grid", "ac_loads"), ("inverter_charger", "ac_loads"),
-        ("inverter_charger", "battery"), ("solar", "battery"), ("battery", "dc_loads"),
+        ("inverter_charger", "dc_bus"), ("solar", "dc_bus"), ("dc_bus", "dc_loads"), ("dc_bus", "battery"),
     }
 
 

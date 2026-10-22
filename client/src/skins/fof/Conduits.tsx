@@ -115,7 +115,7 @@ export function Conduits({ flows, inputs = {}, onHubPorts }: {
   // input's node rather than at its center.
   const target = (flow: Flow): Box | undefined => {
     const box = measured[flow.target];
-    const input = inputs[flow.source];
+    const input = flow.source === "dc_bus" ? undefined : inputs[flow.source];
     return box?.hub && input ? { ...box, y: box.y + (portShift(input) * 2 * box.halfWidth) / HUB_VIEW } : box;
   };
   const boxes = measured;
