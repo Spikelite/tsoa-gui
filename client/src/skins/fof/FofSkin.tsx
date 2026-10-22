@@ -171,7 +171,8 @@ export function FofSkin({ model }: { model: System }) {
 
         {model.ac_loads && (
           <Readout part="ac_loads" title="AC loads" status={model.ac_loads.status} state="In use"
-            art={<LoadPanel loads={model.ac_loads} />} layout="lead">
+            art={<LoadPanel power={model.ac_loads.power_w} status={model.ac_loads.status} feed="inverter_charger-ac_loads" />}
+            layout="lead">
             <Row label="Power" value={model.ac_loads.power_w} format={f.power} always />
             <Row label="Voltage" value={model.ac_loads.voltage_v} format={f.volts} />
             <Row label="Current" value={model.ac_loads.current_a} format={f.amps} />
@@ -183,7 +184,9 @@ export function FofSkin({ model }: { model: System }) {
 
         {model.dc_loads && (
           <Readout part="dc_loads" title="DC loads" status={model.dc_loads.status}
-            state={model.dc_loads.measured_by === "meter" ? "Metered" : "Calculated"}>
+            state={model.dc_loads.measured_by === "meter" ? "Metered" : "Calculated"}
+            art={<LoadPanel power={model.dc_loads.power_w} status={model.dc_loads.status} feed="battery-dc_loads" />}
+            layout="lead">
             <Row label="Power" value={model.dc_loads.power_w} format={f.power} always />
           </Readout>
         )}

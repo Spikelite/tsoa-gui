@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-import type { AcLoads } from "../../model/system";
+import type { Status } from "../../model/system";
 
 const WIDTH = 240;
 const HEIGHT = 124;
@@ -13,17 +13,22 @@ const BREAKER = { width: 22, height: 26, pitch: 32, first: 22 };
 // The clear band either side of the bus, wide enough for the conduit on it.
 const CLEAR = 16;
 
-// The AC loads drawn as a circuit panel, in the console's way of drawing
-// wiring: a bus that the conduit from the inverter/charger runs on along, so
+// A part's loads, AC or DC, drawn as a circuit panel, in the console's way of
+// drawing wiring: a bus that the conduit feeding them runs on along, so
 // its waves carry on inside, with a terminal block at its end, and two rows
 // of breakers tapped off it above and below. The model has the loads' total
 // rather than each circuit's, so the breakers show the panel at work rather
 // than which circuit draws what: while power flows, each wave of plasma on
 // the bus flows into each breaker's tap as it passes and lights the breaker,
 // as fof.css times them; with nothing drawn, the panel is dim and still.
-export function LoadPanel({ loads }: { loads: AcLoads }) {
-  const power = Math.abs(loads.power_w ?? 0);
-  const working = loads.status !== "offline" && power > 0;
+export function LoadPanel(props: {
+  power: number | null;
+  status: Status;
+  /** The conduit feeding the panel, as `source-target`, whose pace its breakers keep. */
+  feed: string;
+}) {
+  const power = Math.abs(props.power ?? 0);
+  const working = props.status !== "offline" && power > 0;
 
   const row = (above: boolean) =>
     Array.from({ length: BREAKERS }, (_, index) => {
@@ -47,7 +52,7 @@ export function LoadPanel({ loads }: { loads: AcLoads }) {
 
   return (
     <div className={`fof-unit fof-panel-unit ${working ? "fof-duty-loaded" : "fof-duty-idle"}`}
-      aria-hidden="true">
+      style={{ "--fof-feed": `var(--fof-roll-${props.feed}, 4s)` } as CSSProperties} aria-hidden="true">
       <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="fof-unit-art">
         {row(true)}
         {row(false)}

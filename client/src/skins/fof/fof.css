@@ -539,7 +539,7 @@
 .fof-unit-port { fill: #000; }
 .fof-unit-ring { fill: none; stroke: var(--fof-ring); stroke-width: 5; }
 
-/* The AC loads' panel: breakers tapped off the bus, and the terminal
+/* A loads' panel: breakers tapped off the bus, and the terminal
    block at the bus's end. The conduit's crests reach the bus's end as each
    cycle starts, so a crest passes a breaker's tap its share of the panel's
    width earlier, the panel being --fof-panel em wide and the crests 14em
@@ -547,8 +547,6 @@
    after, so the plasma flows into each circuit as it reaches it. */
 .fof-panel-unit {
   --fof-panel: 14;
-  /* The pace of the conduit feeding the panel. */
-  --fof-feed: var(--fof-roll-inverter_charger-ac_loads, 4s);
   position: relative;
   width: calc(var(--fof-panel) * 1em);
   margin-left: 0;
@@ -684,9 +682,10 @@
 
 /* The generator: a dark housing, a lighter ring and a dot that lights. Its
    cells light from both ends inward, a tenth of a cycle apart from the
-   outermost at 35% to the innermost at 85% (each keyframe peaks a quarter
-   in), and the dot pulses as the cycle closes, when a wave sets off along its
-   conduit. */
+   outermost at 35% to the innermost at 85% (a cell peaks a quarter of a
+   cycle after its delay, which is kept negative so none waits to start;
+   the outermost first), and the dot pulses as the cycle closes, when a wave
+   sets off along its conduit. */
 .fof-gen-unit {
   --fof-feed: var(--fof-roll-generator-inverter_charger, 4s);
   --fof-beat: var(--fof-feed);
@@ -697,7 +696,7 @@
 
 .fof-duty-running.fof-gen-unit .fof-unit-cell {
   animation-duration: var(--fof-feed);
-  animation-delay: calc(var(--fof-feed) * (-0.1 - var(--wave) * 0.1));
+  animation-delay: calc(var(--fof-feed) * (var(--wave) * 0.1 - 0.9));
 }
 
 .fof-duty-running .fof-gen-dot { animation: fof-gen-pulse var(--fof-feed) linear infinite; }
