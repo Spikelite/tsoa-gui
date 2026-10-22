@@ -13,8 +13,8 @@ type Rect = Point & { halfWidth: number; halfHeight: number };
  * marked `data-anchor="hub"` is one flows run on into, to its center; one
  * marked `data-anchor="bus"` is one they run on along, to its far end; one
  * marked `data-anchor="launch"` is one they set off from, timed from there; one
- * marked `data-anchor="open"` has nothing in the way of a flow from any side
- * but the panel's name, marked `data-anchor-label`, which a flow running down
+ * marked `data-anchor="open"` has nothing above it in the way of a flow but
+ * the panel's name, marked `data-anchor-label`, which a flow running down
  * the column into the name plugs into instead.
  */
 export type Box = Rect & {
@@ -173,7 +173,7 @@ export function conduitPath(from: Box, to: Box, radius: number): Conduit {
  * way it runs. Across a gap between columns it plugs into what the panel
  * marks. Down a column it ends at the panel's own edge instead, since a
  * panel's readings sit between its name and its top or bottom, unless what
- * it marks sits at that edge or is open, and plugs into the panel's name
+ * it marks sits at that edge or is open from above, and plugs into the panel's name
  * if the name is in its way. A hub it runs on into, to its center, and a bus
  * along, to its far end.
  */
@@ -181,10 +181,11 @@ function end(box: Box, main: Axis, toward: number, level: number): number {
   const panel = box.panel ?? box;
   const edge = (rect: Rect) => rect[main] + toward * half(rect, main);
   const cross: Axis = main === "x" ? "y" : "x";
-  if (main === "y" && box.label && Math.abs(level - box.label[cross]) <= half(box.label, cross)) {
+  // The name sits at the panel's top, so only a conduit from above meets it.
+  if (main === "y" && toward < 0 && box.label && Math.abs(level - box.label[cross]) <= half(box.label, cross)) {
     return edge(box.label);
   }
-  const atEdge = box.open || Math.abs(edge(box) - edge(panel)) < 4;
+  const atEdge = (box.open && toward < 0) || Math.abs(edge(box) - edge(panel)) < 4;
   // A hub's readings never sit straight below it, so a conduit leaving or
   // reaching its underside runs on to its center too.
   if (box.hub && (main === "x" || atEdge || toward > 0)) {

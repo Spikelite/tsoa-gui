@@ -12,9 +12,11 @@ const ALARMING = new Set<Status>(["attention", "warning", "fault", "offline"]);
  */
 export function StatusWords({ status, separator = false }: { status: Status; separator?: boolean }) {
   const quiet = !ALARMING.has(status);
+  // Written out after a name, the stylesheet puts a dot before it; read out
+  // only, a comma keeps it from running into the name.
   return (
     <span className={quiet ? "fof-quiet" : "fof-status-words"}>
-      {separator ? `, ${STATUS_LABELS[status]}` : STATUS_LABELS[status]}
+      {separator && quiet ? `, ${STATUS_LABELS[status]}` : STATUS_LABELS[status]}
     </span>
   );
 }

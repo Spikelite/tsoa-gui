@@ -56,6 +56,14 @@ describe("FofSkin", () => {
     expect(lit()).toEqual([0, 1, 2, 3, 4, 7]);
   });
 
+  it("writes a status that needs attention after the part's name, and only reads out one that does not", () => {
+    const { container } = render(<FofSkin model={{ ...system, battery: { ...system.battery!, status: "warning" } }} />);
+    const name = (part: string) => screen.getByRole("region", { name: part }).querySelector(".fof-label-block")!;
+    expect(name("Battery").querySelector(".fof-status-words")).toHaveTextContent(/^Warning$/);
+    expect(name("Solar").querySelector(".fof-quiet")).toHaveTextContent(/^, Good$/);
+    expect(container.querySelector(".fof-status-words")?.textContent).not.toContain(",");
+  });
+
   it("stills the bank when the battery is idle, and runs it downward while discharging", () => {
     const { rerender } = render(<FofSkin model={{ ...system, battery: { ...system.battery!, activity: "idle" } }} />);
     expect(screen.getByRole("meter").className).toContain("fof-still");

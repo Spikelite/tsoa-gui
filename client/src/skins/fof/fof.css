@@ -395,6 +395,29 @@
 .fof-readout-top > .fof-state-line { order: 2; }
 .fof-readout-top > .fof-rows { order: 3; }
 
+/* The grid's tower: the drawing fills the space under the name, and the state
+   and readings sit in its open space right of the tower and above its row of
+   pills, clear of the conduit leaving the row's end. */
+.fof-readout-tower {
+  display: grid;
+  grid-template-columns: 8.5em 17.5em;
+  grid-template-rows: auto auto 1fr 3em;
+  align-items: start;
+}
+
+.fof-readout-tower > .fof-name-row { grid-column: 1 / span 2; grid-row: 1; }
+.fof-readout-tower > .fof-unit { grid-column: 1 / span 2; grid-row: 2 / span 3; margin: 0.4em 0 0; }
+
+.fof-readout-tower > .fof-state-line,
+.fof-readout-tower > .fof-rows {
+  position: relative;
+  z-index: 1;
+  grid-column: 2;
+}
+
+.fof-readout-tower > .fof-state-line { grid-row: 2; margin-top: 0.8em; }
+.fof-readout-tower > .fof-rows { grid-row: 3; }
+
 /* A hub: its name above its left edge, and its state and readings in the
    corner below and right of it, clear of the spoke running down from its
    center and the one running right. The two middle columns are the hub's
@@ -490,22 +513,32 @@
   height: 0;
 }
 
-/* The grid's tower: steel, its wire down to a row of pills, and a wave of
-   plasma building along the row. Each pill lights --lead of a cycle before
-   the wave leaves the row's far end, which is when one sets off along the
-   grid's conduit; the keyframes peak a quarter into the cycle. */
+/* The grid's tower, as a schematic: members drawn as pale blue outlines round
+   dark navy, thin lattice inside, and the wire as a leader line, as the
+   console draws equipment. Each pill lights --lead waves before the wave
+   leaves the row's far end, which is when one sets off along the grid's
+   conduit; the keyframes peak a quarter into the cycle. */
 .fof-tower-unit {
   position: relative;
-  width: min(15em, 100%);
+  width: 26em;
   --fof-cell-rest: #6e6450;
 }
 
 .fof-duty-feeding { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #6aa8ff; }
 
-.fof-tower-steel { fill: none; stroke: #c9c6d6; stroke-width: 3; stroke-linejoin: round; }
-.fof-tower-brace { fill: none; stroke: #8e8aa3; stroke-width: 1.6; }
-.fof-tower-insulator { stroke: var(--fof-teal); stroke-width: 3.5; stroke-linecap: round; stroke-dasharray: 2 1.5; }
-.fof-tower-wire { fill: none; stroke: #8e8aa3; stroke-width: 1.6; }
+.fof-schematic-outline,
+.fof-schematic-core {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.fof-schematic-outline { stroke: #9fc8ff; stroke-width: 6; }
+.fof-schematic-core { stroke: #18205a; stroke-width: 2.6; }
+.fof-schematic-line { fill: none; stroke: #6f86d6; stroke-width: 1.1; }
+.fof-schematic-insulator { fill: #18205a; stroke: #9fc8ff; stroke-width: 1.5; }
+.fof-schematic-lead { fill: none; stroke: var(--fof-sand); stroke-width: 2; }
+.fof-schematic-dot { fill: var(--fof-sand); }
 .fof-tower-pill { fill: var(--fof-cell-rest); }
 
 .fof-duty-feeding .fof-tower-pill {
@@ -748,7 +781,11 @@
      its column goes below its readings, clear of them. */
   .fof-readout-beside,
   .fof-readout-lead,
-  .fof-readout-hub { display: block; }
+  .fof-readout-hub,
+  .fof-readout-tower { display: flex; flex-direction: column; align-items: flex-start; }
+  .fof-readout-tower > .fof-unit { order: 1; width: 100%; margin: 0.4em 0 0.3em; }
+  .fof-readout-tower > .fof-state-line { order: 2; margin-top: 0; }
+  .fof-readout-tower > .fof-rows { order: 3; }
   .fof-readout-beside > .fof-unit,
   .fof-readout-lead > .fof-unit,
   .fof-readout-hub > .fof-unit { margin: 0.8em auto 0; }
@@ -768,9 +805,9 @@
   .fof-panel-unit { --fof-panel: 10.5; }
   .fof-bank { height: 4.4em; grid-template-columns: 0.8em minmax(0, 1fr) 0.8em; }
   .fof-bank-cap::before { display: none; }
-  .fof-core > .fof-core-row { column-gap: 0.6em; }
+  .fof-core > .fof-core-row { column-gap: 0.45em; }
   .fof-bank-cells { gap: 0.35em 0.15em; }
-  .fof-core-figure { font-size: 1.15em; }
+  .fof-core-figure { font-size: 1em; }
 }
 
 /* A small panel keeps the motion but drops the cells' glow, the part that

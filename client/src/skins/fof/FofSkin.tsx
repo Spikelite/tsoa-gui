@@ -22,10 +22,11 @@ function Readout(props: {
   /**
    * Where the equipment sits: below the readings, beside them, leading them
    * with the name above it, as a hub with the name above it and the readings
-   * tucked into the corner below and right of it, between its spokes, or on
-   * top, between the name and the readings.
+   * tucked into the corner below and right of it, between its spokes, on
+   * top, between the name and the readings, or as the grid's tower, with the
+   * readings in the drawing's open space above its row of pills.
    */
-  layout?: "below" | "beside" | "lead" | "hub" | "top";
+  layout?: "below" | "beside" | "lead" | "hub" | "top" | "tower";
   children: ReactNode;
 }) {
   const heading = useId();
@@ -77,7 +78,7 @@ export function FofSkin({ model }: { model: System }) {
 
         {model.grid && (
           <Readout part="grid" title={partTitle("grid", model)} status={model.grid.status} state={gridState(model.grid)}
-            art={<GridTower grid={model.grid} />} layout="top">
+            art={<GridTower grid={model.grid} />} layout="tower">
             <Row label="Power" value={model.grid.power_w} format={f.power} always />
             <Row label="Voltage" value={model.grid.voltage_v} format={f.volts} />
             <Row label="Current" value={model.grid.current_a} format={f.amps} />

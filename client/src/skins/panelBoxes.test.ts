@@ -142,4 +142,21 @@ describe("conduitPath", () => {
     const below = { x: 300, y: 400, halfWidth: 50, halfHeight: 20 };
     expect(conduitPath(hub, below, 28).d).toBe("M300,100 L300,380");
   });
+
+  it("leaves an open graphic's panel from its bottom edge when the readings lie below it", () => {
+    // A block open from above, with its readings below it in its panel.
+    const block = { x: 300, y: 100, halfWidth: 120, halfHeight: 30, open: true,
+      panel: { x: 300, y: 160, halfWidth: 140, halfHeight: 90 } };
+    const below = { x: 300, y: 400, halfWidth: 50, halfHeight: 20 };
+    expect(conduitPath(block, below, 28).d).toBe("M300,250 L300,380");
+  });
+
+  it("leaves a panel's bottom edge going down, even under its name", () => {
+    const block = { x: 300, y: 100, halfWidth: 120, halfHeight: 30, open: true,
+      panel: { x: 300, y: 160, halfWidth: 140, halfHeight: 90 },
+      label: { x: 280, y: 60, halfWidth: 60, halfHeight: 10 } };
+    const below = { x: 290, y: 400, halfWidth: 50, halfHeight: 20 };
+    expect(conduitPath(block, below, 28).d.startsWith("M")).toBe(true);
+    expect(conduitPath(block, below, 28).d).toContain(",250 ");
+  });
 });
