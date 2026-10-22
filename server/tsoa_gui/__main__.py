@@ -4,7 +4,7 @@ from pathlib import Path
 
 import uvicorn
 
-from . import mock
+from . import mock, venus
 from .app import create_app
 
 BUILT_CLIENT = Path(__file__).resolve().parents[2] / "client" / "dist"
@@ -16,8 +16,11 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--port", type=int, default=8088, help="port to listen on (default: %(default)s)")
     parser.add_argument("--client", type=Path, default=BUILT_CLIENT, metavar="DIR",
                         help="directory of the built client to serve (default: client/dist)")
+    parser.add_argument("--mqtt-host", default="127.0.0.1",
+                        help="the device's MQTT broker (default: %(default)s, the device itself)")
+    parser.add_argument("--mqtt-port", type=int, default=1883, help="(default: %(default)s)")
     parser.add_argument("--mock", action="store_true",
-                        help="serve invented readings that run through a day every ten minutes")
+                        help="serve invented readings that run through a day every ten minutes, instead of a device's")
     parser.add_argument("--certfile", type=Path, help="TLS certificate, to serve HTTPS")
     parser.add_argument("--keyfile", type=Path, help="TLS private key, to serve HTTPS")
     parser.add_argument("--log-level", default="warning", choices=["debug", "info", "warning", "error"],
@@ -26,7 +29,10 @@ def main(argv: list[str] | None = None) -> None:
     if (args.certfile is None) != (args.keyfile is None):
         parser.error("--certfile and --keyfile go together")
 
-    jobs = [mock.run] if args.mock else []
+    if args.mock:
+        jobs = [mock.run]
+    else:
+        jobs = [lambda feed: venus.run(feed, args.mqtt_host, args.mqtt_port)]
     # No access log: on the device every line is a write to its storage.
     uvicorn.run(
         create_app(args.client, jobs=jobs),
