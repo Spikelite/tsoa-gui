@@ -18,6 +18,12 @@
   background: #000;
 }
 
+.skin-sci-fi-fof .clock {
+  color: var(--fof-sand);
+  font-size: 1.6rem;
+  letter-spacing: 0.08em;
+}
+
 .skin-sci-fi-fof .app-header h1 {
   color: var(--fof-sand);
   letter-spacing: 0.08em;
@@ -123,7 +129,8 @@
 .fof-diagram [data-part="ac_loads"],
 .fof-diagram [data-part="dc_loads"] { align-self: end; }
 
-/* Panels sit over the conduits, which plug in under their edges. */
+/* Parts have no boxes of their own: they sit on the black, over the
+   conduits, which end flush at their edges or plug into their graphics. */
 .fof-readout,
 .fof-core {
   position: relative;
@@ -131,51 +138,45 @@
   min-width: 0;
 }
 
-/* Readouts */
-.fof-readout {
-  padding-bottom: 0.5em;
-  background: var(--fof-well);
-  border-left: 0.5em solid var(--fof-periwinkle);
-  border-radius: 1em 0 0 1em;
-}
+.fof-readout { justify-self: stretch; }
 
-.fof-readout.status-offline { border-left: 0.5em dashed var(--status-offline-outline); }
-
-.fof-readout h2 {
-  display: flex;
+/* A part's name is a block of color, as the console labels everything. Its
+   status icon sits on black, so every status color reads on it. */
+.fof-label-block {
+  display: inline-flex;
   align-items: center;
   gap: 0.4em;
   margin: 0;
-  padding: 0.2em 0.75em 0.2em 0.5em;
+  padding: 0.25em 0.6em 0.25em 0.35em;
   color: #000;
   background: var(--fof-sand);
-  border-radius: 0 0.9em 0.9em 0;
   font-size: 0.95em;
   font-weight: 600;
 }
 
-/* On the sand bar a status icon sits on black, so every status color reads. */
-.fof-readout h2 .status-icon {
+.fof-label-block .status-icon {
   padding: 2px;
   background: #000;
   border-radius: 50%;
 }
 
 .fof-state-line {
-  margin: 0.3em 0 0.35em;
-  padding: 0 0.75em;
+  margin: 0.35em 0 0.35em;
+  padding: 0 0.1em;
   color: var(--fof-sand);
   font-size: 0.8em;
 }
 
-.fof-readout .fof-rows {
-  padding: 0 0.75em;
+.fof-readout .fof-rows,
+.fof-core .fof-rows {
+  padding: 0 0.1em;
 }
 
 .fof-rows {
   display: grid;
   gap: 0.15em;
   width: 100%;
+  max-width: 19em;
   margin: 0;
 }
 
@@ -199,164 +200,122 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* The inverter/charger: a housing with a ring of energy beside its readings */
-.fof-readout-body {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.6em 1em;
-  padding: 0 0.75em;
-}
-
-.fof-readout-body .fof-rows {
-  flex: 1 1 12em;
-  width: auto;
-  padding: 0;
-}
-
+/* Equipment drawn below a part's readings: the generator's column and the
+   inverter/charger's ring, made of the same plates, cells and hub, where the
+   conduits plug in. */
 .fof-unit {
-  position: relative;
-  flex: 0 0 auto;
-  width: 10em;
-  aspect-ratio: 1;
+  margin: 0.8em auto 0;
+  --fof-cell-rest: #6e6450;
+  --fof-cell-hot: #6e6450;
   --fof-ring: #5b5672;
-  --fof-ring-head: #8a85a3;
 }
 
-.fof-duty-inverting { --fof-ring: var(--fof-plasma-deep); --fof-ring-head: var(--fof-plasma); }
-.fof-duty-charging { --fof-ring: #3fb8a8; --fof-ring-head: #b6f0e6; }
-.fof-duty-passing { --fof-ring: #9c7fd0; --fof-ring-head: #e2d4f7; }
+.fof-column-unit { width: 2.8em; }
+
+/* A part whose equipment sits beside its readings, on the side its conduit
+   leaves from. */
+.fof-readout-beside {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto 1fr;
+  column-gap: 1em;
+  align-items: start;
+  justify-items: start;
+}
+
+.fof-readout-beside > .fof-unit {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  align-self: center;
+  margin: 0;
+}
+.fof-ring-unit { width: 9em; }
+
+.fof-duty-inverting { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #cfe6ff; --fof-ring: var(--fof-plasma-deep); }
+.fof-duty-charging { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #c9f3ea; --fof-ring: #3fb8a8; }
+.fof-duty-passing { --fof-cell-rest: #e2d6b0; --fof-cell-hot: #e2d6b0; --fof-ring: #9c7fd0; }
+.fof-duty-running { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #fff3d6; --fof-ring: #e0a84f; }
 
 .fof-unit-art {
   display: block;
   width: 100%;
-  height: 100%;
+  height: auto;
 }
 
-.fof-housing { stroke: var(--fof-periwinkle); stroke-width: 2; }
-.fof-bolt { fill: #4a4660; stroke: #000; stroke-width: 1; }
-.fof-vent line { stroke: #000; stroke-width: 3; stroke-linecap: round; }
-.fof-bezel { fill: #050409; stroke: #3d3852; stroke-width: 4; }
+.fof-plate-0 { fill: #c9c6d6; stroke: #c9c6d6; }
+.fof-plate-1 { fill: #8e8aa3; stroke: #8e8aa3; }
+.fof-unit-band { fill: none; stroke-width: 3; }
+.fof-unit-housing { fill: #e6e2ee; }
+.fof-unit-port { fill: #000; }
+.fof-unit-ring { fill: none; stroke: var(--fof-ring); stroke-width: 5; }
 
-.fof-ring-track,
-.fof-ring-glow,
-.fof-ring-halo,
-.fof-ring-arc {
-  fill: none;
-  stroke-width: 10;
+/* Light runs through the cells in order, each a step behind the one before. */
+.fof-unit-cell {
+  fill: var(--fof-cell-rest);
+  animation: fof-surge var(--fof-beat) ease-in-out infinite;
+  animation-delay: calc((var(--wave) / var(--waves) - 1) * var(--fof-beat));
 }
 
-.fof-ring-track { stroke: #1b1828; }
-.fof-ring-glow { stroke: var(--fof-ring); stroke-opacity: 0.35; }
+.fof-duty-idle .fof-unit-cell,
+.fof-duty-passing .fof-unit-cell { animation: none; }
 
-/* Each arc of a comet whitens toward its head; the halo is its glow. */
-.fof-ring-arc {
-  stroke: color-mix(in oklab, #fff calc(var(--heat) * 55%), var(--fof-ring-head));
-  stroke-opacity: var(--alpha);
+.fof-duty-passing .fof-unit-ring { animation: fof-ring-pulse 2.4s ease-in-out infinite; }
+
+@keyframes fof-surge {
+  0%, 60%, 100% { fill: var(--fof-cell-rest); }
+  25% { fill: var(--fof-cell-hot); }
 }
 
-.fof-ring-halo {
-  stroke: var(--fof-ring-head);
-  stroke-width: 18;
-  stroke-opacity: calc(var(--alpha) * 0.3);
+@keyframes fof-ring-pulse {
+  0%, 100% { stroke-opacity: 1; }
+  50% { stroke-opacity: 0.45; }
 }
 
-/* Round ends give each comet a rounded head and a soft tail. */
-.fof-ring-arc,
-.fof-ring-halo { stroke-linecap: round; }
-
-/* The ring turns about the window's center while power moves through. */
-.fof-ring-spin {
-  transform-box: view-box;
-  transform-origin: 70px 70px;
-  animation: fof-spin var(--fof-turn, 0s) linear infinite;
-}
-
-/* Idle, the ring is dim and nothing chases round it. */
-.fof-duty-idle .fof-ring-spin { display: none; }
-
-.fof-spin-0 { --fof-turn: 6s; }
-.fof-spin-1 { --fof-turn: 4.5s; }
-.fof-spin-2 { --fof-turn: 3.2s; }
-.fof-spin-3 { --fof-turn: 2.2s; }
-.fof-spin-4 { --fof-turn: 1.4s; }
-
-@keyframes fof-spin { to { transform: rotate(1turn); } }
-
-.fof-unit-figure {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: var(--fof-ink);
-  font-size: 0.95em;
-  font-variant-numeric: tabular-nums;
-}
+.fof-flow-0 { --fof-beat: 3s; }
+.fof-flow-1 { --fof-beat: 2.4s; }
+.fof-flow-2 { --fof-beat: 1.8s; }
+.fof-flow-3 { --fof-beat: 1.3s; }
+.fof-flow-4 { --fof-beat: 0.9s; }
 
 /* The battery: a bank of cells between end caps */
 .fof-core {
   display: grid;
-  justify-items: center;
-  gap: 0.7em;
-  padding: 0.75em 0.9em 1em;
-  background: #000;
-  border: 2px solid var(--fof-periwinkle);
-  border-radius: 1.5em;
-}
-
-.fof-core-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.25em 0.75em;
-  width: 100%;
-}
-
-.fof-core h2 {
-  margin: 0;
-  color: var(--fof-sand);
-  font-size: 1em;
-  font-weight: 600;
-}
-
-.fof-state {
-  display: flex;
-  align-items: center;
+  justify-items: start;
   gap: 0.35em;
-  margin: 0;
-  font-size: 0.85em;
 }
 
+.fof-core .fof-bank { justify-self: center; margin-bottom: 0.4em; }
+
+/* One block: a pair of end caps spanning every row, with the cells between. */
 .fof-bank {
   display: grid;
-  gap: 0.45em;
+  grid-template-columns: 1.6em minmax(0, 1fr) 1.6em;
+  gap: 0.3em;
   width: 100%;
-  max-width: 22em;
+  max-width: 20em;
+  height: 7em;
 }
 
-.fof-bank-row {
-  display: flex;
-  align-items: stretch;
-  gap: 0.22em;
-  height: 3.2em;
+.fof-bank-cells {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.45em 0.25em;
 }
 
 /* End caps, each with a thin bar outside it. */
 .fof-bank-cap {
   position: relative;
-  flex: 0 0 1.4em;
   background: var(--fof-cap);
-  border-radius: 1.6em 0.3em 0.3em 1.6em;
+  border-radius: 2.4em 0.35em 0.35em 2.4em;
 }
 
-.fof-bank-cap:last-child { border-radius: 0.3em 1.6em 1.6em 0.3em; }
+.fof-bank-cap:last-child { border-radius: 0.35em 2.4em 2.4em 0.35em; }
 
 .fof-bank-cap::before {
   content: "";
   position: absolute;
-  top: 18%;
-  bottom: 18%;
+  top: 22%;
+  bottom: 22%;
   left: -0.45em;
   width: 0.15em;
   background: var(--fof-ink);
@@ -399,6 +358,7 @@
 }
 
 .fof-core-figure {
+  justify-self: center;
   margin: 0;
   color: var(--fof-cell);
   font-size: 2.6em;
@@ -424,7 +384,7 @@
 
 .fof-conduit path {
   fill: none;
-  stroke-linecap: round;
+  stroke-linecap: butt;
   stroke-linejoin: round;
 }
 
@@ -458,8 +418,6 @@
   animation: fof-roll var(--fof-roll) linear infinite;
 }
 
-.fof-conduit .fof-conduit-wave { stroke-linecap: butt; }
-
 @keyframes fof-roll { to { stroke-dashoffset: -14em; } }
 
 /* The motion shows the direction, so the chevron appears only without it. */
@@ -483,11 +441,15 @@
 
   .fof-diagram [data-part] { align-self: center; }
 
+  /* Here the generator can sit on either side of where its conduit goes, so
+     its column goes below its readings, clear of them. */
+  .fof-readout-beside { display: block; }
+  .fof-readout-beside > .fof-unit { margin: 0.8em auto 0; }
+
   .fof-cap { width: 1.5em; }
   .fof-label { font-size: 1em; }
-  .fof-bank-row { height: 2.4em; gap: 0.15em; }
-  .fof-bank-cap { flex-basis: 0.9em; }
-  .fof-core { padding: 0.6em 0.6em 0.8em; }
+  .fof-bank { height: 5.4em; grid-template-columns: 1.1em minmax(0, 1fr) 1.1em; }
+  .fof-bank-cells { gap: 0.35em 0.15em; }
   .fof-core-figure { font-size: 2em; }
 }
 
@@ -499,7 +461,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .fof-cell-lit,
-  .fof-ring-spin { animation: none; }
+  .fof-unit-cell,
+  .fof-unit-ring { animation: none; }
   .fof-conduit-wave { display: none; }
   .fof-conduit-chevron { display: inline; }
 }

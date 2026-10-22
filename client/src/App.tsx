@@ -1,5 +1,6 @@
 import { Suspense, useState } from "react";
 
+import { Clock } from "./Clock";
 import type { SystemStore } from "./model/store";
 import type { System } from "./model/system";
 import { useSystem } from "./model/useSystem";
@@ -33,6 +34,7 @@ export function App({ store }: { store?: SystemStore }) {
       <header className="app-header">
         <h1>tsoa-gui</h1>
         <Notice model={model} connected={connected} />
+        <Clock />
         <label className="skin-menu">
           Skin
           <select value={skin.id} onChange={(event) => choose(event.target.value)}>

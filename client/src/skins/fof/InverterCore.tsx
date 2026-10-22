@@ -1,11 +1,9 @@
 import type { CSSProperties } from "react";
 
 import type { InverterCharger, InverterState } from "../../model/system";
-import { Eased } from "../Eased";
-import * as f from "../format";
 import { flowSpeed } from "../minimal/flowSpeed";
 
-/** What the inverter/charger is doing with power, which sets its ring's color. */
+/** What the inverter/charger is doing with power, which tints its ring. */
 type Duty = "inverting" | "charging" | "passing" | "idle";
 
 const DUTIES: Partial<Record<InverterState, Duty>> = {
@@ -25,25 +23,23 @@ function duty(inverter: InverterCharger): Duty {
   return inverter.status === "offline" || inverter.state === null ? "idle" : (DUTIES[inverter.state] ?? "idle");
 }
 
-// The ring's light is two comets chasing round it, each a stack of many
-// faint arcs that shorten, strengthen and whiten toward its head, so its tail
-// fades out smoothly with no blur filter. A wider, fainter copy of each arc
-// blooms onto the dark bezel around it. Lengths are in hundredths of the ring,
-// out of the half ring between the two heads.
-const ARCS = 16;
-const TAIL = 40;
-const COMET = Array.from({ length: ARCS }, (_, index) => {
-  const heat = (index + 1) / ARCS;
-  return { length: Number((TAIL * (1 - index / ARCS)).toFixed(2)), alpha: 0.04 + heat * 0.1, heat };
-});
+const SIZE = 160;
+const CENTER = SIZE / 2;
+const CELLS = 16;
+const CELL = { length: 15, depth: 8 };
+// The two rings of cells, and the ribbed plates around them, by radius.
+const TRACKS = [44, 56];
+const PLATES = [66, 70, 74, 78];
 
-// The inverter/charger drawn as a piece of power equipment: a bolted, vented
-// housing with a round window, and in it a ring of energy that spins while
-// power moves through it, faster with every tenfold increase in power, and
-// stands still when it is idle. Its color says what it is doing, which its
-// state also says in words: blue plasma while it inverts from the battery,
-// teal while it charges it, lavender while it passes the supply through. Its
-// output power sits in the middle.
+// The inverter/charger drawn as a ring: the generator's column bent round on
+// itself, with ribbed plates around the outside, two rings of cells inside
+// them, and a hub at the center. Light chases round the cells, clockwise
+// while it charges the battery and the other way while it inverts from it,
+// faster with every tenfold increase in power. Passing the supply through, the
+// cells hold steady and the hub pulses. Idle, it is dim and still. The hub's
+// ring and the light are tinted by what it is doing, which its state also
+// says in words: blue plasma inverting, teal charging, lavender passing
+// through.
 export function InverterCore({ inverter }: { inverter: InverterCharger }) {
   const work = duty(inverter);
   const power = Math.max(
@@ -54,38 +50,29 @@ export function InverterCore({ inverter }: { inverter: InverterCharger }) {
   const speed = flowSpeed(power);
 
   return (
-    <div className={`fof-unit fof-duty-${work} fof-spin-${speed}`} aria-hidden="true">
-      <svg viewBox="0 0 140 140" className="fof-unit-art">
-        <defs>
-          <linearGradient id="fof-housing" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#2b2838" />
-            <stop offset="1" stopColor="#121019" />
-          </linearGradient>
-        </defs>
-        <rect className="fof-housing" x="3" y="3" width="134" height="134" rx="16" fill="url(#fof-housing)" />
-        {[18, 122].map((x) => [18, 122].map((y) => <circle key={`${x}-${y}`} className="fof-bolt" cx={x} cy={y} r="3.5" />))}
-        {[46, 56, 66, 76, 86, 96].map((y) => (
-          <g key={y} className="fof-vent">
-            <line x1="9" y1={y} x2="15" y2={y} />
-            <line x1="125" y1={y} x2="131" y2={y} />
-          </g>
+    <div className={`fof-unit fof-ring-unit fof-duty-${work} fof-flow-${speed}`} data-anchor aria-hidden="true">
+      <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="fof-unit-art">
+        {PLATES.map((radius, index) => (
+          <circle key={radius} className={`fof-unit-band fof-plate-${index % 2}`} cx={CENTER} cy={CENTER} r={radius} />
         ))}
-        <circle className="fof-bezel" cx="70" cy="70" r="52" />
-        <circle className="fof-ring-track" cx="70" cy="70" r="42" />
-        <circle className="fof-ring-glow" cx="70" cy="70" r="42" />
-        <g className="fof-ring-spin">
-          {["fof-ring-halo", "fof-ring-arc"].map((layer) =>
-            COMET.map((arc) => (
-              <circle key={`${layer}-${arc.length}`} className={layer} cx="70" cy="70" r="42" pathLength="100"
-                strokeDasharray={`${arc.length} ${50 - arc.length}`} strokeDashoffset={arc.length - TAIL}
-                style={{ "--alpha": arc.alpha, "--heat": arc.heat } as CSSProperties} />
-            )),
-          )}
-        </g>
+        {TRACKS.map((radius) =>
+          Array.from({ length: CELLS }, (_, cell) => {
+            const angle = (cell * 360) / CELLS;
+            const wave = work === "inverting" ? CELLS - 1 - cell : cell;
+            // The inner ring's cells are shorter, so the gaps between cells line up.
+            const length = (CELL.length * radius) / TRACKS[1]!;
+            return (
+              <rect key={`${radius}-${cell}`} className="fof-unit-cell" x={CENTER - length / 2}
+                y={CENTER - radius - CELL.depth / 2} width={length} height={CELL.depth}
+                rx={CELL.depth / 2} transform={`rotate(${angle} ${CENTER} ${CENTER})`}
+                style={{ "--wave": wave, "--waves": CELLS } as CSSProperties} />
+            );
+          }),
+        )}
+        <circle className="fof-unit-housing" cx={CENTER} cy={CENTER} r="30" />
+        <circle className="fof-unit-port" cx={CENTER} cy={CENTER} r="17" />
+        <circle className="fof-unit-ring" cx={CENTER} cy={CENTER} r="11" />
       </svg>
-      <span className="fof-unit-figure">
-        <Eased value={inverter.ac_out_power_w} format={f.power} />
-      </span>
     </div>
   );
 }

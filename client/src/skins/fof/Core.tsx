@@ -7,13 +7,15 @@ import * as f from "../format";
 import { flowSpeed } from "../minimal/flowSpeed";
 import { StatusIcon } from "../StatusIcon";
 
-const CELLS_PER_ROW = 6;
+// Ten cells, so each is a tenth of the charge, the share people read at a glance.
+const CELLS_PER_ROW = 5;
 const ROWS = 2;
 const CELLS = CELLS_PER_ROW * ROWS;
 
-// The battery as a bank of cells between end caps, two rows of six. Its light
-// follows the charge: cells light from the bottom row's left end, one twelfth
-// of the charge each, the last one partly. Its pulse follows the power: a wave
+// The battery as one block: two rows of five cells held between a single pair
+// of end caps, with its name and readings below, so conduits plug into the
+// block itself. Its light follows the charge: cells light from the bottom
+// row's left end, a tenth of the charge each, the last one partly. Its pulse follows the power: a wave
 // of light runs through the lit cells forward while the battery charges and
 // backward while it discharges, faster with every tenfold increase in power,
 // and stands still when it is idle.
@@ -33,13 +35,6 @@ export function Core({ battery }: { battery: Battery }) {
 
   return (
     <section className={`fof-core status-${battery.status}`} data-part="battery" aria-labelledby={heading}>
-      <header className="fof-core-header">
-        <h2 id={heading}>Battery</h2>
-        <p className="fof-state">
-          <StatusIcon status={battery.status} />
-          <span>{offline ? "Not reporting" : batteryState(battery)}</span>
-        </p>
-      </header>
       <div
         className={`fof-bank fof-${direction} fof-pulse-${pulse}`}
         style={{ "--charge": `${charge}%` } as CSSProperties}
@@ -48,25 +43,29 @@ export function Core({ battery }: { battery: Battery }) {
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={soc ?? undefined}
+        data-anchor
       >
-        {rows.map((cells, index) => (
-          <div key={index} className="fof-bank-row" aria-hidden="true">
-            <span className="fof-bank-cap" />
-            {cells.map((cell) => {
-              const level = Math.max(0, Math.min(1, lit - cell));
-              const wave = direction === "down" ? CELLS - 1 - cell : cell;
-              return (
-                <span
-                  key={cell}
-                  className={`fof-cell${level > 0 ? " fof-cell-lit" : ""}`}
-                  style={{ "--level": level.toFixed(2), "--wave": wave } as CSSProperties}
-                />
-              );
-            })}
-            <span className="fof-bank-cap" />
-          </div>
-        ))}
+        <span className="fof-bank-cap" aria-hidden="true" />
+        <div className="fof-bank-cells" aria-hidden="true">
+          {rows.flat().map((cell) => {
+            const level = Math.max(0, Math.min(1, lit - cell));
+            const wave = direction === "down" ? CELLS - 1 - cell : cell;
+            return (
+              <span
+                key={cell}
+                className={`fof-cell${level > 0 ? " fof-cell-lit" : ""}`}
+                style={{ "--level": level.toFixed(2), "--wave": wave } as CSSProperties}
+              />
+            );
+          })}
+        </div>
+        <span className="fof-bank-cap" aria-hidden="true" />
       </div>
+      <h2 className="fof-label-block">
+        <StatusIcon status={battery.status} />
+        <span id={heading}>Battery</span>
+      </h2>
+      <p className="fof-state-line">{offline ? "Not reporting" : batteryState(battery)}</p>
       {!offline && (
         <>
           <p className="fof-core-figure">

@@ -4,12 +4,19 @@ import type { Flow } from "../model/system";
 
 export type Point = { x: number; y: number };
 
-/** A panel's center and half its size, relative to the element holding the flows. */
-export type Box = Point & { halfWidth: number; halfHeight: number };
+/** A rectangle's center and half its size, relative to the element holding the flows. */
+type Rect = Point & { halfWidth: number; halfHeight: number };
 
 /**
- * The box of every panel marked with `data-part`, relative to the element
- * holding the given SVG, measured again whenever the layout changes. Flows are
+ * Where flows meet a panel: its own box, or the box of the graphic inside it
+ * that flows plug into, with the whole panel's box as `panel`.
+ */
+export type Box = Rect & { panel?: Rect };
+
+/**
+ * The box of every panel marked with `data-part`, or of the element inside it
+ * marked with `data-anchor`, relative to the element holding the given SVG,
+ * measured again whenever the layout changes. Flows are
  * drawn between their centers, underneath the panels. The panels are found
  * through the SVG's parent because a parent's own ref is not yet set when its
  * child's layout effect runs.
@@ -27,13 +34,18 @@ export function usePanelBoxes(svg: RefObject<SVGSVGElement | null>, flows: Flow[
       const origin = root.getBoundingClientRect();
       const next: Record<string, Box> = {};
       root.querySelectorAll<HTMLElement>("[data-part]").forEach((panel) => {
-        const box = panel.getBoundingClientRect();
-        next[panel.dataset.part ?? ""] = {
-          x: box.left - origin.left + box.width / 2,
-          y: box.top - origin.top + box.height / 2,
-          halfWidth: box.width / 2,
-          halfHeight: box.height / 2,
+        const rect = (element: HTMLElement): Rect => {
+          const box = element.getBoundingClientRect();
+          return {
+            x: box.left - origin.left + box.width / 2,
+            y: box.top - origin.top + box.height / 2,
+            halfWidth: box.width / 2,
+            halfHeight: box.height / 2,
+          };
         };
+        // A panel can mark the graphic inside it that flows plug into.
+        const anchor = panel.querySelector<HTMLElement>("[data-anchor]");
+        next[panel.dataset.part ?? ""] = anchor ? { ...rect(anchor), panel: rect(panel) } : rect(panel);
       });
       setBoxes(next);
     };
@@ -79,32 +91,37 @@ export type Conduit = { d: string; middle: Point; angle: number };
 
 type Axis = "x" | "y";
 
-function half(box: Box, axis: Axis): number {
+function half(box: Rect, axis: Axis): number {
   return axis === "x" ? box.halfWidth : box.halfHeight;
 }
 
 /**
  * A conduit's path from one panel to another, in right angles with rounded
- * elbows, as the console draws its connections. It runs from the edge of one
- * panel to the facing edge of the other, a little under each so it plugs in.
- * Panels side by side are joined across the gap between their columns,
- * turning in its middle; panels in one column, down the gap between their
- * rows.
+ * elbows, as the console draws its connections. It runs from where flows meet
+ * one panel to where they meet the other, ending flush with each, and turns
+ * in the middle of the gap between the two panels, so it never crosses either
+ * one's readings. Panels side by side are joined across the gap between their
+ * columns; panels in one column, down the gap between their rows.
  */
 export function conduitPath(from: Box, to: Box, radius: number): Conduit {
-  const tuck = 6;
+  const fromPanel = from.panel ?? from;
+  const toPanel = to.panel ?? to;
   // The main axis crosses the gap between the panels; the cross axis runs along it.
-  const main: Axis = Math.abs(to.x - from.x) > from.halfWidth + to.halfWidth ? "x" : "y";
+  const main: Axis =
+    Math.abs(toPanel.x - fromPanel.x) > fromPanel.halfWidth + toPanel.halfWidth ? "x" : "y";
   const cross: Axis = main === "x" ? "y" : "x";
-  const sa = Math.sign(to[main] - from[main]) || 1;
-  const leaving = from[main] + sa * half(from, main);
-  const arriving = to[main] - sa * half(to, main);
-  const turn = (leaving + arriving) / 2;
-  const a1 = leaving - sa * tuck;
-  const a2 = arriving + sa * tuck;
+  const sa = Math.sign(toPanel[main] - fromPanel[main]) || 1;
+  const turn =
+    (fromPanel[main] + sa * half(fromPanel, main) + toPanel[main] - sa * half(toPanel, main)) / 2;
+  // Across a gap between columns a conduit plugs into what each panel marks.
+  // Down a column it starts and ends at the panels' own edges instead, since
+  // a panel's readings sit between its name and its top or bottom.
+  const [ends, endsTo] = main === "x" ? [from, to] : [fromPanel, toPanel];
+  const a1 = ends[main] + sa * half(ends, main);
+  const a2 = endsTo[main] - sa * half(endsTo, main);
   const [b1, b2] = levels(from[cross], half(from, cross), to[cross], half(to, cross), radius);
   const sb = Math.sign(b2 - b1);
-  const r = Math.min(radius, Math.abs(b2 - b1) / 2, Math.abs(turn - leaving));
+  const r = Math.min(radius, Math.abs(b2 - b1) / 2, Math.abs(turn - a1), Math.abs(a2 - turn));
   const point = (a: number, b: number) => (main === "x" ? `${a},${b}` : `${b},${a}`);
   const at = (a: number, b: number): Point => (main === "x" ? { x: a, y: b } : { x: b, y: a });
 

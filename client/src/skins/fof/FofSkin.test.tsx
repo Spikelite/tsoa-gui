@@ -35,13 +35,13 @@ describe("FofSkin", () => {
     const bank = screen.getByRole("meter", { name: "State of charge" });
     expect(bank).toHaveAttribute("aria-valuenow", "64.5");
     expect(bank.className).toContain("fof-up");
-    // 64.5% of twelve cells is 7.74: seven full and the eighth mostly lit.
+    // 64.5% of ten cells is 6.45: six full and the seventh partly lit.
     const lit = [...container.querySelectorAll<HTMLElement>(".fof-cell-lit")];
-    expect(lit).toHaveLength(8);
+    expect(lit).toHaveLength(7);
     expect(lit.map((cell) => cell.style.getPropertyValue("--level")).sort()).toEqual([
-      "0.74", "1.00", "1.00", "1.00", "1.00", "1.00", "1.00", "1.00",
+      "0.45", "1.00", "1.00", "1.00", "1.00", "1.00", "1.00",
     ]);
-    expect(container.querySelectorAll(".fof-cell")).toHaveLength(12);
+    expect(container.querySelectorAll(".fof-cell")).toHaveLength(10);
   });
 
   it("stills the bank when the battery is idle, and runs it downward while discharging", () => {

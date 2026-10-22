@@ -34,24 +34,24 @@ describe("flowPoints", () => {
 describe("conduitPath", () => {
   const left = { x: 0, y: 0, halfWidth: 50, halfHeight: 20 };
 
-  it("runs straight between panels in line, plugged a little under each", () => {
+  it("runs straight between panels in line, ending flush with each", () => {
     const { d, middle, angle } = conduitPath(left, { x: 300, y: 0, halfWidth: 50, halfHeight: 20 }, 28);
-    // The facing edges are at x 50 and 250; the conduit reaches 6 under each.
-    expect(d).toBe("M44,0 L256,0");
+    // The facing edges are at x 50 and 250.
+    expect(d).toBe("M50,0 L250,0");
     expect(middle).toEqual({ x: 150, y: 0 });
     expect(angle).toBe(0);
   });
 
   it("turns in the middle of the gap between columns, with rounded elbows", () => {
     const { d, middle, angle } = conduitPath(left, { x: 300, y: 100, halfWidth: 50, halfHeight: 20 }, 28);
-    expect(d).toBe("M44,0 L122,0 Q150,0 150,28 L150,72 Q150,100 178,100 L256,100");
+    expect(d).toBe("M50,0 L122,0 Q150,0 150,28 L150,72 Q150,100 178,100 L250,100");
     expect(middle).toEqual({ x: 150, y: 50 });
     expect(angle).toBe(90);
   });
 
   it("runs the other way when the power does", () => {
     const { d, angle } = conduitPath({ x: 300, y: 100, halfWidth: 50, halfHeight: 20 }, left, 28);
-    expect(d).toBe("M256,100 L178,100 Q150,100 150,72 L150,28 Q150,0 122,0 L44,0");
+    expect(d).toBe("M250,100 L178,100 Q150,100 150,72 L150,28 Q150,0 122,0 L50,0");
     expect(angle).toBe(270);
   });
 
@@ -59,7 +59,7 @@ describe("conduitPath", () => {
     const top = { x: 0, y: 0, halfWidth: 100, halfHeight: 40 };
     const bottom = { x: 150, y: 300, halfWidth: 100, halfHeight: 40 };
     const { d, middle, angle } = conduitPath(top, bottom, 28);
-    expect(d).toBe("M0,34 L0,122 Q0,150 28,150 L122,150 Q150,150 150,178 L150,266");
+    expect(d).toBe("M0,40 L0,122 Q0,150 28,150 L122,150 Q150,150 150,178 L150,260");
     expect(middle).toEqual({ x: 75, y: 150 });
     expect(angle).toBe(0);
   });
@@ -68,8 +68,23 @@ describe("conduitPath", () => {
     const top = { x: 0, y: 0, halfWidth: 100, halfHeight: 40 };
     const bottom = { x: 20, y: 300, halfWidth: 100, halfHeight: 40 };
     // They share x -80 to 100, so it runs at x 10.
-    expect(conduitPath(top, bottom, 28).d).toBe("M10,34 L10,266");
+    expect(conduitPath(top, bottom, 28).d).toBe("M10,40 L10,260");
     const beside = { x: 300, y: 12, halfWidth: 50, halfHeight: 20 };
-    expect(conduitPath(left, beside, 28).d).toBe("M44,6 L256,6");
+    expect(conduitPath(left, beside, 28).d).toBe("M50,6 L250,6");
+  });
+
+  it("plugs into the graphic a panel marks, turning in the gap between the panels", () => {
+    // A small label at the top left of a wide panel, and a panel to its right.
+    const label = { x: 40, y: 10, halfWidth: 40, halfHeight: 10, panel: { x: 150, y: 60, halfWidth: 150, halfHeight: 60 } };
+    const right = { x: 500, y: 100, halfWidth: 50, halfHeight: 20 };
+    // The gap runs from x 300 to 450, so it turns at 375, past the first panel's readings.
+    expect(conduitPath(label, right, 28).d).toBe("M80,10 L347,10 Q375,10 375,38 L375,72 Q375,100 403,100 L450,100");
+  });
+
+  it("leaves a panel's edge, not its name, when running down a column", () => {
+    const top = { x: 40, y: 10, halfWidth: 40, halfHeight: 10, panel: { x: 100, y: 50, halfWidth: 100, halfHeight: 50 } };
+    const below = { x: 100, y: 250, halfWidth: 100, halfHeight: 50 };
+    // It starts at the upper panel's bottom edge (y 100), below its readings, under its name.
+    expect(conduitPath(top, below, 28).d).toBe("M40,100 L40,122 Q40,150 68,150 L72,150 Q100,150 100,178 L100,200");
   });
 });

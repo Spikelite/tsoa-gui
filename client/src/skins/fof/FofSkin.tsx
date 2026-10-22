@@ -8,32 +8,30 @@ import { StatusIcon } from "../StatusIcon";
 import { Title } from "../Title";
 import { Conduits } from "./Conduits";
 import { Core, Row } from "./Core";
+import { GeneratorCore } from "./GeneratorCore";
 import { InverterCore } from "./InverterCore";
 import "./fof.css";
 
 function Readout(props: {
-  part: PartName; title: string; status: Status; state: string; art?: ReactNode; children: ReactNode;
+  part: PartName; title: string; status: Status; state: string; art?: ReactNode; beside?: boolean;
+  children: ReactNode;
 }) {
   const heading = useId();
   const offline = props.status === "offline";
   const rows = !offline && <dl className="fof-rows">{props.children}</dl>;
   return (
-    <section className={`fof-readout status-${props.status}`} data-part={props.part} aria-labelledby={heading}>
-      <h2>
+    <section className={`fof-readout status-${props.status}${props.beside ? " fof-readout-beside" : ""}`}
+      data-part={props.part} aria-labelledby={heading}>
+      {/* Conduits plug into the part's graphic, or into its name where it has none. */}
+      <h2 className="fof-label-block" data-anchor={props.art ? undefined : true}>
         <StatusIcon status={props.status} />
         <span id={heading}>
           <Title text={props.title} />
         </span>
       </h2>
       <p className="fof-state-line">{offline ? "Not reporting" : props.state}</p>
-      {props.art ? (
-        <div className="fof-readout-body">
-          {props.art}
-          {rows}
-        </div>
-      ) : (
-        rows
-      )}
+      {rows}
+      {props.art}
     </section>
   );
 }
@@ -71,7 +69,7 @@ export function FofSkin({ model }: { model: System }) {
 
         {model.generator && (
           <Readout part="generator" title="Generator" status={model.generator.status}
-            state={generatorState(model.generator)}>
+            state={generatorState(model.generator)} art={<GeneratorCore generator={model.generator} />} beside>
             <Row label="Power" value={model.generator.power_w} format={f.power} always />
             <Row label="Running for" value={model.generator.run_time_s} format={f.duration} />
           </Readout>
