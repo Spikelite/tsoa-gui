@@ -40,7 +40,7 @@ function Readout(props: {
    * the solar's, with the readings in the drawing's open space above the track
    * its conduit sets off from.
    */
-  layout?: "below" | "beside" | "lead" | "hub" | "top" | "schematic";
+  layout?: "below" | "lead" | "hub" | "top" | "schematic";
   children: ReactNode;
 }) {
   const heading = useId();
@@ -119,7 +119,7 @@ export function FofSkin({ model }: { model: System }) {
 
         {model.generator && (
           <Readout part="generator" title="Generator" status={model.generator.status}
-            state={generatorState(model.generator)} art={<GeneratorCore generator={model.generator} />} layout="beside">
+            state={generatorState(model.generator)} art={<GeneratorCore generator={model.generator} />} layout="schematic">
             <Row label="Power" value={model.generator.power_w} format={f.power} always />
             <Row label="Running for" value={model.generator.run_time_s} format={f.duration} />
           </Readout>

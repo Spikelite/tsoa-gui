@@ -87,7 +87,6 @@ export function InverterCore({ inverter }: { inverter: InverterCharger }) {
           return (
             <g key={input} className={`fof-hub-node${inverter.active_input === input ? " fof-hub-node-active" : ""}`}>
               <rect x={x} y={y - NODE.height / 2} width={NODE.width} height={NODE.height} rx={NODE.height / 2} />
-              <text x={x + NODE.width / 2 - 1} y={y}>{input}</text>
             </g>
           );
         })}

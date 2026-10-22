@@ -384,26 +384,6 @@
   --fof-ring: #5b5672;
 }
 
-.fof-column-unit { width: 2.8em; }
-
-/* A part whose equipment sits beside its readings, on the side its conduit
-   leaves from. */
-.fof-readout-beside {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: auto auto 1fr;
-  column-gap: 1em;
-  align-items: start;
-  justify-items: start;
-}
-
-.fof-readout-beside > .fof-unit {
-  grid-column: 2;
-  grid-row: 1 / span 3;
-  align-self: center;
-  margin: 0;
-}
-
 /* A part whose equipment leads: its name above the equipment's left end, its
    state and readings beside the equipment, on the side away from its conduit. */
 .fof-readout-lead {
@@ -440,14 +420,15 @@
 .fof-readout-top > .fof-state-line { order: 2; }
 .fof-readout-top > .fof-rows { order: 3; }
 
-/* A schematic, the grid's or the solar's: the drawing fills the space under the name, and the state
-   and readings sit in its open space right of the tower and above its row of
-   pills, clear of the conduit leaving the row's end. */
+/* A supply's schematic, the grid's, the generator's or the solar's: the
+   drawing fills the space under the name, and the state and readings sit in
+   its open space right of the equipment and above its row of pips, clear of
+   the conduit leaving the row's end. */
 .fof-readout-schematic {
   display: grid;
   /* The drawing fills the column's width, up to its full size; the readings
-     take the part of it right of the tower or the array, which never reaches
-     past a third of the way across. */
+     take the part of it right of the equipment, which never reaches past a
+     third of the way across. */
   grid-template-columns: 33% minmax(0, 1fr);
   grid-template-rows: auto auto auto;
   max-width: 26em;
@@ -524,15 +505,7 @@
 
 /* The hub's AC input nodes, the one in use lit. */
 .fof-hub-node rect { fill: #3d3852; stroke: #8e8aa3; stroke-width: 1.5; }
-.fof-hub-node text {
-  fill: #c9c6d6;
-  font-size: 8px;
-  font-weight: 700;
-  text-anchor: middle;
-  dominant-baseline: central;
-}
 .fof-hub-node-active rect { fill: var(--fof-plasma); stroke: var(--fof-plasma); }
-.fof-hub-node-active text { fill: #000; }
 
 /* The core sits over the junction where the hub's conduits meet. */
 .fof-unit-core { fill: #000; stroke: #3d3852; stroke-width: 3; }
@@ -650,7 +623,8 @@
 .fof-solar-cell { fill: #18205a; }
 .fof-solar-panel { fill: none; stroke: #9fc8ff; stroke-width: 2.5; }
 
-.fof-solar-pulse {
+/* A pulse down a supply's cable into its row of pips. */
+.fof-cable-pulse {
   fill: none;
   stroke: var(--fof-plasma-deep);
   stroke-width: 7;
@@ -680,31 +654,43 @@
 
 @keyframes fof-feed-flow { to { stroke-dashoffset: -16; } }
 
-/* The generator: a dark housing, a lighter ring and a dot that lights. Its
-   cells light from both ends inward, a tenth of a cycle apart from the
-   outermost at 35% to the innermost at 85% (a cell peaks a quarter of a
-   cycle after its delay, which is kept negative so none waits to start;
-   the outermost first), and the dot pulses as the cycle closes, when a wave
-   sets off along its conduit. */
+/* The generator, as a schematic: a column with a dark housing, a lighter
+   ring and a dot that lights, a cable down to a row of pips like the grid's,
+   and a pulse down the cable and along the pips. Its cells light from both
+   ends inward, from the outermost at 12% of a cycle to the innermost at 52%
+   (a cell peaks a quarter of a cycle after its delay, which is kept negative
+   so none waits to start), the dot pulses at 58%, and GeneratorCore.tsx times
+   the cable and the pips after it, so the pulse reaches the row's far end as
+   the cycle closes, when a wave sets off along the conduit. */
 .fof-gen-unit {
+  --fof-cell-rest: #6e6450;
   --fof-feed: var(--fof-roll-generator-inverter_charger, 4s);
   --fof-beat: var(--fof-feed);
 }
+
+.fof-duty-running.fof-gen-unit {
+  --fof-cell-rest: #d9cfa6;
+  --fof-drip-yellow: var(--fof-conduit);
+  --fof-drip-blue: var(--fof-plasma-deep);
+}
+
 .fof-gen-housing { fill: #4f4a5e; }
 .fof-gen-ring { fill: #bdb9cc; }
 .fof-gen-dot { fill: #2a2733; }
 
 .fof-duty-running.fof-gen-unit .fof-unit-cell {
   animation-duration: var(--fof-feed);
-  animation-delay: calc(var(--fof-feed) * (var(--wave) * 0.1 - 0.9));
+  animation-delay: calc(var(--fof-feed) * (var(--wave) * 0.08 - 1.13));
 }
 
 .fof-duty-running .fof-gen-dot { animation: fof-gen-pulse var(--fof-feed) linear infinite; }
+.fof-duty-running .fof-gen-pulse { animation: fof-gen-cable var(--fof-feed) linear infinite; }
+.fof-duty-running .fof-gen-pip { animation: var(--pip) var(--fof-feed) linear infinite; }
 
 @keyframes fof-gen-pulse {
-  0%, 86% { fill: #2a2733; }
-  97% { fill: #8fc1ff; }
-  100% { fill: #2a2733; }
+  0%, 50% { fill: #2a2733; }
+  58% { fill: #8fc1ff; }
+  66%, 100% { fill: #2a2733; }
 }
 
 /* Light runs through the cells in order, each a step behind the one before. */
@@ -951,16 +937,12 @@
 
   .fof-diagram [data-part] { align-self: center; }
 
-  /* Here the generator can sit on either side of where its conduit goes, so
-     its column goes below its readings, clear of them. */
-  .fof-readout-beside,
   .fof-readout-lead,
   .fof-readout-hub,
   .fof-readout-schematic { display: flex; flex-direction: column; align-items: flex-start; }
   .fof-readout-schematic > .fof-unit { order: 1; width: 100%; margin: 0.4em 0 0.3em; }
   .fof-readout-schematic > .fof-state-line { order: 2; margin: 0.35em 0; }
   .fof-readout-schematic > .fof-rows { order: 3; }
-  .fof-readout-beside > .fof-unit,
   .fof-readout-lead > .fof-unit,
   .fof-readout-hub > .fof-unit { margin: 0.8em auto 0; }
   .fof-readout-hub > .fof-state-line,
@@ -1000,7 +982,7 @@
   .fof-gen-dot,
   .fof-solar-cell,
   .fof-feed-wire { animation: none; }
-  .fof-solar-pulse { display: none; }
+  .fof-cable-pulse { display: none; }
   .fof-cell-lit::before,
   .fof-unit-cell,
   .fof-unit-ring { animation: none; }

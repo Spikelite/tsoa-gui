@@ -1,18 +1,12 @@
 import type { CSSProperties } from "react";
 
 import type { Solar } from "../../model/system";
+import { cableKeyframes, percent, PIP, PIPS, pipKeyframes, ROW_END, ROW_MIDDLE, SCHEMATIC } from "./schematic";
 
-const WIDTH = 400;
-const HEIGHT = 180;
+const { width: WIDTH, height: HEIGHT } = SCHEMATIC;
 // The array: two rows of two panels, each three cells by three.
 const PANEL = { width: 54, height: 50, gap: 6, left: 6, top: 8 };
 const CELLS = 3;
-// The row of pips the array's cable drops into, as the grid's tower has, which
-// the conduit to the battery sets off from at its right-hand end.
-const PIPS = 14;
-const PIP = { width: 13, height: 34, pitch: 19, first: 130, top: 140 };
-const ROW_END = PIP.first + (PIPS - 1) * PIP.pitch + PIP.width;
-const ROW_MIDDLE = PIP.top + PIP.height / 2;
 
 const PANELS = [0, 1].flatMap((row) => [0, 1].map((column) => ({
   x: PANEL.left + column * (PANEL.width + PANEL.gap),
@@ -31,10 +25,7 @@ const ARRAY_BOTTOM = PANEL.top + 2 * PANEL.height + PANEL.gap;
 // along the conduit.
 const GATHERED = 0.55;
 const RELEASE = 0.62;
-const CABLE = [0.7, 0.8];
-const PACKET = 2;
-
-const percent = (share: number) => `${(share * 100).toFixed(1)}%`;
+const CABLE = [0.7, 0.8] as const;
 
 /** A cell's own pace: when it starts to fill, spread over the first part of the cycle. */
 function start(panel: number, cell: number): number {
@@ -50,37 +41,11 @@ function cellKeyframes(panel: number, distance: number, cell: number): string {
   }`;
 }
 
-/** How blue a pip is at a point in the cycle, as the pulse runs along the row. */
-function pipBlueness(pip: number, time: number): number {
-  const along = (time - CABLE[1]!) / (1 - CABLE[1]!);
-  if (along < 0) {
-    return 0;
-  }
-  const lead = along * PIPS;
-  const middle = pip + 0.5;
-  const inside = Math.min(middle - (lead - PACKET), lead - middle);
-  return Math.max(0, Math.min(1, inside * 2 + 0.5));
-}
-
-function pipKeyframes(pip: number): string {
-  const stops = Array.from({ length: 41 }, (_, step) => {
-    const time = step / 40;
-    const blue = Math.round(pipBlueness(pip, time) * 100);
-    return `${percent(time)} { fill: color-mix(in oklab, var(--fof-drip-blue) ${blue}%, var(--fof-drip-yellow)); }`;
-  });
-  return `@keyframes fof-solar-pip-${pip} { ${stops.join(" ")} }`;
-}
-
 const KEYFRAMES = [
   ...PANELS.flatMap((panel, index) =>
     Array.from({ length: CELLS * CELLS }, (_, cell) => cellKeyframes(index, panel.distance, cell))),
-  ...Array.from({ length: PIPS }, (_, pip) => pipKeyframes(pip)),
-  `@keyframes fof-solar-cable {
-    0%, ${percent(CABLE[0]! - 0.01)} { stroke-dashoffset: 14; opacity: 0; }
-    ${percent(CABLE[0]!)} { stroke-dashoffset: 14; opacity: 1; }
-    ${percent(CABLE[1]!)} { stroke-dashoffset: -100; opacity: 1; }
-    ${percent(CABLE[1]! + 0.01)}, 100% { stroke-dashoffset: -100; opacity: 0; }
-  }`,
+  pipKeyframes("fof-solar-pip", CABLE[1]),
+  cableKeyframes("fof-solar-cable", CABLE[0], CABLE[1]),
 ].join(" ");
 
 const CABLE_PATH = `M${ARRAY_RIGHT - 8} ${ARRAY_BOTTOM} V${ROW_MIDDLE - 8} Q${ARRAY_RIGHT - 8} ${ROW_MIDDLE} ${ARRAY_RIGHT} ${ROW_MIDDLE} H${PIP.first - 3}`;
@@ -120,7 +85,7 @@ export function SolarArray({ solar }: { solar: Solar }) {
           </g>
         ))}
         <path className="fof-schematic-lead" d={CABLE_PATH} />
-        <path className="fof-solar-pulse" d={CABLE_PATH} pathLength="100" />
+        <path className="fof-cable-pulse fof-solar-pulse" d={CABLE_PATH} pathLength="100" />
         {Array.from({ length: PIPS }, (_, pip) => (
           <rect key={pip} className="fof-tower-pill fof-solar-pip" x={PIP.first + pip * PIP.pitch} y={PIP.top}
             width={PIP.width} height={PIP.height} rx={PIP.width / 2}
