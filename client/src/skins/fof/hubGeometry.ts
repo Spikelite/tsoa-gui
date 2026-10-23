@@ -189,15 +189,21 @@ function strand(port: HubPort, thread: number, fork: number, angles: number[]) {
     const s = Math.max(0, (along - forkAt) / (length - forkAt));
     const ease = s * s * (3 - 2 * s);
     const half = (width + (WIRE - width) * ease) / 2;
-    const overlap = 0.25 * (1 - ease);
+    // The overlap that hides the seams between strands side by side goes as
+    // soon as they part, so none shows along a strand's edge.
+    const overlap = 0.25 * Math.max(0, 1 - s * 12);
     const left = half + (leftOut ? 0 : overlap);
     const right = half + (rightOut ? 0 : overlap);
-    return [
-      { x: point.x - (ty / norm) * left, y: point.y + (tx / norm) * left },
-      { x: point.x + (ty / norm) * right, y: point.y - (tx / norm) * right },
-    ] as const;
+    const across = (by: number) => ({ x: point.x - (ty / norm) * by, y: point.y + (tx / norm) * by });
+    return { overlapping: [across(left), across(-right)] as const, exact: [across(half), across(-half)] as const };
   });
-  const outline = `M${sides.map(([left]) => at(left)).join(" L")} L${[...sides].reverse().map(([, right]) => at(right)).join(" L")} Z`;
+  const shape = (pick: "overlapping" | "exact") =>
+    `M${sides.map((side) => at(side[pick][0])).join(" L")} L${[...sides].reverse().map((side) => at(side[pick][1])).join(" L")} Z`;
+  // The strand's body overlaps its neighbors' a touch, so no seam shows
+  // between them; its waves are trimmed to its own share exactly, so where
+  // neighbors meet, theirs add up to the conduit's and no more.
+  const outline = shape("overlapping");
+  const share = shape("exact");
   // A strand carrying power out of the hub runs from the winding to the
   // conduit, so its waves roll the way the power goes.
   const route = port.outward ? [...line].reverse() : line;
@@ -209,7 +215,16 @@ function strand(port: HubPort, thread: number, fork: number, angles: number[]) {
   const waves = port.outward ? `${d} L${at(beyond)}` : `M${at(beyond)} L${route.map(at).join(" L")}`;
   // The strand itself starts 2 units outside the edge, over the conduit's end.
   const edge = port.outward ? length - 2 : RUN_ON;
-  return { d, outline, length, width, stroke: width + 1, waves, edge };
+  // The box round its waves, with room for the blur that smooths them.
+  const reach = [...line, beyond];
+  const room = 30;
+  const box = {
+    x: Math.min(...reach.map((point) => point.x)) - room,
+    y: Math.min(...reach.map((point) => point.y)) - room,
+    width: Math.max(...reach.map((point) => point.x)) - Math.min(...reach.map((point) => point.x)) + 2 * room,
+    height: Math.max(...reach.map((point) => point.y)) - Math.min(...reach.map((point) => point.y)) + 2 * room,
+  };
+  return { d, outline, share, length, width, stroke: width + 1, waves, edge, box };
 }
 
 /**
