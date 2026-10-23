@@ -2,8 +2,15 @@ name: CI
 
 # Started by hand for now. Once the repository is public, hosted runners cost
 # nothing and this also runs on every push to main and every pull request.
+# The release workflow runs it too, with the tag it is releasing.
 on:
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      tag:
+        description: "The release tag to build the archive for, such as v0.1.0"
+        type: string
+        required: true
 
 permissions:
   contents: read
@@ -63,9 +70,12 @@ jobs:
           python-version: "3.12"
       - run: npm ci && npm run build
         working-directory: client
-      - run: python venus/build.py --out dist
+      # Without a tag, the version is dev- and the commit.
+      - run: python venus/build.py --out dist ${TAG:+--version "${TAG#v}" --notes dist/notes.md}
+        env:
+          TAG: ${{ inputs.tag }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: tsoa-gui-venus
-          path: dist/*.tar.gz
+          path: dist/
           if-no-files-found: error
