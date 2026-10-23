@@ -1,12 +1,9 @@
 import { useLayoutEffect, useRef } from "react";
 
 import { UNKNOWN, type Format } from "./format";
+import { reducedMotion } from "./motion";
 
 const DURATION_MS = 800;
-
-function reducedMotion(): boolean {
-  return typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
 
 // A number that eases from its last reading to the next instead of jumping.
 // Only the text changes from frame to frame: React renders this again only

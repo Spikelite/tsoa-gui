@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 import type { Generator } from "../../model/system";
+import { useCarried, type Along } from "./carry";
 import { cableKeyframes, PIP, PIPS, pipKeyframes, ROW_END, ROW_MIDDLE, SCHEMATIC } from "./schematic";
 
 // The column, in its own units: ribbed caps at each end, stacks of cells
@@ -32,6 +33,9 @@ const CABLE = [0.62, 0.74] as const;
 const KEYFRAMES = [pipKeyframes("fof-gen-pip", CABLE[1]), cableKeyframes("fof-gen-cable", CABLE[0], CABLE[1])].join(" ");
 const CABLE_PATH = `M${COLUMN_RIGHT} ${MIDDLE_Y} H${PIP.first - 26} Q${PIP.first - 18} ${MIDDLE_Y} ${PIP.first - 18} ${MIDDLE_Y + 8} V${ROW_MIDDLE - 8} Q${PIP.first - 18} ${ROW_MIDDLE} ${PIP.first - 10} ${ROW_MIDDLE} H${PIP.first - 3}`;
 
+// The generator starts and stops as the cycle that would send a wave starts.
+const FEEDS: Along = { keys: ["generator-inverter_charger", "generator-ac_loads"], end: "source" };
+
 // The generator drawn as a schematic of a supply, as the grid's and solar's
 // are: a column at the left, as the console draws a reactor, with ribbed caps
 // at each end, stacks of cells between them, and at its middle a dark housing
@@ -43,7 +47,7 @@ const CABLE_PATH = `M${COLUMN_RIGHT} ${MIDDLE_Y} H${PIP.first - 26} Q${PIP.first
 // the conduit just as a wave sets off along it, at the conduit's pace;
 // stopped, it is dim and still.
 export function GeneratorCore({ generator }: { generator: Generator }) {
-  const running = generator.status !== "offline" && generator.running === true;
+  const running = useCarried(generator.status !== "offline" && generator.running === true, FEEDS);
 
   const stack = (top: number, inward: (row: number) => number) =>
     Array.from({ length: ROWS }, (_, row) => {

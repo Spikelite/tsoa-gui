@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 import type { Status } from "../../model/system";
+import { useCarried } from "./carry";
 
 const WIDTH = 240;
 const HEIGHT = 124;
@@ -28,7 +29,8 @@ export function LoadPanel(props: {
   feed: string;
 }) {
   const power = Math.abs(props.power ?? 0);
-  const working = props.status !== "offline" && power > 0;
+  // The breakers start and stop with the waves reaching the panel.
+  const working = useCarried(props.status !== "offline" && power > 0, { keys: [props.feed], end: "target" });
 
   const row = (above: boolean) =>
     Array.from({ length: BREAKERS }, (_, index) => {

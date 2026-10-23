@@ -14,6 +14,7 @@ import {
 } from "../readings";
 import { Title } from "../Title";
 import { BatteryDeck } from "./BatteryDeck";
+import { pin, RoutesContext, type Routes } from "./carry";
 import { InverterDeck } from "./InverterDeck";
 import { PartDeck } from "./PartDeck";
 import { Conduits } from "./Conduits";
@@ -126,25 +127,19 @@ export function FofSkin({ model, connected = true }: { model: System; connected?
   const heardHub = useCallback((ports: HubPorts) => {
     setHub((previous) => (JSON.stringify(previous) === JSON.stringify(ports) ? previous : ports));
   }, []);
+  // The conduits' routes, which the equipment at their ends times its changes by.
+  const [routes, setRoutes] = useState<Routes>({});
+  const heardRoutes = useCallback((next: Routes) => {
+    setRoutes((previous) => (JSON.stringify(previous) === JSON.stringify(next) ? previous : next));
+  }, []);
   const state = link(model, connected);
   const part = detailedPart(usePart(), model);
   useEscapeCloses(part !== null);
   const from = openedFrom();
 
-  // A CSS animation counts from when it starts, and the skin's start at
-  // different moments: a conduit once the panels are measured, and any
-  // animation again whenever its pace changes. Pinning the ones that repeat
-  // forever to the page's clock keeps those timed to each other, a conduit
-  // and what it feeds or is fed by, in step. One that runs once, such as a
-  // page zooming open or the skin menu unfolding, is left to play from its
-  // own start.
-  useLayoutEffect(() => {
-    root.current?.getAnimations?.({ subtree: true }).forEach((animation) => {
-      if (animation.startTime !== 0 && animation.effect?.getComputedTiming().iterations === Infinity) {
-        animation.startTime = 0;
-      }
-    });
-  });
+  // Every animation that repeats keeps to the page's clock, so a conduit
+  // and what it feeds or is fed by stay in step.
+  useLayoutEffect(() => pin(root.current));
 
   return (
     <div ref={root} className={`fof${part !== null ? " fof-paged" : ""}`}>
@@ -182,9 +177,10 @@ export function FofSkin({ model, connected = true }: { model: System; connected?
           {part !== "battery" && part !== "inverter_charger" && <PartDeck part={part} model={model} />}
         </div>
       ) : (
+      <RoutesContext value={routes}>
       <div className="fof-diagram">
         <Conduits flows={withIdleLinks(model.inverter_charger ? throughHub(model.flows) : model.flows, model)}
-          inputs={hubInputs(model)} onHubPorts={heardHub} />
+          inputs={hubInputs(model)} onHubPorts={heardHub} onRoutes={heardRoutes} />
 
         {model.grid && (
           <Readout part="grid" title={partTitle("grid", model)} status={model.grid.status} state={gridState(model.grid)}
@@ -252,6 +248,7 @@ export function FofSkin({ model, connected = true }: { model: System; connected?
           </Readout>
         )}
       </div>
+      </RoutesContext>
       )}
 
       <div className="fof-bottom">

@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 import type { Solar } from "../../model/system";
+import { useCarried, type Along } from "./carry";
 import { cableKeyframes, percent, PIP, PIPS, pipKeyframes, ROW_END, ROW_MIDDLE, SCHEMATIC } from "./schematic";
 
 const { width: WIDTH, height: HEIGHT } = SCHEMATIC;
@@ -49,6 +50,9 @@ const KEYFRAMES = [
   cableKeyframes("fof-solar-cable", CABLE[0], CABLE[1]),
 ].join(" ");
 
+// The array starts and stops gathering as the cycle that would send a wave starts.
+const FEEDS: Along = { keys: ["solar-dc_bus", "solar-battery"], end: "source" };
+
 const CABLE_PATH = `M${ARRAY_RIGHT - 8} ${ARRAY_BOTTOM} V${ROW_MIDDLE - 8} Q${ARRAY_RIGHT - 8} ${ROW_MIDDLE} ${ARRAY_RIGHT} ${ROW_MIDDLE} H${PIP.first - 3}`;
 
 // The solar chargers drawn as a schematic of an array, in the console's way of
@@ -61,7 +65,7 @@ const CABLE_PATH = `M${ARRAY_RIGHT - 8} ${ARRAY_BOTTOM} V${ROW_MIDDLE - 8} Q${AR
 // conduit's pace as fof.css sets it. With nothing produced, the array is dark
 // and still.
 export function SolarArray({ solar }: { solar: Solar }) {
-  const producing = solar.status !== "offline" && (solar.power_w ?? 0) > 0;
+  const producing = useCarried(solar.status !== "offline" && (solar.power_w ?? 0) > 0, FEEDS);
   const cell = { width: PANEL.width / CELLS, height: PANEL.height / CELLS };
 
   return (

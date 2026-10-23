@@ -81,7 +81,7 @@ The console sits in a frame. Its top bar carries the time, a segment that reads 
 
 Every part keeps its place from the minimal skin and sits on black with no box of its own, named by a rounded button in its status's color, with the status written after the name when it needs attention.
 
-Thick conduits with rounded elbows plug into each part's name or its equipment. Waves of plasma roll along them toward where the power goes, more often and faster the more power each carries. A part that exists but carries nothing just now keeps a dim, still conduit.
+Thick conduits with rounded elbows plug into each part's name or its equipment. Waves of plasma roll along them toward where the power goes, more often and faster the more power each carries. A part that exists but carries nothing just now keeps a dim, still conduit. A conduit changes between the two with its waves, never all at once: going idle, the waves on it roll on to its end with the dim conduit behind the last, and going active, new waves set off from its source and light it as they pass. Each wave carries the state its source was in as it set off. The hub's threads, the DC bus relay and the equipment at either end change as the change reaches them. With reduced motion there are no waves, so the change shows at once.
 
 #### The supplies
 
