@@ -1,0 +1,100 @@
+name: Bug report
+description: Something in tsoa-gui does not work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Issues are public. Before you paste anything, remove what identifies your installation: the portal ID, serial numbers, IP addresses, hostnames and your VRM site name. Replace them with placeholders such as `PORTAL_ID` or `192.0.2.10`.
+
+        Security problems do not belong here; see [SECURITY.md](https://github.com/Spikelite/tsoa-gui/blob/main/SECURITY.md).
+  - type: dropdown
+    id: device
+    attributes:
+      label: Device
+      description: The Venus OS device tsoa-gui is installed on.
+      options:
+        - Raspberry Pi
+        - Cerbo GX
+        - Ekrano GX
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: venus-version
+    attributes:
+      label: Venus OS version
+      description: Shown on the device under Settings, Firmware.
+      placeholder: v3.60
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: tsoa-gui version
+      description: "`cat /data/tsoa-gui/current/VERSION` on the device prints it."
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      description: The browser and its version.
+      placeholder: Firefox 140
+    validations:
+      required: true
+  - type: dropdown
+    id: screen
+    attributes:
+      label: Screen
+      options:
+        - Desktop or laptop
+        - Phone
+        - Tablet
+        - Kiosk or fixed display
+    validations:
+      required: true
+  - type: dropdown
+    id: skin
+    attributes:
+      label: Skin
+      options:
+        - Minimal
+        - Sci-Fi FOF
+        - Not specific to a skin
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the page on a phone
+        2. Rotate it to landscape
+        3. The battery panel is cut off
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log lines
+      description: "The server's log, from `tail -n 50 /data/log/tsoa-gui/current` on the device. Remove anything identifying first."
+      render: text
+  - type: checkboxes
+    id: anonymized
+    attributes:
+      label: Before submitting
+      options:
+        - label: I removed the portal ID, serial numbers, IP addresses and hostnames from everything above.
+          required: true
