@@ -147,8 +147,8 @@ export function flowPoints(from: Box, to: Box): string {
 export type Conduit = { d: string; length: number; middle: Point; angle: number };
 
 // The length of a rounded elbow as a share of its radius: a quadratic curve
-// with its control point at the corner.
-const ELBOW = 1.1478;
+// with its control point at the corner, sqrt(2) + ln(1 + sqrt(2)) over sqrt(2).
+const ELBOW = 1.6232;
 
 export type Axis = "x" | "y";
 
