@@ -365,9 +365,13 @@ export interface Battery {
   power_w: number | null;
   temperature_c: number | null;
   /**
-   * Time left at the present discharge rate. Unknown while charging or idle.
+   * The state of charge at which the system cuts its AC loads to protect the battery: ESS's minimum where the device has one, otherwise tsoa-gui's own setting.
    */
-  time_to_go_s: number | null;
+  cut_off_soc_percent: number | null;
+  /**
+   * Time to empty or to full. None while idle, or where the battery's capacity is not known.
+   */
+  time_left: TimeLeft | null;
   activity: ("idle" | "charging" | "discharging") | null;
   /**
    * Charge voltage limit.
@@ -467,6 +471,26 @@ export interface Battery {
   manufacturer: string | null;
   firmware_version: string | null;
   history: BatteryHistory | null;
+}
+/**
+ * How long the battery's present direction lasts, at the current it has averaged lately.
+ *
+ * This interface was referenced by `System`'s JSON-Schema
+ * via the `definition` "TimeLeft".
+ */
+export interface TimeLeft {
+  /**
+   * Empty is the cut-off state of charge, while discharging; full is 100%, while charging.
+   */
+  toward: "empty" | "full";
+  /**
+   * Time until then. Past a month, a month.
+   */
+  seconds: number;
+  /**
+   * Whether the average behind it has run long enough to be trusted. A fresh estimate is rough and moves often.
+   */
+  settled: boolean;
 }
 /**
  * One cell of a battery that reports its cells, in the order the battery numbers them.

@@ -412,7 +412,7 @@ def _battery(r: Readings) -> Battery | None:
         current_a=r.number("system", 0, "Dc/Battery/Current"),
         power_w=r.number("system", 0, "Dc/Battery/Power"),
         temperature_c=_first(r.number("system", 0, "Dc/Battery/Temperature"), detail("Dc/0/Temperature")),
-        time_to_go_s=r.number("system", 0, "Dc/Battery/TimeToGo") if activity == "discharging" else None,
+        cut_off_soc_percent=_ess_minimum_soc(r),
         activity=activity,
         max_charge_voltage_v=detail("Info/MaxChargeVoltage"),
         max_charge_current_a=detail("Info/MaxChargeCurrent"),
@@ -444,6 +444,20 @@ def _battery(r: Readings) -> Battery | None:
         firmware_version=words("FirmwareVersion"),
         history=history if any(v is not None for v in history.model_dump().values()) else None,
     )
+
+
+def _ess_minimum_soc(r: Readings) -> float | None:
+    """ESS's minimum state of charge, below which it stops discharging the battery, on a system with ESS."""
+    # BatteryLife's states as Victron documents them: 0 where ESS is not in
+    # use, 1 to 8 with BatteryLife, whose own limit rises above the minimum
+    # the owner set, 9 to keep the battery charged, 10 to 12 without BatteryLife.
+    state = r.number("settings", 0, "Settings/CGwacs/BatteryLife/State")
+    if not state:
+        return None
+    minimum = r.number("settings", 0, "Settings/CGwacs/BatteryLife/MinimumSocLimit")
+    if 1 <= state <= 8:
+        return _first(r.number("settings", 0, "Settings/CGwacs/BatteryLife/SocLimit"), minimum)
+    return minimum
 
 
 def _solar(r: Readings) -> Solar | None:

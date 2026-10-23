@@ -109,6 +109,10 @@ A kiosk screen, with nobody to use the page's menus, takes its choices from the 
 
 Without `?skin=`, each browser remembers the last skin chosen on it.
 
+### Time to empty
+
+The battery's time to empty runs to the state of charge at which the system cuts its AC loads to protect the battery. On a system with ESS, that is ESS's minimum state of charge, or BatteryLife's limit while BatteryLife is on, read from the device. Otherwise it is 10%; to change it, set `CUT_OFF_SOC=` to a percentage in `/data/tsoa-gui/etc/tsoa-gui.conf` and restart tsoa-gui with `svc -t /service/tsoa-gui`.
+
 ## Updating
 
 ### After a tsoa-gui release

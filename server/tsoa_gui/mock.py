@@ -168,7 +168,6 @@ def snapshot(t: float) -> System:
     voltage = round(25.6 + (soc - 50) * 0.012 + m.battery_w * 0.0002, 2)
     current = round(m.battery_w / voltage, 1)
     activity = "charging" if m.battery_w > 5 else "discharging" if m.battery_w < -5 else "idle"
-    remaining_wh = max(0.0, soc - 10) / 100 * BATTERY_CAPACITY_WH
     alarms = [Alarm(name="Low battery", level="warning")] if soc < LOW_BATTERY_ALARM_PERCENT else []
     topping = max(0.0, soc - BALANCE_ABOVE_PERCENT)
     cell_voltages = [voltage / len(CELL_OFFSETS_V) + offset for offset in CELL_OFFSETS_V]
@@ -191,7 +190,6 @@ def snapshot(t: float) -> System:
         current_a=current,
         power_w=round(m.battery_w),
         temperature_c=round(battery_temperature, 1),
-        time_to_go_s=round(remaining_wh / -m.battery_w * 3600) if activity == "discharging" else None,
         activity=activity,
         max_charge_voltage_v=28.4,
         max_charge_current_a=150.0,
