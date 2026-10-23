@@ -519,7 +519,9 @@
 .fof-hub-disc { fill: #000; }
 /* The core's edge and the band round the light share one color. */
 .fof-ring-unit { --fof-hub-rim: #3d3852; }
-.fof-unit-core { fill: #000; stroke: var(--fof-hub-rim, #3d3852); stroke-width: 3; }
+/* No fill: the dark square under the hub is on the conduits' layer, with the
+   threads that join the coil drawn over it. */
+.fof-unit-core { fill: none; stroke: var(--fof-hub-rim, #3d3852); stroke-width: 3; }
 .fof-hub-wire { fill: none; stroke: var(--fof-conduit); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 /* The coil is 65% see-through, so the core's cells pulse through it at full
    strength; the pulses running round it stay solid. */

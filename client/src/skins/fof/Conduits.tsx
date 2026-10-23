@@ -4,6 +4,7 @@ import type { Flow, PartName } from "../../model/system";
 import { flowSpeed } from "../minimal/flowSpeed";
 import { approach, conduitPath, usePanelMeasure, type Box } from "../panelBoxes";
 import { HUB_EDGE, HUB_VIEW, portShift, type HubPort, type HubPorts } from "./hubPorts";
+import { HubThreads } from "./HubThreads";
 import { Relay, RELAY, RELAY_CORE, type RelayLink } from "./Relay";
 import { SOFTEN, STROKES, WAVE } from "./waves";
 
@@ -279,6 +280,9 @@ export function Conduits({ flows, inputs = {}, onHubPorts }: {
           </g>
         );
       })}
+      {/* Where the conduits meet the hub: on this layer, so each conduit and
+          its threads into the hub are one drawing. */}
+      {hub?.hub && <HubThreads hub={{ ports, cycleUnits }} box={hub} />}
       {bus && relay.length > 0 && (
         <Relay x={bus.x} y={bus.y} em={em} links={relay} beat={Math.min(3, Math.max(0.6, 3 / Math.sqrt(1 + through / 500)))} />
       )}
