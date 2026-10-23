@@ -2,8 +2,15 @@ name: CI
 
 # Started by hand for now. Once the repository is public, hosted runners cost
 # nothing and this also runs on every push to main and every pull request.
+# The release workflow runs it too, with the tag it is releasing.
 on:
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      tag:
+        description: "The release tag to build the archive for, such as v0.1.0"
+        type: string
+        required: true
 
 permissions:
   contents: read
@@ -61,11 +68,23 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
+      # The README's install commands download one release by name, so a
+      # release whose version they do not name yet is not published.
+      - if: inputs.tag != ''
+        run: |
+          url="https://github.com/$REPOSITORY/releases/download/$TAG/tsoa-gui-${TAG#v}.tar.gz"
+          grep -qF "$url" README.md || { echo "::error::README.md does not download $url"; exit 1; }
+        env:
+          REPOSITORY: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
       - run: npm ci && npm run build
         working-directory: client
-      - run: python venus/build.py --out dist
+      # Without a tag, the version is dev- and the commit.
+      - run: python venus/build.py --out dist ${TAG:+--version "${TAG#v}" --notes dist/notes.md}
+        env:
+          TAG: ${{ inputs.tag }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: tsoa-gui-venus
-          path: dist/*.tar.gz
+          path: dist/
           if-no-files-found: error

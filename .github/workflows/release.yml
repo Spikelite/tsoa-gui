@@ -1,0 +1,38 @@
+name: Release
+
+# Pushing a tag such as v0.1.0 tests that commit, builds the Venus OS archive
+# for version 0.1.0, and publishes it with its SHA-256 on a GitHub Release.
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+    with:
+      tag: ${{ github.ref_name }}
+
+  # The only job that can write to the repository, and it runs none of the
+  # repository's code: it publishes what the build job made.
+  publish:
+    needs: ci
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: tsoa-gui-venus
+          path: dist
+      - run: |
+          gh release create "$TAG" "dist/tsoa-gui-${TAG#v}.tar.gz" "dist/tsoa-gui-${TAG#v}.tar.gz.sha256" \
+            --repo "$REPOSITORY" --verify-tag --title "tsoa-gui ${TAG#v}" \
+            --notes-file dist/notes.md --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}

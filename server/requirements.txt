@@ -2,7 +2,8 @@
 # pip, so these pure-Python packages are copied there with the server.
 # FastAPI is held at the last release that accepts the pydantic Venus ships
 # (see requirements-venus.txt), and Starlette and anyio at the releases that
-# were current when it was made.
+# were current when it was made. A release takes them from
+# requirements-hashes.txt, which adds each one's hash.
 fastapi==0.135.1
 starlette==0.52.1
 anyio==4.12.1
