@@ -197,7 +197,9 @@ def uses_its_bytecode(app: Path, module: str) -> bool:
     # Run from app, so that the source tree's own copy is not the one found.
     imported = subprocess.run([sys.executable, "-v", "-c", f"import {module}"], capture_output=True, text=True,
                               cwd=app, env=dict(os.environ, PYTHONPATH=str(app), PYTHONDONTWRITEBYTECODE="1"))
-    return f"code object from '{app}" in imported.stderr and "__pycache__" in imported.stderr
+    cached = importlib.util.cache_from_source(str(app.joinpath(*module.split(".")).with_suffix(".py")))
+    # The log writes the path as repr does, which doubles Windows' backslashes.
+    return f"code object from {cached!r}" in imported.stderr
 
 
 def test_precompiling_needs_neither_compileall_nor_py_compile(tmp_path: Path):
