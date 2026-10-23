@@ -54,7 +54,9 @@ const STRANDS = THREADS * FORKS;
 const STRAIGHT = 8;
 const FORK_AT = 0.5;
 // How many legs of the winding a pulse runs each way from where a thread joins.
-const RUN = 4;
+// How many legs of the winding a pulse runs from where a thread joins it
+// before it turns in to the core; an odd number, so the last leg runs inward.
+const RUN = 5;
 const PULSE = 10;
 
 const SIDE_ANGLE: Record<HubSide, number> = { right: 0, bottom: 90, left: 180, top: 270 };
@@ -83,9 +85,10 @@ function frame(port: HubPort) {
 }
 
 /**
- * The winding, from the middle of an outer turn at `angle`, `legs` legs on
- * round the core one way or the other: on along the outer arc, then in and
- * out across the rings of cells, turn by turn.
+ * The way from the middle of an outer turn at `angle` to the core: `legs`
+ * legs on round the winding one way or the other, along the outer arc, then
+ * in and out across the rings of cells, turn by turn, and from the inner end
+ * of the last leg straight in to the core's band.
  */
 function walk(angle: number, way: 1 | -1, legs: number): { d: string; length: number } {
   const first = way > 0 ? angle + STEP / 2 : angle - STEP / 2;
@@ -104,6 +107,9 @@ function walk(angle: number, way: 1 | -1, legs: number): { d: string; length: nu
       length += arcLength(radius, STEP);
     }
   }
+  const last = first + way * (legs - 1) * STEP;
+  parts.push(`L${at(polar(BAND, last))}`);
+  length += radius - BAND;
   return { d: parts.join(" "), length };
 }
 
@@ -285,9 +291,10 @@ function lightPeriod(power: number): number {
 // toward the coil and each fork into three, narrowing into the coil at nine
 // joins along its stretch of it, so the waves pour on from the conduit
 // into the coil, and from the coil out into the conduits of what it feeds.
-// Round the coil, pulses run on from where a supply's threads join it and in
-// to where those of what it feeds leave it, each conduit's at its own pace
-// and timed to its crests. Light chases round the core's cells, clockwise
+// Pulses run from where a supply's threads join the coil, a few turns round
+// it and in to the core, and out of the core, a few turns round and out
+// along the threads of what it feeds, each conduit's at its own pace and
+// timed to its crests. Light chases round the core's cells, clockwise
 // while it charges the battery and the other way while it inverts, faster
 // with every tenfold increase in power, and the light at the center pulses
 // on its own, slow when the unit is quiet and quicker the more power it
@@ -388,8 +395,9 @@ export function InverterCore({ inverter, hub }: { inverter: InverterCharger; hub
           );
         })}
         {wound.map(({ port, index, lines }) => !port.idle && lines.flatMap((line, n) => line.runs.map((run, way) => {
-          // Round the winding, a pulse in sets off from a thread's end as a
-          // crest reaches it; a pulse out arrives there as a crest leaves it.
+          // A pulse in sets off from a thread's end as a crest reaches it and
+          // runs through the winding to the core; a pulse out leaves the core
+          // and reaches a thread's end as a crest leaves it.
           const atJoin = port.outward ? port.crossing - line.length / cycle : port.crossing + line.length / cycle;
           const start = port.outward ? atJoin - share(run.length) : atJoin;
           return (
