@@ -102,8 +102,10 @@
   color: var(--text-muted);
 }
 
+/* A value that does not fit beside its label goes under it, still at the right. */
 .reading dd {
-  margin: 0;
+  margin: 0 0 0 auto;
+  text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
