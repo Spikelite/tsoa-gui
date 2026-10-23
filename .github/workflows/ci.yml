@@ -1,9 +1,10 @@
 name: CI
 
-# Started by hand for now. Once the repository is public, hosted runners cost
-# nothing and this also runs on every push to main and every pull request.
 # The release workflow runs it too, with the tag it is releasing.
 on:
+  push:
+    branches: [main]
+  pull_request:
   workflow_dispatch:
   workflow_call:
     inputs:
