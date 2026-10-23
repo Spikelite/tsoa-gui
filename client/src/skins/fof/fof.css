@@ -375,6 +375,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* An alarm never runs past its block of readings into a neighbour: where its
+   name and status do not fit on one line, the status wraps under the name. */
+.fof-alarm dt { max-width: 100%; }
+.fof-alarm .fof-name-pill { flex-wrap: wrap; row-gap: 0; white-space: normal; }
+
 /* Equipment drawn below a part's readings: the generator's column and the
    inverter/charger's ring, made of the same plates, cells and hub, where the
    conduits plug in. */
@@ -469,6 +474,7 @@
    conduit. The two middle columns are the hub's halves. On a narrow screen
    there is no room beside the hub, so the readings go above it. */
 .fof-readout-hub {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 6em 6em minmax(0, 1fr);
   grid-template-rows: auto auto 1fr;
@@ -476,24 +482,45 @@
   align-items: start;
 }
 
-.fof-readout-hub > .fof-name-row { grid-column: 2 / 4; grid-row: 1; }
+/* The name starts over the hub's left edge. A name made longer by its status
+   grows leftward from the hub's right edge, over the free space above the
+   supplies' conduits, rather than into the readings at the hub's top right. */
+.fof-readout-hub > .fof-name-row {
+  grid-column: 2 / 4;
+  grid-row: 1;
+  justify-self: end;
+  width: max-content;
+  min-width: 100%;
+}
 .fof-readout-hub > .fof-unit { grid-column: 2 / 4; grid-row: 2; margin: 0.2em 0 0; }
 
 /* The foot of the hub's row is half the hub, 6em, below its middle; the
-   widest conduit reaches 0.9em above that middle, and a clear 0.5em more. */
+   widest conduit reaches 0.9em above that middle, and a clear 0.5em more.
+   Placed out of the grid's flow, so that however many lines the readings
+   take, they never make the hub's row taller and so never push their own
+   foot down: they only grow upward, into the clear space above. */
 .fof-hub-readings {
+  position: absolute;
   grid-column: 4;
   grid-row: 1 / span 2;
-  align-self: end;
-  justify-self: start;
+  bottom: 7.4em;
+  left: 0.6em;
   /* As wide as it reads well, but never past the gap after the column, so
      it stays clear of the next column's name. The gap is the diagram's own. */
   width: min(15em, calc(100% + clamp(3em, 7vw, 9em) - 1.8em));
-  margin: 0 0 7.4em 0.6em;
 }
 
 .fof-hub-readings > .fof-state-line { margin: 0 0 0.35em; }
 .fof-hub-readings > .fof-rows { width: 100%; max-width: none; }
+
+/* Beside the hub there is little room on a smaller screen. A number stays
+   level with its label's first line, never breaking, and the label wraps if
+   it must. A value in words that does not fit beside its label goes under
+   it, at the right. */
+.fof-hub-readings .fof-row { align-items: baseline; }
+.fof-hub-readings .fof-row:has(.reading-value) { flex-wrap: nowrap; }
+.fof-hub-readings .fof-row dd { margin-left: auto; text-align: right; }
+.fof-hub-readings .fof-row dd:has(.reading-value) { flex: none; white-space: nowrap; }
 .fof-ring-unit { width: 12em; }
 
 .fof-duty-inverting { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #cfe6ff; --fof-ring: var(--fof-plasma-deep); }
@@ -1002,7 +1029,7 @@
   .fof-readout-schematic > .fof-rows { order: 3; }
   .fof-readout-lead > .fof-unit,
   .fof-readout-hub > .fof-unit { margin: 0.8em auto 0; }
-  .fof-hub-readings { width: 100%; margin: 0; }
+  .fof-hub-readings { position: static; width: 100%; margin: 0; }
   .fof-readout-lead > .fof-state-line { margin: 0.35em 0; }
 
   .fof-cap { width: 1.2em; }
@@ -1026,6 +1053,14 @@
    costs the most to draw. */
 @media (max-width: 760px), (max-height: 520px) {
   .fof-cell-lit { box-shadow: none; }
+}
+
+/* On so short a screen, the hub's readings, every row of them, would rise
+   past the space above the hub into the frame's top bar, so they are set a
+   little smaller. Their foot stays where it was, in the readout's own size. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .fof-hub-readings > .fof-state-line,
+  .fof-hub-readings > .fof-rows { font-size: 0.85em; }
 }
 
 @media (prefers-reduced-motion: reduce) {
