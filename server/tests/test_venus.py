@@ -104,6 +104,7 @@ def test_build_reads_the_whole_installation():
 
     battery = system.battery
     assert (battery.soc_percent, battery.activity, battery.status) == (64.5, "charging", "good")
+    assert battery.voltage_v == 26.4
     assert battery.time_to_go_s is None  # only while discharging
     assert battery.max_charge_current_a == 100.0 and battery.min_cell_voltage_v == 3.29
 
@@ -177,6 +178,8 @@ def test_a_battery_that_reports_its_cells_gives_its_detail():
     })
     battery = build(readings(values), live=True).battery
 
+    # The pack's voltage comes from the system, apart from its cells'.
+    assert battery.voltage_v == 26.4
     assert [(c.voltage_v, c.balancing) for c in battery.cells] == [
         (3.301, False), (3.305, False), (3.298, False), (3.310, True)]
     assert [(t.name, t.temperature_c) for t in battery.temperatures] == [("Front", 21.0), ("Sensor 2", 21.4)]
