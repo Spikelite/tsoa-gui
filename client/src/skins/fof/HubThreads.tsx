@@ -53,9 +53,16 @@ export function HubThreads({ hub, box }: { hub: HubPorts; box: Box }) {
               return (
                 <g key={`waves-${n}`}>
                   <mask id={`${strand}-share`} maskUnits="userSpaceOnUse" {...line.box}>
-                    {/* Hard-edged, so that where two strands' shares meet each pixel
+                    {/* Everywhere its body reaches, edges as soft as the body's,
+                        so no sliver of body shows past the waves where the
+                        strand has no neighbor beside it... */}
+                    <path d={line.outline} fill="#fff" />
+                    {/* ...but where two strands meet, hard-edged, so each pixel
                         is wholly one strand's: soft edges would each cover half
                         of it and leave a faint seam. */}
+                    {lines.map((other, m) => m !== n && (
+                      <path key={m} d={other.share} fill="#000" shapeRendering="crispEdges" />
+                    ))}
                     <path d={line.share} fill="#fff" shapeRendering="crispEdges" />
                   </mask>
                   <filter id={`${strand}-blur`} filterUnits="userSpaceOnUse" {...line.box}>
