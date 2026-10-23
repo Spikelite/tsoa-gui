@@ -1,0 +1,19 @@
+# The server's Python packages are left out on purpose: they are either the
+# versions Venus OS ships or the newest that work with them, so they change by
+# hand when Venus does, not whenever a new version is published.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: npm
+    directory: /client
+    schedule:
+      interval: monthly
+    groups:
+      client:
+        patterns: ["*"]

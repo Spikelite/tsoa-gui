@@ -1,0 +1,36 @@
+name: Feature request
+description: Something tsoa-gui should show or do.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Issues are public. If you describe your system, leave out the portal ID, serial numbers, IP addresses and hostnames.
+  - type: textarea
+    id: need
+    attributes:
+      label: What you want to do
+      description: The problem or the situation, as you would describe it to someone looking at your system.
+      placeholder: On a small kiosk screen I cannot tell at a glance whether the generator is running.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How tsoa-gui could help
+      description: What you picture it showing or doing. A sketch or a mockup is welcome.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - A panel or reading
+        - A skin's look
+        - Kiosk and fixed displays
+        - Installing and updating
+        - Something else
+  - type: textarea
+    id: equipment
+    attributes:
+      label: Equipment involved
+      description: The kinds of device this concerns, if any, such as a particular charger or battery monitor. Model names help; serial numbers do not.
