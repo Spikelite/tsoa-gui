@@ -68,6 +68,15 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
+      # The README's install commands download one release by name, so a
+      # release whose version they do not name yet is not published.
+      - if: inputs.tag != ''
+        run: |
+          url="https://github.com/$REPOSITORY/releases/download/$TAG/tsoa-gui-${TAG#v}.tar.gz"
+          grep -qF "$url" README.md || { echo "::error::README.md does not download $url"; exit 1; }
+        env:
+          REPOSITORY: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
       - run: npm ci && npm run build
         working-directory: client
       # Without a tag, the version is dev- and the commit.

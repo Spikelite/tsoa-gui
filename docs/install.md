@@ -31,7 +31,18 @@ The first time, `ssh` asks whether to trust the device's key: answer `yes`. Type
 
 ## Downloading a release
 
-Releases are on the [Releases page](https://github.com/Spikelite/tsoa-gui/releases). Download the latest release's `tsoa-gui-<version>.tar.gz` and, beside it, `tsoa-gui-<version>.tar.gz.sha256`. The second file holds the archive's SHA-256, and checking it makes sure the archive arrived whole and is the one that was published. In the folder you downloaded them to, on Linux:
+Releases are on the [Releases page](https://github.com/Spikelite/tsoa-gui/releases). Each has two files: `tsoa-gui-<version>.tar.gz`, the release itself, and `tsoa-gui-<version>.tar.gz.sha256`, which holds the archive's SHA-256. Checking it makes sure the archive arrived whole and is the one that was published. The examples below use version 0.1.0; use the latest release's version.
+
+If the device is connected to the internet, it can download them itself. Log in, then:
+
+    cd /tmp
+    wget https://github.com/Spikelite/tsoa-gui/releases/download/v0.1.0/tsoa-gui-0.1.0.tar.gz
+    wget https://github.com/Spikelite/tsoa-gui/releases/download/v0.1.0/tsoa-gui-0.1.0.tar.gz.sha256
+    sha256sum -c tsoa-gui-0.1.0.tar.gz.sha256
+
+`sha256sum` prints `OK` when it matches. If it does not, delete both files and download them again.
+
+Otherwise, download both files from the Releases page on the computer and check the archive there. In the folder you downloaded them to, on Linux:
 
     sha256sum -c tsoa-gui-0.1.0.tar.gz.sha256
 
@@ -44,15 +55,16 @@ Both print `OK` when it matches. On Windows, in PowerShell:
     Get-FileHash tsoa-gui-0.1.0.tar.gz
     Get-Content tsoa-gui-0.1.0.tar.gz.sha256
 
-and compare the two long hexadecimal numbers: they must be the same, apart from upper and lower case. If they differ, download the archive again, and do not install it until they match.
-
-## Installing
-
-Copy the archive to the device, log in, unpack it and run its installer:
+and compare the two long hexadecimal numbers: they must be the same, apart from upper and lower case. If they differ, download the archive again, and do not install it until they match. Then copy it to the device and log in:
 
     scp tsoa-gui-0.1.0.tar.gz root@192.0.2.10:/tmp/
     ssh root@192.0.2.10
     cd /tmp
+
+## Installing
+
+On the device, in `/tmp` where the archive is, unpack it and run its installer:
+
     tar xzf tsoa-gui-0.1.0.tar.gz
     sh tsoa-gui-0.1.0/install.sh
 
@@ -101,11 +113,12 @@ Without `?skin=`, each browser remembers the last skin chosen on it.
 
 ### After a tsoa-gui release
 
-Download the new release and check its SHA-256 as before, then install it the same way:
+Download the new release and check its SHA-256 as before, either on the device or on the computer, then install it the same way. On the device, for a release 0.2.0:
 
-    scp tsoa-gui-0.2.0.tar.gz root@192.0.2.10:/tmp/
-    ssh root@192.0.2.10
     cd /tmp
+    wget https://github.com/Spikelite/tsoa-gui/releases/download/v0.2.0/tsoa-gui-0.2.0.tar.gz
+    wget https://github.com/Spikelite/tsoa-gui/releases/download/v0.2.0/tsoa-gui-0.2.0.tar.gz.sha256
+    sha256sum -c tsoa-gui-0.2.0.tar.gz.sha256
     tar xzf tsoa-gui-0.2.0.tar.gz
     sh tsoa-gui-0.2.0/install.sh
 
@@ -150,6 +163,8 @@ tsoa-gui logs warnings and errors only, to `/data/log/tsoa-gui/current`. To read
     tai64nlocal < /data/log/tsoa-gui/current | tail -n 50
 
 If the installer said tsoa-gui did not answer, or answered with an HTTP status instead of running, the log says why.
+
+If `wget` on the device cannot connect, check that the device reaches the internet, for example that VRM shows it online. If it reports a certificate that is not yet valid or has expired, the device's clock is wrong, which happens on a device that has not reached the internet since it started; check the date and time in its settings, or download on the computer instead.
 
 If the installer said the release was not tested with the device's software, the device's Python or pydantic is not the one that release was built for: install the latest release, or, for an older Venus OS, check the [supported versions](#what-you-need).
 
