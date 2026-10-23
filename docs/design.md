@@ -14,11 +14,25 @@ One page is both the status board and the data view. Each part of the system has
 | AC loads | power on each output |
 | DC loads | power, where it is measured |
 
-Every skin shows the same readings for each part, from one list the skins share: a skin changes how they look, never which there are. A part the system does not have is left out. A part that is installed but not reporting is drawn as offline.
+Every skin shows the same readings for each part, from one list the skins share: a skin changes how they look, never which there are. A part the system does not have is left out. A part that is installed but not reporting is drawn as offline. Readings arrive about once a second, and every displayed value eases from its last reading to the next instead of jumping.
 
-A part can open into a page of its own with everything the device reports about it, in every skin and with the same readings in each. The battery is the first: every cell it reports, each with its voltage, its difference from the others and whether it is being balanced, then its charge, power, cells, temperatures, limits, history and device details, and every condition it watches with where each stands. The inverter/charger's page shows its hub beside its front panel's lights, then its output and input phase by phase, its battery side and the battery limits it follows, its conditions and settings, the energy it has moved along each route between the supplies, the battery and the loads, its device details and every condition it watches. Every other part has a page too, drawn large as on the overview with its readings in groups: the grid or shore supply and the generator with what reaches the inverter/charger from their input and the energy carried from it, the solar with each charger's panel and battery sides, its best power today and its harvest, the AC loads with what feeds them and the energy delivered to them, and the DC loads with their current at the battery's voltage. Clicking a part opens its page, which Sci-Fi FOF draws inside its frame, growing out of where the part sat. The page has its own address, `?part=battery`, so a kiosk can open straight onto it, and the browser's back button, Escape or the page's Overview control returns to the whole system.
+## Power flow and the DC bus
 
-Power moves between the panels as animated flow whose direction and speed follow the readings. The inverter/charger, the battery, solar and the DC loads all meet at one DC bus, drawn as a junction on the line between the inverter/charger and the battery, which Sci-Fi FOF covers with a plasma relay that pulses pass through on their way between its conduits, and each is joined to it by its own reading, so DC loads running while the battery charges are shown fed by what comes in, not by the battery. A system whose DC side is only the battery and the inverter/charger joins those two directly. Readings arrive about once a second, and every displayed value eases from its last reading to the next instead of jumping.
+Power moves between the panels as animated flow whose direction and speed follow the readings. A flow with no power behind it stays drawn but still, so every part is always shown joined to the rest.
+
+The inverter/charger, the battery, solar and the DC loads all meet at one DC bus, drawn as a junction on the line between the inverter/charger and the battery. Each is joined to the bus by its own reading, so DC loads running while the battery charges are shown fed by what comes in, not by the battery. A system whose DC side is only the battery and the inverter/charger joins those two directly.
+
+## A page for every part
+
+A part opens into a page of its own with everything the device reports about it, in every skin and with the same readings in each.
+
+- The battery's page starts with every cell it reports, each with its voltage, its difference from the others and whether it is being balanced. Then come its charge, power, cells, temperatures, limits, history and device details, and every condition it watches with where each stands.
+- The inverter/charger's page starts with its front panel's lights, beside its hub in Sci-Fi FOF. Then come its output and input phase by phase, its battery side and the battery limits it follows, its conditions and settings, the energy it has moved along each route between the supplies, the battery and the loads, its device details and every condition it watches.
+- The grid or shore supply and the generator show what reaches the inverter/charger from their input and the energy carried from it.
+- Solar shows each charger's panel and battery sides, its best power today and its harvest.
+- The AC loads show what feeds them and the energy delivered to them, and the DC loads their current at the battery's voltage.
+
+Every page but the battery's and the inverter/charger's draws its part large, as on the overview, with its readings in groups. Clicking a part opens its page, which Sci-Fi FOF draws inside its frame, growing out of where the part sat. The page has its own address, `?part=battery`, so a kiosk can open straight onto it, and the browser's back button, Escape or the page's Overview control returns to the whole system.
 
 ## Status colors
 
@@ -35,11 +49,75 @@ Every skin gives color the same meaning, and pairs each state with an icon or a 
 
 Dark mode is the default.
 
+## How current the readings are
+
+Old readings are never passed off as current. The server marks the model stale when it has not heard from the device for ten seconds, and the page knows when it has lost the server. Every skin says which of the three it is: live, stale, or offline.
+
 ## Skins
 
-A skin is a view over the same system model. It receives the model and its updates and decides how to draw them, and it never talks to the device itself. Every skin shows the time of day from the clock of the screen showing the page, so a wall display doubles as a clock: the minimal skin in the page's header beside the skin menu, and Sci-Fi FOF in segments of its own frame's top bar, where its skin choice drops down as a list of segments and the bottom bar carries the application's name. Every skin also says when the readings on screen are no longer current, because the server has stopped hearing from the device or the page has lost the server: the minimal skin in a notice under its header, Sci-Fi FOF in a segment of its top bar that reads Live, Stale or Offline. Sci-Fi FOF scales with the screen's height as well as its width, so the whole console fits on anything from a small touch panel to a TV. There are two. The default is minimal and technical. The second, Sci-Fi FOF (Form Over Function), draws the same diagram as an engineering console. Every part keeps its place from the minimal skin, stepped down from supplies to loads, and sits on black with no box of its own, named by a block of color. Thick conduits with rounded elbows, along which waves of plasma roll toward where the power goes, more often and faster the more power each carries, plug into each part's name or its equipment. The battery is one block of ten cells that light with its charge, a tenth each, with pulses of plasma running through them at the rhythm of the conduits' waves. The grid is a schematic of a tall lattice transmission tower, drawn in outline, with a wire carrying a steady blue flow down to a row of pips that power drips into: the pips nearest the wire turn blue in turn, and before the third is full the charge sets off down the row as a packet and into the grid's conduit. The grid's readings sit in the space above the row. The generator is a schematic of a column of cells between ribbed caps round a housing, ring and dot, with a cable to a row of pips like the grid's: while it runs, blue light runs in from both ends, meets in the dot, then runs down the cable and along the pips into its conduit. Solar is a schematic of an array of panels, each a grid of cells that gather light until the array is full; the light then runs down a cable into a row of pips like the grid's and into the conduit. A part that exists but carries nothing just now keeps a dim, still conduit, so every part is always drawn joined to the rest. The inverter/charger is a hub that power runs through: its core's ring of cells is wound all the way round in one even coil, like a transformer's, and each conduit that meets it carries on as three threads of itself, its own body and waves, that curve round toward the coil and each fork into three, narrowing into the coil at nine joins on the turns nearest where it lands, the coil see-through so the core's cells pulse through it, so the waves pour from the supplies' conduits into the coil, run on round it and leave through the threads of what they feed, and power from a supply straight to the AC loads is drawn through the hub with the rest. At its center a solid light in the core's color pulses at its own pace, quicker the more power the unit handles. The core's color follows what the inverter/charger is doing, and on an inverter/charger with two AC inputs the grid or shore supply and the generator meet the hub's left side apart, each where the input it is wired to is, AC input 1 above and AC input 2 below. The AC loads and the DC loads are each a circuit panel: the conduit feeding them runs on along its bus to a terminal block, with two rows of breakers tapped off it, each lit by the plasma as a wave on the bus reaches its tap. The battery's cells light from the middle of the top row, where its conduit feeds it, outward, then from the middle of the next row. Each part's name there is a rounded button in its status's color, with the status written after the name when it needs attention. All of its artwork is original, drawn in CSS and SVG, and it drops the cells' glow on a small screen.
+A skin is a view over the same system model. It receives the model and its updates and decides how to draw them, and it never talks to the device itself.
 
-A viewer chooses the skin from a menu at the top of the page, and each browser remembers its choice. A fixed display, with nobody to click, names its skin in the address instead, as in `?skin=sci-fi-fof`.
+### What every skin does
+
+Every skin shows the time of day from the clock of the screen showing the page, so a wall display doubles as a clock, and every skin says how current its readings are. A viewer chooses the skin from a menu at the top of the page, and each browser remembers its choice. A fixed display, with nobody to click, names its skin in the address instead, as in `?skin=sci-fi-fof`, and that wins over the remembered choice.
+
+Kiosk displays range from TVs and desktop monitors to a small touch panel mounted on the system, so every skin works on a landscape screen of any size. The minimal skin also works on a phone held upright; Sci-Fi FOF does not yet. A screen that asks for reduced motion gets it: the animation stops, and each flow shows its direction with arrows instead, on the line in the minimal skin and as chevrons on the conduit in Sci-Fi FOF.
+
+The default skin ships with the page. Any other loads only when chosen, so a screen showing the default never downloads it.
+
+### Minimal
+
+The default is minimal and technical. Each part is a panel with its status in the corner, its headline reading large and the rest in rows, laid out stepped down from the supplies at the top to the loads at the bottom. Dotted lines join the panels, their dots moving the way the power goes, faster in steps for each tenfold rise in power. The time and the skin menu sit in the page's header, and a notice under the header appears when the readings are not live.
+
+### Sci-Fi FOF
+
+The second skin, Sci-Fi FOF (Form Over Function), draws the same diagram as an engineering console. All of its artwork is original, drawn in CSS and SVG.
+
+#### The frame
+
+The console sits in a frame. Its top bar carries the time, a segment that reads Live, Stale or Offline, and the skin choice, which drops down as a list of segments; on a part's page it also carries the way back to the overview. The bottom bar carries the application's name. The console scales with the screen's height as well as its width, so the whole of it fits on anything from a small touch panel to a TV.
+
+#### Parts and conduits
+
+Every part keeps its place from the minimal skin and sits on black with no box of its own, named by a rounded button in its status's color, with the status written after the name when it needs attention.
+
+Thick conduits with rounded elbows plug into each part's name or its equipment. Waves of plasma roll along them toward where the power goes, more often and faster the more power each carries. A part that exists but carries nothing just now keeps a dim, still conduit.
+
+#### The supplies
+
+![The generator running: light meets in its dot, runs down the cable and along the pips into its conduit](images/fof-generator.gif)
+
+The grid is a schematic of a tall lattice transmission tower, drawn in outline, with a wire carrying a steady blue flow down to a row of pips that power drips into. The pips nearest the wire turn blue in turn, and before the third is full the charge sets off down the row as a packet and into the grid's conduit. The grid's readings sit in the space above the row.
+
+The generator is a schematic of a column of cells between ribbed caps round a housing, ring and dot, with a cable to a row of pips like the grid's. While it runs, blue light runs in from both ends, meets in the dot, then runs down the cable and along the pips into its conduit.
+
+![Solar producing: the array's cells fill with light, which runs down the cable and along the pips](images/fof-solar.gif)
+
+Solar is a schematic of an array of six panels, each a grid of cells that gather light until the array is full. The light then runs down a cable into a row of pips like the grid's and into the conduit.
+
+#### The inverter/charger hub
+
+![The inverter/charger's hub, with the DC bus relay below it](images/fof-hub.gif)
+
+The inverter/charger is a hub that power runs through. Its core's ring of cells is wound all the way round in one even coil, like a transformer's, and the coil is see-through, so the core's cells pulse through it.
+
+Each conduit that meets the hub carries on as three threads of itself, with its own body and waves. The threads curve round toward the coil and each fork into three, narrowing into the coil at nine joins on the turns nearest where the conduit lands. So the waves pour from the supplies' conduits into the coil, run on round it and leave through the threads of what they feed, and power from a supply straight to the AC loads is drawn through the hub with the rest.
+
+At the hub's center a solid light in the core's color pulses at its own pace, quicker the more power the unit handles. The core's color follows what the inverter/charger is doing. On an inverter/charger with two AC inputs, the grid or shore supply and the generator meet the hub's left side apart, each where the input it is wired to is, AC input 1 above and AC input 2 below.
+
+#### The DC bus relay
+
+The DC bus junction is a plasma relay. Pulses pass through it on their way between its conduits, and its core and cells light with them.
+
+#### The battery and the loads
+
+The battery is one block of ten cells that light with its charge, a tenth each, with pulses of plasma running through them at the rhythm of the conduits' waves. The cells light from the middle of the top row, where its conduit feeds it, outward, then from the middle of the next row.
+
+The AC loads and the DC loads are each a circuit panel: the conduit feeding them runs on along its bus to a terminal block, with two rows of breakers tapped off it, each lit by the plasma as a wave on the bus reaches its tap.
+
+#### Small screens
+
+A small screen keeps the motion but drops the cells' glow, the part that costs the most to draw, so the skin stays smooth on a small panel without cutting its effects back everywhere.
 
 ## Control and users
 
