@@ -194,8 +194,17 @@ function strand(port: HubPort, thread: number, fork: number, angles: number[]) {
   const steps = line.slice(1).map((point, n) => Math.hypot(point.x - line[n]!.x, point.y - line[n]!.y));
   const length = steps.reduce((sum, step) => sum + step, 0);
   const forkAt = steps.slice(0, 1 + together.length).reduce((sum, step) => sum + step, 0);
-  // Its outline: a ninth of the conduit wide, a touch more so the strands
-  // overlap with no seam, until the fork, then narrowing smoothly to the wire.
+  // Its outline: a ninth of the conduit wide, a touch more on a side it
+  // shares with another strand so they overlap with no seam, but never past
+  // the conduit's own edge on the outermost strands' outer sides; until the
+  // fork, then narrowing smoothly to the wire.
+  const across = unit(p(0, 0), p(0, 1));
+  const inwardStart = unit(start, straight);
+  // Which of its two sides, the one to its left as it runs or the right, faces out of the conduit, if either.
+  const leftAcross = -inwardStart.y * across.x + inwardStart.x * across.y;
+  const outermost = Math.abs(place) === (STRANDS - 1) / 2;
+  const leftOut = outermost && Math.sign(leftAcross) === Math.sign(place);
+  const rightOut = outermost && !leftOut;
   let along = 0;
   const sides = line.map((point, n) => {
     along += n > 0 ? steps[n - 1]! : 0;
@@ -205,10 +214,14 @@ function strand(port: HubPort, thread: number, fork: number, angles: number[]) {
     const ty = ahead.y - behind.y;
     const norm = Math.hypot(tx, ty) || 1;
     const s = Math.max(0, (along - forkAt) / (length - forkAt));
-    const half = (width + 0.5 + (WIRE - width - 0.5) * (s * s * (3 - 2 * s))) / 2;
+    const ease = s * s * (3 - 2 * s);
+    const half = (width + (WIRE - width) * ease) / 2;
+    const overlap = 0.25 * (1 - ease);
+    const left = half + (leftOut ? 0 : overlap);
+    const right = half + (rightOut ? 0 : overlap);
     return [
-      { x: point.x - (ty / norm) * half, y: point.y + (tx / norm) * half },
-      { x: point.x + (ty / norm) * half, y: point.y - (tx / norm) * half },
+      { x: point.x - (ty / norm) * left, y: point.y + (tx / norm) * left },
+      { x: point.x + (ty / norm) * right, y: point.y - (tx / norm) * right },
     ] as const;
   });
   const outline = `M${sides.map(([left]) => at(left)).join(" L")} L${[...sides].reverse().map(([, right]) => at(right)).join(" L")} Z`;
