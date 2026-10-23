@@ -18,7 +18,7 @@ import logging
 import re
 import time
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Literal
 
 import aiomqtt
 
@@ -26,8 +26,9 @@ from . import status
 from .feed import Feed
 from .flows import derive_flows
 from .model import (
-    AcLoads, Alarm, Battery, ChargerState, DcLoads, Generator, Grid, InverterCharger, InverterMode, InverterState,
-    Solar, SolarCharger, System,
+    AcLoads, AcPhase, Alarm, AlarmCheck, Battery, BatteryHistory, Cell, ChargerState, DcLoads, EnergyCounter,
+    EnergyEnd, Generator, Grid, InverterCharger, InverterMode, InverterState, Led, Solar, SolarCharger, System,
+    TemperatureSensor,
 )
 
 log = logging.getLogger(__name__)
@@ -54,7 +55,29 @@ BATTERY_ACTIVITY = {0: "idle", 1: "charging", 2: "discharging"}
 ALARM_NAMES = {
     "LowBattery": "Low battery", "HighTemperature": "High temperature", "Overload": "Overload",
     "Ripple": "DC ripple", "LowSoc": "Low state of charge", "CellImbalance": "Cell imbalance",
+    "BmsCable": "Battery management cable", "StateOfHealth": "State of health",
+    "BmsConnectionLost": "Battery management connection", "GridLost": "Supply lost",
+    "HighDcCurrent": "High DC current", "HighDcVoltage": "High DC voltage", "MainsImbalance": "Supply imbalance",
 }
+# The inverter/charger's energy counters, each a route from one end to another,
+# where "Inverter" is its battery side.
+ENERGY_ROUTES: dict[str, tuple[EnergyEnd, EnergyEnd]] = {
+    "AcIn1ToAcOut": ("input_1", "output"), "AcIn1ToInverter": ("input_1", "battery"),
+    "AcIn2ToAcOut": ("input_2", "output"), "AcIn2ToInverter": ("input_2", "battery"),
+    "InverterToAcOut": ("battery", "output"), "InverterToAcIn1": ("battery", "input_1"),
+    "InverterToAcIn2": ("battery", "input_2"), "AcOutToAcIn1": ("output", "input_1"),
+    "AcOutToAcIn2": ("output", "input_2"), "OutToInverter": ("output", "battery"),
+}
+# Its front panel lights, named as the panel labels them: 0 off, 1 on, 2 and 3 blinking.
+LEDS = {
+    "Mains": "Mains", "Bulk": "Bulk", "Absorption": "Absorption", "Float": "Float", "Inverter": "Inverter",
+    "Overload": "Overload", "LowBattery": "Low battery", "Temperature": "Temperature",
+}
+LED_STATES: dict[int, Literal["off", "on", "blinking"]] = {0: "off", 1: "on", 2: "blinking", 3: "blinking"}
+# Batteries that report their cells and temperature sensors number them from
+# 1, up to these many.
+MOST_CELLS = 32
+MOST_SENSORS = 8
 
 
 class Readings:
@@ -125,8 +148,29 @@ def _first(*values: float | None) -> float | None:
     return next((v for v in values if v is not None), None)
 
 
+def _abs(value: float | None) -> float | None:
+    return None if value is None else abs(value)
+
+
+def _words(value: object) -> str | None:
+    return (value.strip() or None) if isinstance(value, str) else None
+
+
 def _ac_inputs(r: Readings) -> list[str]:
     return [kind for n in (1, 2) if (kind := AC_INPUT_KINDS.get(r.get("settings", 0, f"Settings/SystemSetup/AcInput{n}")))]
+
+
+def _input_of(r: Readings, kinds: tuple[str, ...]) -> Literal[1, 2] | None:
+    """Which AC input the system's settings say a supply of one of these kinds is wired to."""
+    for n in (1, 2):
+        if AC_INPUT_KINDS.get(r.get("settings", 0, f"Settings/SystemSetup/AcInput{n}")) in kinds:
+            return n  # type: ignore[return-value]
+    return None
+
+
+# The inverter/charger reports the input it is using as 0 or 1; anything else
+# means it is using neither.
+ACTIVE_INPUTS: dict[object, Literal[1, 2]] = {0: 1, 1: 2}
 
 
 def _vebus(r: Readings) -> int | None:
@@ -145,6 +189,7 @@ def _grid(r: Readings) -> Grid | None:
     return Grid(
         status="normal",
         kind="shore" if kind == "shore" else "grid",
+        ac_input=_input_of(r, ("grid", "shore")),
         connected=connected,
         power_w=power,
         voltage_v=r.number("vebus", vebus, "Ac/ActiveIn/L1/V"),
@@ -171,6 +216,7 @@ def _generator(r: Readings) -> Generator | None:
         running = None
     return Generator(
         status="normal",
+        ac_input=_input_of(r, ("generator",)),
         running=running,
         power_w=power,
         run_time_s=r.number("generator", 0, "Runtime") if running else None,
@@ -185,9 +231,33 @@ def _inverter_charger(r: Readings) -> InverterCharger | None:
         return InverterCharger(status="offline")
     raw_state = r.get("vebus", instance, "State")
     state = None if raw_state is None else INVERTER_STATES.get(raw_state, "other")
-    alarms = _alarms(r, "vebus", instance)
+    checks = _checks(r, "vebus", instance)
+    alarms = [Alarm(name=c.name, level=c.level) for c in checks if c.level != "ok"]
     voltage = r.number("vebus", instance, "Dc/0/Voltage")
     current = r.number("vebus", instance, "Dc/0/Current")
+
+    def detail(path: str) -> float | None:
+        return r.number("vebus", instance, path)
+
+    def truth(path: str) -> bool | None:
+        value = r.get("vebus", instance, path)
+        return value if isinstance(value, bool) else value != 0 if isinstance(value, int | float) else None
+
+    def phases(prefix: str) -> list[AcPhase]:
+        found = []
+        for n in (1, 2, 3):
+            phase = AcPhase(
+                phase=f"L{n}", voltage_v=detail(f"{prefix}/L{n}/V"), current_a=detail(f"{prefix}/L{n}/I"),
+                power_w=detail(f"{prefix}/L{n}/P"), apparent_power_va=detail(f"{prefix}/L{n}/S"),
+                frequency_hz=detail(f"{prefix}/L{n}/F"),
+            )
+            if any(v is not None for k, v in phase.model_dump().items() if k != "phase"):
+                found.append(phase)
+        return found
+
+    firmware = r.get("vebus", instance, "FirmwareVersion")
+    leds = [Led(name=name, state=LED_STATES[value]) for key, name in LEDS.items()
+            if (value := r.get("vebus", instance, f"Leds/{key}")) in LED_STATES]
     return InverterCharger(
         status=status.inverter_charger(state, alarms),
         mode=MODES.get(r.get("vebus", instance, "Mode")),
@@ -198,20 +268,67 @@ def _inverter_charger(r: Readings) -> InverterCharger | None:
         dc_power_w=_first(r.number("vebus", instance, "Dc/0/Power"),
                           voltage * current if voltage is not None and current is not None else None),
         alarms=alarms,
+        ac_inputs=_count(r.get("vebus", instance, "Ac/NumberOfAcInputs")),
+        active_input=ACTIVE_INPUTS.get(r.get("vebus", instance, "Ac/ActiveIn/ActiveInput")),
+        product_name=_words(r.get("vebus", instance, "ProductName")),
+        # VE.Bus firmware versions are written in hexadecimal.
+        firmware_version=f"{firmware:x}" if isinstance(firmware, int) and not isinstance(firmware, bool) else None,
+        rated_power_w=detail("Ac/Out/NominalInverterPower"),
+        phases=_count(r.get("vebus", instance, "Ac/NumberOfPhases")),
+        units=_count(r.get("vebus", instance, "Devices/NumberOfMultis")),
+        uptime_s=detail("Devices/0/UpTime"),
+        input_connected=truth("Ac/ActiveIn/Connected"),
+        input_current_limit_a=detail("Ac/ActiveIn/CurrentLimit"),
+        input_phases=phases("Ac/ActiveIn"),
+        output_phases=phases("Ac/Out"),
+        output_apparent_power_va=detail("Ac/Out/S"),
+        dc_voltage_v=voltage,
+        max_charge_current_a=detail("Dc/0/MaxChargeCurrent"),
+        battery_ripple_v=detail("Devices/0/Diagnostics/UBatRipple"),
+        battery_charge_voltage_v=detail("BatteryOperationalLimits/MaxChargeVoltage"),
+        battery_charge_current_a=detail("BatteryOperationalLimits/MaxChargeCurrent"),
+        battery_discharge_current_a=detail("BatteryOperationalLimits/MaxDischargeCurrent"),
+        battery_low_voltage_v=detail("BatteryOperationalLimits/BatteryLowVoltage"),
+        charging_disabled=truth("Devices/0/ExtendStatus/ChargeIsDisabled"),
+        too_cold_to_charge=truth("Devices/0/ExtendStatus/ChargeDisabledDueToLowTemp"),
+        too_low_to_invert=truth("Devices/0/ExtendStatus/SocTooLowToInvert"),
+        power_assist=truth("Settings/PowerAssistEnabled"),
+        ups_function=truth("Settings/UpsFunction"),
+        weak_input=truth("Settings/WeakAcInput"),
+        output_voltage_setting_v=detail("Settings/InverterOutputVoltage"),
+        energy=[EnergyCounter(source=source, target=target, kwh=kwh) for key, (source, target) in ENERGY_ROUTES.items()
+                if (kwh := detail(f"Energy/{key}")) is not None],
+        checks=checks,
+        leds=leds,
     )
 
 
-def _alarms(r: Readings, service: str, instance: int) -> list[Alarm]:
-    alarms: dict[str, Alarm] = {}
+def _count(value: object) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) and value > 0 else None
+
+
+def _code(value: float | None) -> int | None:
+    return None if value is None else int(value)
+
+
+def _checks(r: Readings, service: str, instance: int) -> list[AlarmCheck]:
+    """Every condition a service watches for, from its Alarms/ paths: 0 clear, 1 a warning, 2 an alarm."""
+    levels: dict[int, Literal["ok", "warning", "alarm"]] = {0: "ok", 1: "warning", 2: "alarm"}
+    rank = {"ok": 0, "warning": 1, "alarm": 2}
+    checks: dict[str, AlarmCheck] = {}
     for (s, i, path), value in sorted(r.values.items()):
-        # 1 is a warning and 2 an alarm; per-phase alarms such as Alarms/L1/Overload count once.
-        if s == service and i == instance and path.startswith("Alarms/") and value in (1, 2):
+        # Per-phase alarms such as Alarms/L1/Overload count once, at their worst.
+        if s == service and i == instance and path.startswith("Alarms/") and value in levels:
             word = path.rsplit("/", 1)[-1]
             name = ALARM_NAMES.get(word) or re.sub(r"(?<!^)(?=[A-Z])", " ", word).capitalize()
-            level = "warning" if value == 1 else "alarm"
-            if name not in alarms or level == "alarm":
-                alarms[name] = Alarm(name=name, level=level)
-    return list(alarms.values())
+            level = levels[value]
+            if name not in checks or rank[level] > rank[checks[name].level]:
+                checks[name] = AlarmCheck(name=name, level=level)
+    return list(checks.values())
+
+
+def _alarms(r: Readings, service: str, instance: int) -> list[Alarm]:
+    return [Alarm(name=c.name, level=c.level) for c in _checks(r, service, instance) if c.level != "ok"]
 
 
 def _active_battery(r: Readings) -> int | None:
@@ -235,10 +352,58 @@ def _battery(r: Readings) -> Battery | None:
     if monitor is not None and r.get("battery", monitor, "Connected") == 0:
         return Battery(status="offline")
     activity = BATTERY_ACTIVITY.get(r.get("system", 0, "Dc/Battery/State"))
-    alarms = _alarms(r, "battery", monitor) if monitor is not None else []
+    checks = _checks(r, "battery", monitor) if monitor is not None else []
+    alarms = [Alarm(name=c.name, level=c.level) for c in checks if c.level != "ok"]
 
     def detail(path: str) -> float | None:
         return r.number("battery", monitor, path)
+
+    def flag(path: str) -> bool | None:
+        value = detail(path)
+        return None if value is None else value != 0
+
+    def words(path: str) -> str | None:
+        value = r.get("battery", monitor, path)
+        return (value.strip() or None) if isinstance(value, str) else None
+
+    def drawn(path: str) -> float | None:
+        # Venus reports charge drawn as negative amp-hours.
+        return _abs(detail(path))
+
+    def whole(path: str) -> int | None:
+        value = detail(path)
+        return None if value is None else int(value)
+
+    cells = []
+    for n in range(1, MOST_CELLS + 1):
+        cell_voltage = detail(f"Voltages/Cell{n}")
+        if cell_voltage is None:
+            break
+        cells.append(Cell(voltage_v=cell_voltage, balancing=flag(f"Balances/Cell{n}")))
+    sensors = [
+        TemperatureSensor(name=words(f"System/Temperature{n}Name") or f"Sensor {n}", temperature_c=reading)
+        for n in range(1, MOST_SENSORS + 1)
+        if (reading := detail(f"System/Temperature{n}")) is not None
+    ]
+    history = BatteryHistory(
+        charge_cycles=detail("History/ChargeCycles"),
+        full_discharges=detail("History/FullDischarges"),
+        deepest_discharge_ah=drawn("History/DeepestDischarge"),
+        last_discharge_ah=drawn("History/LastDischarge"),
+        average_discharge_ah=drawn("History/AverageDischarge"),
+        total_drawn_ah=drawn("History/TotalAhDrawn"),
+        charged_kwh=detail("History/ChargedEnergy"),
+        discharged_kwh=detail("History/DischargedEnergy"),
+        min_voltage_v=detail("History/MinimumVoltage"),
+        max_voltage_v=detail("History/MaximumVoltage"),
+        min_cell_voltage_v=detail("History/MinimumCellVoltage"),
+        max_cell_voltage_v=detail("History/MaximumCellVoltage"),
+        min_temperature_c=detail("History/MinimumTemperature"),
+        max_temperature_c=detail("History/MaximumTemperature"),
+        low_voltage_alarms=detail("History/LowVoltageAlarms"),
+        high_voltage_alarms=detail("History/HighVoltageAlarms"),
+        since_full_charge_s=detail("History/TimeSinceLastFullCharge"),
+    )
 
     return Battery(
         status=status.battery(soc, activity, alarms),
@@ -254,6 +419,30 @@ def _battery(r: Readings) -> Battery | None:
         max_discharge_current_a=detail("Info/MaxDischargeCurrent"),
         min_cell_voltage_v=detail("System/MinCellVoltage"),
         max_cell_voltage_v=detail("System/MaxCellVoltage"),
+        alarms=alarms,
+        checks=checks,
+        capacity_ah=detail("Capacity"),
+        installed_capacity_ah=detail("InstalledCapacity"),
+        consumed_ah=_first(drawn("ConsumedAmphours"), _abs(r.number("system", 0, "Dc/Battery/ConsumedAmphours"))),
+        health_percent=detail("Soh"),
+        cells=cells,
+        balancing=flag("Balancing"),
+        temperatures=sensors,
+        switch_temperature_c=detail("System/MOSTemperature"),
+        charge_allowed=flag("Io/AllowToCharge"),
+        discharge_allowed=flag("Io/AllowToDischarge"),
+        charge_limited_by=words("Info/ChargeLimitation"),
+        discharge_limited_by=words("Info/DischargeLimitation"),
+        applied_charge_voltage_v=r.number("system", 0, "Control/EffectiveChargeVoltage"),
+        max_cell_charge_voltage_v=detail("Info/MaxChargeCellVoltage"),
+        low_voltage_v=detail("Info/BatteryLowVoltage"),
+        modules_online=whole("System/NrOfModulesOnline"),
+        modules_offline=whole("System/NrOfModulesOffline"),
+        modules_blocking_charge=whole("System/NrOfModulesBlockingCharge"),
+        modules_blocking_discharge=whole("System/NrOfModulesBlockingDischarge"),
+        manufacturer=words("Manufacturer"),
+        firmware_version=words("FirmwareVersion"),
+        history=history if any(v is not None for v in history.model_dump().values()) else None,
     )
 
 
@@ -274,6 +463,14 @@ def _solar(r: Readings) -> Solar | None:
             power_w=power,
             state=state,
             yield_today_kwh=r.number("solarcharger", instance, "History/Daily/0/Yield"),
+            pv_voltage_v=r.number("solarcharger", instance, "Pv/V"),
+            pv_current_a=r.number("solarcharger", instance, "Pv/I"),
+            battery_voltage_v=r.number("solarcharger", instance, "Dc/0/Voltage"),
+            battery_current_a=r.number("solarcharger", instance, "Dc/0/Current"),
+            max_power_today_w=r.number("solarcharger", instance, "History/Daily/0/MaxPower"),
+            yield_total_kwh=_first(r.number("solarcharger", instance, "Yield/User"),
+                                   r.number("solarcharger", instance, "Yield/System")),
+            error=_code(r.number("solarcharger", instance, "ErrorCode")),
         ))
     # DC-coupled solar from the chargers, plus PV inverters on the AC side.
     sources = [r.number("system", 0, "Dc/Pv/Power")]

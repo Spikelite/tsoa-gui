@@ -12,7 +12,7 @@ function panel(name: string): HTMLElement {
 describe("MinimalSkin", () => {
   it("draws a panel for each part the system has, and none for the rest", () => {
     render(<MinimalSkin model={system} />);
-    for (const name of ["Shore power", "Inverter/charger", "Battery", "Solar", "AC loads", "DC loads"]) {
+    for (const name of ["Shore power", "Inverter", "Battery", "Solar", "AC loads", "DC loads"]) {
       expect(panel(name)).toBeInTheDocument();
     }
     expect(screen.queryByRole("region", { name: "Generator" })).not.toBeInTheDocument();
@@ -23,7 +23,7 @@ describe("MinimalSkin", () => {
     const battery = panel("Battery");
     expect(within(battery).getByRole("img", { name: "Good" })).toBeInTheDocument();
     expect(within(battery).getByText("Charging")).toBeInTheDocument();
-    const inverter = panel("Inverter/charger");
+    const inverter = panel("Inverter");
     // One for its status, one beside its alarm.
     expect(within(inverter).getAllByRole("img", { name: "Warning" })).toHaveLength(2);
     expect(within(inverter).getByText("Bulk")).toBeInTheDocument();

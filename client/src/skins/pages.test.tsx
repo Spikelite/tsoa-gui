@@ -1,0 +1,155 @@
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { afterEach, describe, expect, it } from "vitest";
+
+import { system } from "../test/system";
+import { cellDetails } from "./details";
+import { FofSkin } from "./fof/FofSkin";
+import { MinimalSkin } from "./minimal/MinimalSkin";
+
+afterEach(() => {
+  window.history.replaceState(null, "", "/");
+});
+
+/** Every value a part's page shows, numbers and words alike, once each. */
+function shownOnPage(skin: ReactElement, part = "battery", name = "Battery"): string[] {
+  window.history.replaceState(null, "", `/?part=${part}`);
+  render(skin);
+  const page = screen.getByRole("region", { name });
+  const numbers = [...page.querySelectorAll(".reading-value")];
+  const words = [...page.querySelectorAll("dd")].filter((dd) => dd.querySelector(".reading-value") === null);
+  const values = [...new Set([...numbers, ...words].map((element) => element.textContent ?? ""))].sort();
+  cleanup();
+  return values;
+}
+
+describe("a part's own page", () => {
+  it("shows the same battery detail in every skin", () => {
+    const minimal = shownOnPage(<MinimalSkin model={system} />);
+    const fof = shownOnPage(<FofSkin model={system} />);
+    expect(fof).toEqual(minimal);
+    // Every cell, its difference from the others, and the history and limits.
+    expect(minimal).toEqual(expect.arrayContaining(["3.290 V", "3.310 V", "-11 mV", "18", "28.2 V", "Allowed"]));
+    expect(minimal).toEqual(expect.arrayContaining(["Cell voltage", "Example Cells", "129.0 Ah"]));
+  });
+
+  it("shows the same inverter/charger detail in every skin", () => {
+    const minimal = shownOnPage(<MinimalSkin model={system} />, "inverter_charger", "Inverter");
+    const fof = shownOnPage(<FofSkin model={system} />, "inverter_charger", "Inverter");
+    expect(fof).toEqual(minimal);
+    // Its phases, its share of its rating, its routes' energy and its settings.
+    expect(minimal).toEqual(expect.arrayContaining(["742 VA", "29%", "120.50 kWh", "40 mV", "On", "502"]));
+  });
+
+  it("names each energy route by the supplies at its ends", () => {
+    window.history.replaceState(null, "", "/?part=inverter_charger");
+    render(<MinimalSkin model={system} />);
+    const energy = screen.getByRole("heading", { name: "Energy" }).parentElement!;
+    expect([...energy.querySelectorAll("dt")].map((dt) => dt.textContent)).toEqual([
+      "Shore power to Loads", "Shore power to Battery", "Battery to Loads",
+    ]);
+  });
+
+  it("shows the inverter/charger's front panel lights in every skin", () => {
+    for (const skin of [<MinimalSkin model={system} />, <FofSkin model={system} />]) {
+      window.history.replaceState(null, "", "/?part=inverter_charger");
+      render(skin);
+      const lights = within(screen.getByRole("list", { name: "Front panel lights" })).getAllByRole("listitem");
+      expect(lights.map((light) => light.textContent?.toLowerCase())).toEqual([
+        expect.stringContaining("mains"), expect.stringContaining("bulk"), expect.stringContaining("inverter"),
+      ]);
+      expect(lights[1]!.textContent?.toLowerCase()).toContain("blinking");
+      cleanup();
+    }
+  });
+
+  it("lists every condition the battery watches, alarming ones first, in every skin", () => {
+    for (const skin of [<MinimalSkin model={system} />, <FofSkin model={system} />]) {
+      window.history.replaceState(null, "", "/?part=battery");
+      render(skin);
+      const alarms = screen.getByRole("region", { name: "Battery" }).querySelectorAll(".checks li, .fof-deck-checks li");
+      expect([...alarms].map((item) => item.textContent)).toEqual([
+        expect.stringContaining("Cell imbalance"), expect.stringContaining("High cell voltage"),
+        expect.stringContaining("Low temperature"),
+      ]);
+      cleanup();
+    }
+  });
+
+  it("opens from the overview and closes again, from the page's own control or Escape", async () => {
+    for (const [skin, back] of [[MinimalSkin, "Overview"], [FofSkin, "Overview"]] as const) {
+      const Skin = skin;
+      render(<Skin model={system} />);
+      expect(screen.queryByRole("list", { name: "Cells" })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("link", { name: "Battery" }));
+      expect(window.location.search).toBe("?part=battery");
+      expect(screen.getByRole("list", { name: "Cells" })).toBeInTheDocument();
+      // Closing goes back over the step opening took in the browser's history.
+      fireEvent.keyDown(window, { key: "Escape" });
+      await waitFor(() => expect(screen.queryByRole("list", { name: "Cells" })).not.toBeInTheDocument());
+      expect(window.location.search).toBe("");
+
+      fireEvent.click(screen.getByRole("link", { name: "Battery" }));
+      fireEvent.click(screen.getByRole("button", { name: back }));
+      await waitFor(() => expect(screen.queryByRole("list", { name: "Cells" })).not.toBeInTheDocument());
+      cleanup();
+      window.history.replaceState(null, "", "/");
+    }
+  });
+
+  it("opens straight onto a page from the address, as a kiosk does", () => {
+    window.history.replaceState(null, "", "/?skin=sci-fi-fof&part=battery");
+    render(<FofSkin model={system} />);
+    expect(within(screen.getByRole("list", { name: "Cells" })).getAllByRole("listitem")).toHaveLength(8);
+  });
+
+  it("shows the same detail for every other part in every skin", () => {
+    const parts = [
+      ["grid", "Shore power", ["1.25 kW", "16.0 A", "AC input 1", "1.05 kW", "120.50 kWh", "64.20 kWh"]],
+      ["solar", "Solar", ["68.9 V", "455 W", "812.40 kWh", "None", "Not reporting", "Bulk"]],
+      ["ac_loads", "AC loads", ["900 W", "700 W", "200 W", "120.50 kWh", "88.90 kWh"]],
+      ["dc_loads", "DC loads", ["Worked out from the others"]],
+    ] as const;
+    for (const [part, name, values] of parts) {
+      const minimal = shownOnPage(<MinimalSkin model={system} />, part, name);
+      const fof = shownOnPage(<FofSkin model={system} />, part, name);
+      expect(fof).toEqual(minimal);
+      expect(minimal).toEqual(expect.arrayContaining([...values]));
+    }
+  });
+
+  it("gives a generator its own page", () => {
+    const model = {
+      ...system, generator: { status: "good", ac_input: null, running: true, power_w: 2100, run_time_s: 5400 },
+    } as const;
+    const minimal = shownOnPage(<MinimalSkin model={model} />, "generator", "Generator");
+    expect(shownOnPage(<FofSkin model={model} />, "generator", "Generator")).toEqual(minimal);
+    expect(minimal).toEqual(expect.arrayContaining(["2.10 kW", "Yes", "1 h 30 min"]));
+  });
+
+  it("ignores a part the system lacks", () => {
+    window.history.replaceState(null, "", "/?part=generator");
+    render(<MinimalSkin model={system} />);
+    expect(screen.getByRole("region", { name: "Solar" })).toBeInTheDocument();
+    cleanup();
+    window.history.replaceState(null, "", "/?part=battery");
+    render(<MinimalSkin model={{ ...system, battery: null }} />);
+    expect(screen.queryByRole("list", { name: "Cells" })).not.toBeInTheDocument();
+  });
+});
+
+describe("cellDetails", () => {
+  it("marks the lowest and highest cells and fills each between empty and full", () => {
+    const cells = cellDetails(system.battery!.cells, system.battery!);
+    expect(cells.filter((cell) => cell.lowest).map((cell) => cell.number)).toEqual([3]);
+    expect(cells.filter((cell) => cell.highest).map((cell) => cell.number)).toEqual([4]);
+    // Empty at 24 V over eight cells is 3 V a cell, full at 3.55 V.
+    expect(cells[0]!.level).toBeCloseTo(0.3 / 0.55);
+  });
+
+  it("marks neither when every cell reads the same", () => {
+    const cells = cellDetails([{ voltage_v: 3.3, balancing: false }, { voltage_v: 3.3, balancing: false }]);
+    expect(cells.some((cell) => cell.lowest || cell.highest)).toBe(false);
+    expect(cells[0]!.level).toBeNull();
+  });
+});

@@ -1,0 +1,1346 @@
+/* Sci-Fi FOF: the main view's layout as an engineering console, in rounded
+   bars on black. The frame's colors are decoration only and stay clear of
+   the status colors, which appear only with their icons and words. */
+.skin-sci-fi-fof {
+  --fof-lavender: #c4a7e7;
+  --fof-periwinkle: #8fa8e8;
+  --fof-sand: #d9b98a;
+  --fof-teal: #79b8b0;
+  --fof-ink: #f2e8d5;
+  --fof-dim: #a99fc4;
+  --fof-well: #0b0a12;
+  --fof-cell: #f0dfa8;
+  --fof-cap: #a8803c;
+  --fof-conduit: #f6dc74;
+  --fof-plasma: #a6d4ff;
+  --fof-plasma-deep: #2a6ee8;
+  min-height: 100vh;
+  background: #000;
+}
+
+.fof {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 1em;
+  /* Fills the screen, so a wall display is all console. */
+  min-height: 100vh;
+  padding: 0.75em clamp(0.75em, 2vw, 1.5em) 1.25em;
+  color: var(--fof-ink);
+  /* Text and every measure scale with the screen: larger on a TV, readable on a phone. */
+  font-size: clamp(0.9rem, 0.45vw + 0.55rem, 1.45rem);
+  font-family: "Arial Narrow", "Roboto Condensed", "Helvetica Neue", Arial, sans-serif;
+  font-stretch: condensed;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* On a short, wide screen, such as a small touch panel, the height limits
+   the size too, so the whole console fits without scrolling. */
+@media (orientation: landscape) {
+  .fof { font-size: clamp(0.7rem, min(0.45vw + 0.55rem, 1.4vh + 0.2rem), 2.4rem); }
+}
+
+@media (orientation: landscape) and (max-height: 650px) {
+  .fof {
+    gap: 0.6em;
+    padding-bottom: 0.6em;
+    font-size: clamp(0.65rem, min(0.45vw + 0.55rem, 1.3vh + 0.2rem), 1.45rem);
+  }
+}
+
+/* The frame */
+.fof-top,
+.fof-bottom {
+  display: flex;
+  align-items: stretch;
+  gap: 0.4em;
+  height: 2em;
+}
+
+.fof-bottom {
+  align-self: end;
+  height: 1.5em;
+}
+
+/* The bottom left segment carries the application's name, as wide as it needs. */
+.fof-cap.fof-app-name {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: auto;
+  min-width: 3.5em;
+  margin: 0;
+  padding: 0 0.7em 0 1em;
+  color: #000;
+  font-size: 0.85em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+/* The header is left with only a notice to show, when there is one. */
+.skin-sci-fi-fof .app-header:empty { display: none; }
+
+.fof-cap {
+  width: 3.5em;
+  background: var(--fof-lavender);
+}
+
+.fof-cap-left { border-radius: 1em 0 0 1em; }
+.fof-cap-right { border-radius: 0 1em 1em 0; background: var(--fof-sand); }
+
+.fof-bar {
+  flex: 1;
+  min-width: 1em;
+  background: var(--fof-periwinkle);
+}
+
+/* The screen's title, in a segment of its own. */
+.fof-label {
+  display: flex;
+  align-items: center;
+  padding: 0 0.7em;
+  color: #000;
+  background: var(--fof-sand);
+  font-size: 1.05em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.fof-link {
+  display: flex;
+  align-items: center;
+  padding: 0 0.8em;
+  color: #000;
+  background: var(--fof-teal);
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+
+.fof-link-stale { background: var(--status-attention); }
+.fof-link-lost { background: var(--status-fault); }
+
+/* Segments of the top bar that hold something: the time, and the skin
+   choice, which drops its list down beside a bar as segments of their own. */
+.fof-segment {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin: 0;
+  padding: 0 0.8em;
+  color: #000;
+  border: 0;
+  font: inherit;
+  font-size: 0.85em;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  white-space: nowrap;
+}
+
+.fof-clock-segment { background: var(--fof-sand); }
+
+.fof-clock-segment .clock {
+  margin: 0;
+  color: inherit;
+  font-size: 1.15em;
+}
+
+.fof-select {
+  position: relative;
+  display: flex;
+}
+
+.fof-select-button {
+  background: var(--fof-lavender);
+  cursor: pointer;
+}
+
+.fof-select-caption { font-size: 0.8em; }
+
+.fof-select-button:focus-visible,
+.fof-select-option:focus-visible {
+  outline: 2px solid var(--fof-ink);
+  outline-offset: 2px;
+}
+
+/* The list, hidden until chosen. Then the segment extends down as a bar to
+   the skin showing, which joins the bar like an elbow, and the other skins
+   slide in beside it as free-standing rounded buttons, each a moment after
+   the one above. */
+.fof-select-drop {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: flex-start;
+  visibility: hidden;
+  transition: visibility 0s linear 0.25s;
+}
+
+.fof-select-open .fof-select-drop {
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.fof-select-bar {
+  order: 2;
+  width: 1.1em;
+  background: var(--fof-lavender);
+  border-radius: 0 0 0.55em 0;
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 0.2s ease-out;
+}
+
+.fof-select-open .fof-select-bar { transform: scaleY(1); }
+
+.fof-select-list {
+  display: grid;
+  gap: 0.35em;
+  margin: 0;
+  padding: 0.35em 0 0;
+  list-style: none;
+}
+
+.fof-select-option {
+  justify-content: flex-end;
+  min-width: 9em;
+  margin-right: 0.35em;
+  padding: 0.45em 0.9em;
+  background: var(--fof-periwinkle);
+  border-radius: 1em;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateX(1.5em);
+  transition: opacity 0.18s ease-out, transform 0.18s ease-out;
+}
+
+.fof-select-open .fof-select-option {
+  opacity: 1;
+  transform: none;
+}
+
+/* The skin showing joins the bar: the bar's color, open on the bar's side. */
+.fof-select-current {
+  margin-right: 0;
+  background: var(--fof-lavender);
+  border-radius: 1em 0 0 1em;
+}
+
+.fof-select-option:hover { background: var(--fof-ink); }
+
+/* The diagram: the same places as the minimal skin's, so switching skins
+   keeps every part where it was. Supplies on the left, the inverter/charger
+   and the battery in the middle, loads on the right. Parts a system lacks
+   leave their cell empty. */
+.fof-diagram {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-areas:
+    "grid inverter ac"
+    "generator inverter ac"
+    "solar battery dc";
+  align-items: center;
+  /* Rows part by the screen's height and columns by its width, so a wide,
+     short screen does not spend its height on gaps. */
+  gap: clamp(1em, 2.5vh, 5em) clamp(3em, 7vw, 9em);
+}
+
+.fof-diagram [data-part="grid"] { grid-area: grid; }
+.fof-diagram [data-part="generator"] { grid-area: generator; }
+.fof-diagram [data-part="inverter_charger"] { grid-area: inverter; }
+.fof-diagram [data-part="battery"] { grid-area: battery; }
+.fof-diagram [data-part="solar"] { grid-area: solar; }
+.fof-diagram [data-part="ac_loads"] { grid-area: ac; }
+.fof-diagram [data-part="dc_loads"] { grid-area: dc; }
+
+/* The hub moves a little to meet a nearly level conduit straight on, as
+   Conduits.tsx works out. */
+.fof-diagram [data-part="inverter_charger"] { translate: 0 var(--fof-hub-nudge, 0px); }
+
+/* The diagram steps down from left to right, as power runs from supplies to
+   loads: each supply sits toward the top of its place and each load toward
+   the bottom, so the conduits all bend the same way, like a staircase,
+   rather than mirroring each other around the middle. */
+.fof-diagram [data-part="grid"],
+.fof-diagram [data-part="generator"],
+.fof-diagram [data-part="solar"] { align-self: start; }
+.fof-diagram [data-part="ac_loads"],
+.fof-diagram [data-part="dc_loads"] { align-self: end; }
+
+/* Parts have no boxes of their own: they sit on the black, over the
+   conduits, which end flush at their edges or plug into their graphics. */
+.fof-readout,
+.fof-core {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.fof-readout { justify-self: stretch; }
+
+/* A part's name is a rounded button in the color of its status, as the
+   console labels everything. */
+.fof-label-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  margin: 0;
+  padding: 0.25em 0.95em;
+  color: #000;
+  background: var(--status-color, var(--fof-sand));
+  border-radius: 1em;
+  font-size: 0.95em;
+  font-weight: 600;
+}
+
+/* A part's name and its status, side by side, standing free of each other. */
+.fof-name-row {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 0.35em;
+  justify-self: start;
+}
+
+/* A status a viewer needs to notice is written out; any other is read only
+   to a screen reader. */
+.fof-quiet {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.fof-label-block .fof-status-words::before { content: "·"; margin-right: 0.4em; }
+
+/* A name within a part's readings, such as a solar array's or an alarm's: a
+   rounded button in the color of its status. */
+.fof-name-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.05em 0.8em;
+  color: #000;
+  background: var(--status-color);
+  border-radius: 1em;
+  font-size: 0.85em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.fof-name-pill .fof-status-words::before { content: "·"; margin-right: 0.4em; }
+
+.fof-state-line {
+  margin: 0.35em 0 0.35em;
+  padding: 0 0.1em;
+  color: var(--fof-sand);
+  font-size: 0.8em;
+}
+
+.fof-readout .fof-rows,
+.fof-core .fof-rows {
+  padding: 0 0.1em;
+}
+
+.fof-rows {
+  display: grid;
+  gap: 0.15em;
+  width: 100%;
+  max-width: 19em;
+  margin: 0;
+}
+
+.fof-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0 0.75em;
+  font-size: 0.9em;
+}
+
+.fof-row dt {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  color: var(--fof-dim);
+}
+
+.fof-row dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* An alarm never runs past its block of readings into a neighbour: where its
+   name and status do not fit on one line, the status wraps under the name. */
+.fof-alarm dt { max-width: 100%; }
+.fof-alarm .fof-name-pill { flex-wrap: wrap; row-gap: 0; white-space: normal; }
+
+/* Equipment drawn below a part's readings: the generator's column and the
+   inverter/charger's ring, made of the same plates, cells and hub, where the
+   conduits plug in. */
+.fof-unit {
+  margin: 0.8em auto 0;
+  --fof-cell-rest: #6e6450;
+  --fof-cell-hot: #6e6450;
+  --fof-ring: #5b5672;
+}
+
+/* A part whose equipment leads: its name above the equipment's left end, its
+   state and readings beside the equipment, on the side away from its conduit. */
+.fof-readout-lead {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr;
+  column-gap: 1.2em;
+  row-gap: 0.35em;
+  align-items: start;
+}
+
+.fof-readout-lead > .fof-name-row { grid-column: 1 / span 2; }
+.fof-readout-lead > .fof-unit { grid-column: 1; grid-row: 2 / span 2; margin: 0.2em 0 0; }
+.fof-readout-lead > .fof-state-line { grid-column: 2; grid-row: 2; margin: 0; }
+.fof-readout-lead > .fof-rows { grid-column: 2; grid-row: 3; }
+
+/* Where the column is too narrow for the readings beside the equipment, they
+   go below it, clear of the conduit coming in from the side. */
+@container (max-width: 31em) {
+  .fof-readout-lead > .fof-unit { grid-row: 2; }
+  .fof-readout-lead > .fof-state-line { grid-column: 1 / span 2; grid-row: 3; margin-top: 0.5em; }
+  .fof-readout-lead > .fof-rows { grid-column: 1 / span 2; grid-row: 4; }
+}
+
+/* Equipment on top: the name, then the equipment, then the state and
+   readings, clear of a conduit leaving the equipment to the side. */
+.fof-readout-top {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.fof-readout-top > .fof-unit { order: 1; margin: 0.4em 0 0.3em; }
+.fof-readout-top > .fof-state-line { order: 2; }
+.fof-readout-top > .fof-rows { order: 3; }
+
+/* A supply's schematic, the grid's, the generator's or the solar's: the
+   drawing fills the space under the name, and the state and readings sit in
+   its open space right of the equipment and above its row of pips, clear of
+   the conduit leaving the row's end. */
+.fof-readout-schematic {
+  display: grid;
+  /* The drawing fills the column's width, up to its full size; the readings
+     take the part of it right of the equipment, which never reaches past a
+     third of the way across. */
+  grid-template-columns: 33% minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  max-width: 26em;
+  align-items: start;
+}
+
+/* The state sits on the name's row, at its right, leaving the drawing's open
+   space to the readings. */
+.fof-readout-schematic > .fof-name-row { grid-column: 1 / span 2; grid-row: 1; }
+.fof-readout-schematic > .fof-state-line { grid-column: 1 / span 2; grid-row: 1; justify-self: end; align-self: center; margin: 0; }
+.fof-readout-schematic > .fof-unit { grid-column: 1 / span 2; grid-row: 2 / span 2; width: 100%; margin: 0.4em 0 0; }
+
+.fof-readout-schematic > .fof-rows {
+  position: relative;
+  z-index: 1;
+  grid-column: 2;
+  grid-row: 2;
+  margin-top: 0.6em;
+}
+
+/* Where the column is too narrow even for that, the drawing fills the
+   column's width and the readings go below it. */
+.fof-readout-schematic,
+.fof-readout-lead { container-type: inline-size; }
+
+@container (max-width: 18em) {
+  .fof-readout-schematic > .fof-unit { grid-row: 2; }
+  .fof-readout-schematic > .fof-rows { grid-column: 1 / span 2; grid-row: 3; margin-top: 0.3em; }
+}
+
+/* A hub: its name above its left edge, and its state and readings at its
+   top right, just clear of its right side. The readings are placed by their
+   foot, a little above the conduit that leaves the hub's middle on its right
+   side, however wide that conduit is, and grow upward as rows are added, so
+   no row ever comes down onto it. Where the column is too narrow for them
+   they run on into the space beyond it, which nothing crosses above that
+   conduit. The two middle columns are the hub's halves. On a narrow screen
+   there is no room beside the hub, so the readings go above it. */
+.fof-readout-hub {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 6em 6em minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr;
+  row-gap: 0.35em;
+  align-items: start;
+}
+
+/* The name starts over the hub's left edge. A name made longer by its status
+   grows leftward from the hub's right edge, over the free space above the
+   supplies' conduits, rather than into the readings at the hub's top right. */
+.fof-readout-hub > .fof-name-row {
+  grid-column: 2 / 4;
+  grid-row: 1;
+  justify-self: end;
+  width: max-content;
+  min-width: 100%;
+}
+.fof-readout-hub > .fof-unit { grid-column: 2 / 4; grid-row: 2; margin: 0.2em 0 0; }
+
+/* The foot of the hub's row is half the hub, 6em, below its middle; the
+   widest conduit reaches 0.9em above that middle, and a clear 0.5em more.
+   Placed out of the grid's flow, so that however many lines the readings
+   take, they never make the hub's row taller and so never push their own
+   foot down: they only grow upward, into the clear space above. */
+.fof-hub-readings {
+  position: absolute;
+  grid-column: 4;
+  grid-row: 1 / span 2;
+  bottom: 7.4em;
+  left: 0.6em;
+  /* As wide as it reads well, but never past the gap after the column, so
+     it stays clear of the next column's name. The gap is the diagram's own. */
+  width: min(15em, calc(100% + clamp(3em, 7vw, 9em) - 1.8em));
+}
+
+.fof-hub-readings > .fof-state-line { margin: 0 0 0.35em; }
+.fof-hub-readings > .fof-rows { width: 100%; max-width: none; }
+
+/* Beside the hub there is little room on a smaller screen. A number stays
+   level with its label's first line, never breaking, and the label wraps if
+   it must. A value in words that does not fit beside its label goes under
+   it, at the right. */
+.fof-hub-readings .fof-row { align-items: baseline; }
+.fof-hub-readings .fof-row:has(.reading-value) { flex-wrap: nowrap; }
+.fof-hub-readings .fof-row dd { margin-left: auto; text-align: right; }
+.fof-hub-readings .fof-row dd:has(.reading-value) { flex: none; white-space: nowrap; }
+.fof-ring-unit { width: 12em; }
+
+.fof-duty-inverting { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #cfe6ff; --fof-ring: var(--fof-plasma-deep); }
+.fof-duty-charging { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #c9f3ea; --fof-ring: #3fb8a8; }
+.fof-duty-passing { --fof-cell-rest: #e2d6b0; --fof-cell-hot: #e2d6b0; --fof-ring: #9c7fd0; }
+.fof-duty-loaded { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #8fbcff; --fof-ring: var(--fof-plasma-deep); }
+.fof-duty-running { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #5a9cff; --fof-ring: #e0a84f; }
+
+.fof-unit-art {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.fof-plate-0 { fill: #c9c6d6; stroke: #c9c6d6; }
+.fof-plate-1 { fill: #8e8aa3; stroke: #8e8aa3; }
+.fof-unit-band { fill: none; stroke-width: 3; }
+.fof-panel-breaker { fill: var(--fof-cell-rest); }
+
+/* The hub: a dark square over the junction where its conduits meet, the
+   core's rings of cells, the windings the conduits branch into, and at the
+   center a thin band round a light in the core's tint. */
+.fof-hub-disc { fill: #000; }
+/* The core's edge and the band round the light share one color. */
+.fof-ring-unit { --fof-hub-rim: #3d3852; }
+/* No fill: the dark square under the hub is on the conduits' layer, with the
+   threads that join the coil drawn over it. */
+.fof-unit-core { fill: none; stroke: var(--fof-hub-rim, #3d3852); stroke-width: 3; }
+.fof-hub-wire { fill: none; stroke: var(--fof-conduit); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+/* The coil is 65% see-through, so the core's cells pulse through it at full
+   strength; the pulses running round it stay solid. */
+.fof-hub-coil { stroke-width: 1.3; stroke-opacity: 0.35; }
+
+/* A conduit's threads into the hub: its own body and waves, cut to each
+   thread's tapering outline in InverterCore.tsx. */
+.fof-thread-body { fill: none; stroke: var(--fof-conduit); }
+.fof-thread-idle .fof-thread-body { stroke: #4a4436; }
+
+.fof-thread-wave {
+  fill: none;
+  stroke: color-mix(in oklab, var(--fof-plasma-deep) calc(var(--depth) * 100%), var(--fof-plasma));
+  animation: fof-thread-roll var(--fof-roll) linear infinite;
+  animation-delay: calc(var(--fof-phase, 0) * var(--fof-roll) * -1);
+}
+
+.fof-hub-pulse {
+  fill: none;
+  stroke: var(--fof-plasma-deep);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 10 400;
+  stroke-dashoffset: 10;
+  opacity: 0;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.fof-hub-band { fill: none; stroke: var(--fof-hub-rim); stroke-width: 1.8; }
+.fof-hub-light { fill: var(--fof-ring); animation: fof-hub-glow var(--fof-light, 2s) ease-in-out infinite; }
+.fof-duty-idle .fof-hub-light { animation: none; fill-opacity: 0.35; }
+
+@keyframes fof-hub-glow {
+  0%, 100% { fill-opacity: 0.5; }
+  50% { fill-opacity: 1; }
+}
+
+/* A loads' panel: breakers tapped off the bus, and the terminal
+   block at the bus's end. The conduit's crests reach the bus's end as each
+   cycle starts, so a crest passes a breaker's tap its share of the panel's
+   width earlier, the panel being --fof-panel em wide and the crests 14em
+   apart. Each tap flashes as a crest passes it and its breaker lights just
+   after, so the plasma flows into each circuit as it reaches it. */
+.fof-panel-unit {
+  --fof-panel: 14;
+  position: relative;
+  width: calc(var(--fof-panel) * 1em);
+  margin-left: 0;
+}
+
+.fof-panel-terminal { fill: var(--fof-cap); }
+.fof-panel-tap { stroke: #8e8aa3; stroke-width: 2.5; }
+
+.fof-duty-loaded .fof-panel-tap {
+  animation: fof-tap var(--fof-feed) linear infinite;
+  animation-delay: calc(var(--fof-feed) * -1 * (var(--tap) * var(--fof-panel) / 14 + 0.25));
+}
+
+.fof-duty-loaded .fof-panel-breaker {
+  animation: fof-surge var(--fof-feed) ease-in-out infinite;
+  animation-delay: calc(var(--fof-feed) * -1 * (var(--tap) * var(--fof-panel) / 14 + 0.19));
+}
+
+@keyframes fof-tap {
+  0%, 15%, 40%, 100% { stroke: #8e8aa3; }
+  25% { stroke: var(--fof-plasma); }
+}
+
+.fof-panel-number {
+  fill: #000;
+  font-size: 9px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.fof-panel-bus {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 0;
+}
+
+/* The grid's tower, as a schematic: members drawn as pale blue outlines round
+   dark navy, thin lattice inside, and the wire as a leader line, as the
+   console draws equipment. GridTower.tsx gives each pip its own keyframes,
+   one cycle of the grid's conduit long, each ending as a packet reaches the
+   row's far end, which is when a wave sets off along the conduit. */
+.fof-schematic-unit {
+  position: relative;
+  width: 26em;
+  max-width: 100%;
+}
+
+.fof-schematic-launch { position: absolute; }
+
+.fof-tower-unit {
+  --fof-cell-rest: #6e6450;
+  /* The pace of the conduit the tower feeds. */
+  --fof-feed: var(--fof-roll-grid-inverter_charger, 4s);
+}
+
+/* The pips rest in the conduit's yellow and charge to its deep plasma blue. */
+.fof-duty-feeding {
+  --fof-drip-yellow: var(--fof-conduit);
+  --fof-drip-blue: var(--fof-plasma-deep);
+}
+
+.fof-schematic-outline,
+.fof-schematic-core {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.fof-schematic-outline { stroke: #9fc8ff; stroke-width: 6; }
+.fof-schematic-core { stroke: #18205a; stroke-width: 2.6; }
+.fof-schematic-line { fill: none; stroke: #6f86d6; stroke-width: 1.1; }
+.fof-schematic-insulator { fill: #18205a; stroke: #9fc8ff; stroke-width: 1.5; }
+.fof-schematic-lead { fill: none; stroke: var(--fof-sand); stroke-width: 2; }
+.fof-schematic-dot { fill: var(--fof-sand); }
+.fof-tower-pill { fill: var(--fof-cell-rest); }
+
+.fof-duty-feeding .fof-tower-pill {
+  animation: var(--drip) var(--fof-feed) linear infinite;
+}
+
+/* The solar array, as a schematic: panels in outline, each a grid of cells
+   that gather light, a cable down to a row of pips like the grid's, and a
+   pulse down the cable and along the pips. Each cell's and pip's keyframes
+   come from SolarArray.tsx, one cycle of the solar conduit long; the pulse
+   reaches the row's far end as the cycle closes, which is when a wave sets
+   off along the conduit. */
+.fof-solar-unit {
+  --fof-cell-rest: #6e6450;
+  --fof-feed: var(--fof-roll-solar-dc_bus, var(--fof-roll-solar-battery, 4s));
+}
+
+.fof-duty-producing {
+  --fof-solar-dark: #18205a;
+  --fof-solar-lit: #5a9cff;
+  --fof-drip-yellow: var(--fof-conduit);
+  --fof-drip-blue: var(--fof-plasma-deep);
+}
+
+.fof-solar-cell { fill: #18205a; }
+.fof-solar-panel { fill: none; stroke: #9fc8ff; stroke-width: 2.5; }
+
+/* A pulse down a supply's cable into its row of pips. */
+.fof-cable-pulse {
+  fill: none;
+  stroke: var(--fof-plasma-deep);
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-dasharray: 14 300;
+  stroke-dashoffset: 14;
+  opacity: 0;
+}
+
+.fof-duty-producing .fof-solar-cell { animation: var(--gather) var(--fof-feed) linear infinite; }
+.fof-duty-producing .fof-solar-pulse { animation: fof-solar-cable var(--fof-feed) linear infinite; }
+.fof-duty-producing .fof-solar-pip { animation: var(--pip) var(--fof-feed) linear infinite; }
+
+/* The grid's wire carries its constant supply as a steady blue flow. */
+.fof-feed-wire {
+  fill: none;
+  stroke: var(--fof-plasma);
+  stroke-width: 2.4;
+  stroke-dasharray: 3 5;
+  opacity: 0;
+}
+
+.fof-duty-feeding .fof-feed-wire {
+  opacity: 1;
+  animation: fof-feed-flow 0.8s linear infinite;
+}
+
+@keyframes fof-feed-flow { to { stroke-dashoffset: -16; } }
+
+/* The generator, as a schematic: a column with a dark housing, a lighter
+   ring and a dot that lights, a cable down to a row of pips like the grid's,
+   and a pulse down the cable and along the pips. Its cells light from both
+   ends inward, from the outermost at 12% of a cycle to the innermost at 52%
+   (a cell peaks a quarter of a cycle after its delay, which is kept negative
+   so none waits to start), the dot pulses at 58%, and GeneratorCore.tsx times
+   the cable and the pips after it, so the pulse reaches the row's far end as
+   the cycle closes, when a wave sets off along the conduit. */
+.fof-gen-unit {
+  --fof-cell-rest: #6e6450;
+  --fof-feed: var(--fof-roll-generator-inverter_charger, 4s);
+  --fof-beat: var(--fof-feed);
+}
+
+.fof-duty-running.fof-gen-unit {
+  --fof-cell-rest: #d9cfa6;
+  --fof-drip-yellow: var(--fof-conduit);
+  --fof-drip-blue: var(--fof-plasma-deep);
+}
+
+.fof-gen-housing { fill: #4f4a5e; }
+.fof-gen-ring { fill: #bdb9cc; }
+.fof-gen-dot { fill: #2a2733; }
+
+.fof-duty-running.fof-gen-unit .fof-unit-cell {
+  animation-duration: var(--fof-feed);
+  animation-delay: calc(var(--fof-feed) * (var(--wave) * 0.08 - 1.13));
+}
+
+.fof-duty-running .fof-gen-dot { animation: fof-gen-pulse var(--fof-feed) linear infinite; }
+.fof-duty-running .fof-gen-pulse { animation: fof-gen-cable var(--fof-feed) linear infinite; }
+.fof-duty-running .fof-gen-pip { animation: var(--pip) var(--fof-feed) linear infinite; }
+
+@keyframes fof-gen-pulse {
+  0%, 50% { fill: #2a2733; }
+  58% { fill: #8fc1ff; }
+  66%, 100% { fill: #2a2733; }
+}
+
+/* Light runs through the cells in order, each a step behind the one before. */
+.fof-unit-cell {
+  fill: var(--fof-cell-rest);
+  animation: fof-surge var(--fof-beat) ease-in-out infinite;
+  animation-delay: calc((var(--wave) / var(--waves) - 1) * var(--fof-beat));
+}
+
+.fof-duty-idle .fof-unit-cell,
+.fof-duty-passing .fof-unit-cell { animation: none; }
+
+@keyframes fof-surge {
+  0%, 60%, 100% { fill: var(--fof-cell-rest); }
+  25% { fill: var(--fof-cell-hot); }
+}
+
+.fof-flow-0 { --fof-beat: 3s; }
+.fof-flow-1 { --fof-beat: 2.4s; }
+.fof-flow-2 { --fof-beat: 1.8s; }
+.fof-flow-3 { --fof-beat: 1.3s; }
+.fof-flow-4 { --fof-beat: 0.9s; }
+
+/* The battery: a bank of cells between end caps */
+/* The battery: the block centered in its column, so a conduit from above
+   meets its middle; its name above the block's left end, its charge beside
+   the block's right end, its state and readings below, lined up on the block. */
+.fof-core {
+  --fof-bank-width: 18em;
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--fof-bank-width) minmax(0, 1fr);
+  row-gap: 0.35em;
+}
+
+.fof-core > * { grid-column: 2; }
+.fof-core > .fof-rows { grid-column: 2 / span 2; }
+.fof-core-name { justify-self: start; }
+
+/* The block and its charge together, reaching to the column's right edge,
+   so a conduit leaving to the right starts clear of the figure. */
+.fof-core > .fof-core-row {
+  grid-column: 2 / span 2;
+  display: grid;
+  grid-template-columns: var(--fof-bank-width) minmax(0, 1fr);
+  align-items: center;
+  column-gap: 1.2em;
+  margin: 0.2em 0;
+}
+
+/* In a narrower column the block shrinks, leaving room beside it for its
+   charge, clear of a conduit leaving to the right. */
+@container (max-width: 31em) {
+  .fof-core > .fof-core-row { --fof-bank-width: 14em; }
+  .fof-core > .fof-core-row .fof-bank { height: 5.6em; }
+  .fof-core > .fof-core-row .fof-core-figure { font-size: 2em; }
+}
+
+/* One block: a pair of end caps spanning every row, with the cells between. */
+.fof-bank {
+  display: grid;
+  grid-template-columns: 1.6em minmax(0, 1fr) 1.6em;
+  gap: 0.3em;
+  width: var(--fof-bank-width);
+  height: 7em;
+}
+
+.fof-bank-cells {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.45em 0.25em;
+}
+
+/* End caps, each with a thin bar outside it. */
+.fof-bank-cap {
+  position: relative;
+  background: var(--fof-cap);
+  border-radius: 2.4em 0.35em 0.35em 2.4em;
+}
+
+/* The right-hand cap, its rounding and its terminal facing out. */
+.fof-bank-cap-end { border-radius: 0.35em 2.4em 2.4em 0.35em; }
+
+.fof-bank-cap::before {
+  content: "";
+  position: absolute;
+  top: 22%;
+  bottom: 22%;
+  left: -0.45em;
+  width: 0.15em;
+  background: var(--fof-ink);
+}
+
+.fof-bank-cap-end::before { right: -0.45em; left: auto; }
+
+/* A cell: a capsule split across its middle, dark until lit. Its light is
+   its share of the charge. */
+.fof-cell {
+  position: relative;
+  flex: 1;
+  background: #2a2316;
+  border-radius: 0.8em;
+}
+
+.fof-cell::after {
+  content: "";
+  position: absolute;
+  top: calc(50% - 0.08em);
+  right: 15%;
+  left: 15%;
+  height: 0.16em;
+  background: #000;
+  opacity: 0.55;
+}
+
+.fof-cell-lit {
+  background: color-mix(in srgb, var(--fof-cell) calc(var(--level) * 100%), #2a2316);
+  box-shadow: 0 0 calc(0.6em * var(--level)) rgba(240, 223, 168, 0.45);
+}
+
+/* A pulse of plasma through each lit cell, deep blue at its middle and
+   fading out to its edges, in the same blues and at the same rhythm as the
+   waves on the conduits at that power. A crest reaches the end of the
+   conduit feeding the block as each cycle starts, so the first cell in
+   --wave's order lights just after it lands and the rest follow outward,
+   each a step later; discharging, the order runs the other way. The delay
+   keeps every pulse's peak, a quarter into its cycle, on that schedule, and
+   stays negative so no cell waits to start. */
+.fof-cell-lit::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at center, var(--fof-plasma-deep) 0%,
+    color-mix(in srgb, var(--fof-plasma) 70%, transparent) 55%, transparent 100%);
+  opacity: 0;
+  animation: fof-cell-pulse var(--fof-beat, 4s) ease-in-out infinite;
+  animation-delay: calc(var(--fof-beat, 4s) * (var(--wave) * 0.06 - 1.22));
+}
+
+.fof-still .fof-cell-lit::before { animation: none; }
+
+@keyframes fof-cell-pulse {
+  0%, 60%, 100% { opacity: 0; }
+  25% { opacity: 0.75; }
+}
+
+/* The charge, with the battery's state under it. */
+.fof-core-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.fof-core-side > .fof-state-line { margin: 0; }
+
+.fof-core-figure {
+  margin: 0;
+  color: var(--fof-cell);
+  font-size: 2.4em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The battery pulses at the pace of the conduit feeding or drawing on it. */
+.fof-bank {
+  --fof-beat: var(--fof-roll-dc_bus-battery, var(--fof-roll-battery-dc_bus,
+    var(--fof-roll-inverter_charger-battery, var(--fof-roll-battery-inverter_charger, 4s))));
+}
+
+/* Conduits, underneath the panels */
+.fof-conduits {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.fof-conduit path {
+  fill: none;
+  stroke-linecap: butt;
+  stroke-linejoin: round;
+}
+
+/* A lemon yellow, brighter than the frame's gold and well clear of the
+   amber that means attention. Its width is measured in the text's size, so a
+   conduit keeps its weight on a TV. */
+.fof-conduit-body {
+  stroke: var(--fof-conduit);
+  stroke-width: var(--fof-width);
+}
+
+/* A conduit's width steps with every tenfold increase in its power; its
+   pace, --fof-roll, comes from Conduits.tsx. */
+.fof-speed-0 { --fof-width: 1em; }
+.fof-speed-1 { --fof-width: 1.2em; }
+.fof-speed-2 { --fof-width: 1.4em; }
+.fof-speed-3 { --fof-width: 1.6em; }
+.fof-speed-4 { --fof-width: 1.8em; }
+
+/* The energy: long waves of plasma rolling along the conduit toward its
+   target, one every 14em, across its whole width and around its bends, with
+   clear yellow between them. Conduits.tsx stacks each wave from many faint
+   strokes that deepen and strengthen toward its middle, so it flares from deep blue through
+   icy blue into the yellow as a smooth gradient, and needs no blur filter,
+   which would cost too much on a small panel. Every stroke is centered in the
+   14em between waves, after an empty first dash, so all of them share one
+   animation. */
+.fof-conduit-wave {
+  stroke: color-mix(in oklab, var(--fof-plasma-deep) calc(var(--depth) * 100%), var(--fof-plasma));
+  /* Wider than the conduit, so the blur keeps the wave's full depth to its
+     edges; the mask trims it back to the conduit. */
+  stroke-width: calc(var(--fof-width) + 1.4em);
+  stroke-opacity: var(--opacity, calc(0.05 + var(--depth) * 0.1));
+  stroke-dasharray: 0 calc((14em - var(--length)) / 2) var(--length) calc((14em - var(--length)) / 2);
+  animation: fof-roll var(--fof-roll) linear infinite;
+  /* Timed so that a crest reaches the conduit's far end as each cycle starts. */
+  animation-delay: calc(var(--fof-phase, 0) * var(--fof-roll) * -1);
+}
+
+@keyframes fof-roll { to { stroke-dashoffset: -14em; } }
+
+/* A link carrying nothing just now: dim, and still. */
+.fof-conduit-idle .fof-conduit-body { stroke: #4a4436; }
+
+/* The shape a conduit's blurred waves are trimmed to: the conduit itself. */
+.fof-conduit-mask { fill: none; stroke: #fff; stroke-width: var(--fof-width); }
+.fof-conduit-idle .fof-conduit-wave,
+.fof-conduit-idle .fof-conduit-chevron { display: none; }
+
+/* The motion shows the direction, so the chevron appears only without it. */
+.fof-conduit-chevron {
+  display: none;
+  stroke: #000;
+  stroke-width: 3;
+}
+
+/* Phones and upright screens: two columns, as in the main view. */
+@media (orientation: portrait), (max-width: 760px) {
+  .fof-diagram {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "grid generator"
+      "inverter ac"
+      "battery solar"
+      "dc .";
+    gap: 2em 1.6em;
+  }
+
+  .fof-diagram [data-part] { align-self: center; }
+
+  .fof-readout-lead,
+  .fof-readout-hub,
+  .fof-readout-schematic { display: flex; flex-direction: column; align-items: flex-start; }
+  .fof-readout-schematic > .fof-unit { order: 1; width: 100%; margin: 0.4em 0 0.3em; }
+  .fof-readout-schematic > .fof-state-line { order: 2; margin: 0.35em 0; }
+  .fof-readout-schematic > .fof-rows { order: 3; }
+  .fof-readout-lead > .fof-unit,
+  .fof-readout-hub > .fof-unit { margin: 0.8em auto 0; }
+  .fof-hub-readings { position: static; width: 100%; margin: 0; }
+  .fof-readout-lead > .fof-state-line { margin: 0.35em 0; }
+
+  .fof-cap { width: 1.2em; }
+  .fof-label,
+  .fof-select-caption { display: none; }
+  .fof-segment,
+  .fof-link { padding: 0 0.5em; }
+
+  /* Tall enough to tap. */
+  .fof-select .fof-select-option { min-height: 2.75rem; padding: 0 0.9em; }
+  .fof-core { --fof-bank-width: 6.6em; }
+  .fof-panel-unit { --fof-panel: 10.5; }
+  .fof-bank { height: 4.4em; grid-template-columns: 0.8em minmax(0, 1fr) 0.8em; }
+  .fof-bank-cap::before { display: none; }
+  .fof-core > .fof-core-row { column-gap: 0.45em; }
+  .fof-bank-cells { gap: 0.35em 0.15em; }
+  .fof-core-figure { font-size: 1em; }
+}
+
+/* A small panel keeps the motion but drops the cells' glow, the part that
+   costs the most to draw. */
+@media (max-width: 760px), (max-height: 520px) {
+  .fof-cell-lit { box-shadow: none; }
+}
+
+/* On so short a screen, the hub's readings, every row of them, would rise
+   past the space above the hub into the frame's top bar, so they are set a
+   little smaller. Their foot stays where it was, in the readout's own size. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .fof-hub-readings > .fof-state-line,
+  .fof-hub-readings > .fof-rows { font-size: 0.85em; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fof-deck-led-blinking,
+  .fof-page,
+  .fof-deck-balancing .fof-deck-pill::before { animation: none; }
+  .fof-relay-core,
+  .fof-relay-cell { animation: none; }
+  .fof-relay-pulse { display: none; }
+  .fof-select-drop,
+  .fof-select-bar,
+  .fof-select-option { transition: none; }
+  .fof-panel-tap,
+  .fof-panel-breaker,
+  .fof-tower-pill,
+  .fof-gen-dot,
+  .fof-solar-cell,
+  .fof-feed-wire { animation: none; }
+  .fof-cable-pulse { display: none; }
+  .fof-cell-lit::before,
+  .fof-unit-cell,
+  .fof-hub-light { animation: none; }
+  .fof-hub-pulse,
+  .fof-thread-wave { display: none; }
+  .fof-conduit-wave { display: none; }
+  .fof-conduit-chevron { display: inline; }
+}
+
+/* A part that opens its own page. */
+.fof-opens { cursor: pointer; }
+.fof-open-link { color: inherit; text-decoration: none; }
+.fof-open-link:focus-visible { outline: 2px solid var(--fof-ink); outline-offset: 0.3em; border-radius: 1em; }
+.fof-back-segment { background: var(--fof-sand); cursor: pointer; }
+.fof-back-short { display: none; }
+
+@media (orientation: portrait), (max-width: 760px) {
+  .fof-back-long { display: none; }
+  .fof-back-short { display: inline; }
+}
+
+/* A part's own page takes the diagram's place inside the frame, growing out
+   of where the part sat on the overview. The frame holds to the screen and
+   a page with more than fits scrolls inside it. */
+.fof-paged { height: 100vh; min-height: 0; }
+
+/* Positioned, so that text kept for screen readers is placed within the
+   page and scrolls with it, rather than against the screen, which would let
+   it reach past the frame and make the whole console scroll. */
+.fof-page {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-color: var(--fof-dim) transparent;
+  animation: fof-zoom 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes fof-zoom {
+  from { opacity: 0; transform: scale(0.12); }
+  to { opacity: 1; transform: none; }
+}
+
+.fof-deck {
+  display: grid;
+  gap: 1.4em;
+  align-content: start;
+}
+
+.fof-deck-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6em 1.2em;
+}
+
+.fof-deck-head .fof-state-line { margin: 0; }
+
+.fof-deck-charge { grid-row: 2; align-self: center; padding-left: 0.9em; }
+.fof-deck-head-charge { margin-left: auto; }
+.fof-deck-celled .fof-deck-head-charge { display: none; }
+
+.fof-deck-figure {
+  margin: 0;
+  color: var(--fof-cell);
+  font-size: 2.6em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The block: end caps spanning the cells, as on the overview, with every
+   cell between them, its number above it and its readings below. */
+.fof-deck-packs { display: grid; gap: 1.2em; }
+
+.fof-deck-pack {
+  display: grid;
+  grid-template-columns: 1.6em repeat(var(--cells), minmax(0, 7em)) 1.6em auto;
+  justify-content: start;
+  grid-template-rows: auto 9em auto auto;
+  column-gap: 0.3em;
+  row-gap: 0.35em;
+}
+
+.fof-deck-cap { grid-column: 1; grid-row: 2; }
+
+.fof-deck-cell {
+  display: grid;
+  grid-row: 1 / span 4;
+  grid-template-rows: subgrid;
+  justify-items: center;
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.fof-deck-number {
+  padding: 0 0.6em;
+  color: #000;
+  background: var(--fof-dim);
+  border-radius: 1em;
+  font-size: 0.75em;
+  font-weight: 700;
+}
+
+.fof-deck-lowest .fof-deck-number { background: var(--status-attention); }
+.fof-deck-highest .fof-deck-number { background: var(--fof-teal); }
+
+.fof-deck-pill {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #2a2316;
+  border-radius: 0.8em;
+}
+
+/* Lit from the bottom to the cell's own charge. */
+.fof-deck-pill > span {
+  position: absolute;
+  inset: auto 0 0;
+  height: calc(var(--level) * 100%);
+  background: var(--fof-cell);
+  border-radius: inherit;
+  box-shadow: 0 0 0.6em rgba(240, 223, 168, 0.45);
+}
+
+/* A cell the battery is balancing pulses with plasma. */
+.fof-deck-balancing .fof-deck-pill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at center, var(--fof-plasma-deep) 0%,
+    color-mix(in srgb, var(--fof-plasma) 70%, transparent) 55%, transparent 100%);
+  animation: fof-cell-pulse 1.6s ease-in-out infinite;
+}
+
+.fof-deck-volts { font-size: 0.8em; white-space: nowrap; }
+.fof-deck-offset { color: var(--fof-dim); font-size: 0.7em; white-space: nowrap; }
+
+/* Every reading, in groups headed by rounded tags, flowing down balanced
+   columns; the conditions the battery watches run across under them. */
+.fof-deck-groups {
+  columns: 17em;
+  column-gap: 2.4em;
+}
+
+.fof-deck-group {
+  display: grid;
+  gap: 0.45em;
+  justify-items: start;
+  margin-bottom: 1.3em;
+  break-inside: avoid;
+}
+
+.fof-deck-checks { column-span: all; margin-top: 0.6em; }
+.fof-deck-group .fof-rows { max-width: none; }
+
+.fof-deck-tag {
+  margin: 0;
+  padding: 0.15em 0.9em;
+  color: #000;
+  border-radius: 1em;
+  font-size: 0.8em;
+  font-weight: 700;
+}
+
+.fof-deck-tag-0 { background: var(--fof-lavender); }
+.fof-deck-tag-1 { background: var(--fof-periwinkle); }
+.fof-deck-tag-2 { background: var(--fof-sand); }
+.fof-deck-tag-alarms { background: var(--fof-teal); }
+
+.fof-deck-checks ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* On a narrow screen the cells' voltages turn on their side, so that a
+   block of many cells keeps every one; their differences go. */
+@container (max-width: 40em) {
+  .fof-deck-offset { display: none; }
+  .fof-deck-volts { writing-mode: vertical-rl; transform: rotate(180deg); }
+  .fof-deck-number { padding: 0 0.15em; font-size: 0.55em; }
+  .fof-deck-charge { display: none; }
+  .fof-deck-celled .fof-deck-head-charge { display: block; }
+}
+
+.fof-deck { container-type: inline-size; }
+
+/* The inverter/charger drawn large: its hub beside its front panel's lights. */
+.fof-deck-head-figure { margin-left: auto; }
+
+.fof-deck-unit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.2em 2.4em;
+}
+
+.fof-deck-hub .fof-ring-unit { width: 13em; margin: 0; }
+
+/* Any other part drawn large: its overview drawing, half as big again. */
+/* Free to shrink to the page, which a grid's item is not by default. */
+.fof-deck-art { min-width: 0; }
+.fof-deck-art .fof-schematic-unit { width: 39em; }
+.fof-deck-art .fof-panel-unit { --fof-panel: 21; max-width: 100%; }
+
+.fof-deck-leds {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 0.45em 0.6em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fof-deck-led {
+  padding: 0.2em 1em;
+  color: var(--fof-dim);
+  border: 0.12em solid #3d3852;
+  border-radius: 1em;
+  font-size: 0.85em;
+  font-weight: 700;
+  text-align: center;
+}
+
+.fof-deck-led-on,
+.fof-deck-led-blinking { color: #000; background: var(--fof-plasma); border-color: var(--fof-plasma); }
+.fof-deck-led-blinking { animation: fof-led-blink 1s steps(1) infinite; }
+
+@keyframes fof-led-blink {
+  50% { color: var(--fof-dim); background: transparent; border-color: #3d3852; }
+}
+/* The DC bus's plasma relay, over the corner where its conduits meet: a dark
+   body in the hub's rim color, a sand port for each conduit, cells chasing
+   round a plasma core, and pulses along the spokes, timed in Relay.tsx. */
+.fof-relay { --fof-cell-rest: #3d3852; --fof-cell-hot: var(--fof-plasma); }
+.fof-relay-body { fill: #000; stroke: #3d3852; }
+.fof-relay-port { fill: var(--fof-sand); }
+.fof-relay-port-idle { fill: #4a4436; }
+.fof-relay-spoke { stroke: #3d3852; stroke-linecap: round; }
+.fof-relay-core-ring { fill: none; stroke: #3d3852; }
+.fof-relay-core { fill: var(--fof-plasma-deep); animation: fof-hub-glow var(--fof-beat) ease-in-out infinite; }
+
+.fof-relay-cell {
+  fill: var(--fof-cell-rest);
+  animation: fof-surge var(--fof-beat) ease-in-out infinite;
+  animation-delay: calc((var(--wave) / var(--waves) - 1) * var(--fof-beat));
+}
+
+.fof-relay-pulse {
+  stroke: var(--fof-plasma);
+  stroke-linecap: round;
+  stroke-dasharray: 30 300;
+  opacity: 0;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.fof-relay-idle .fof-relay-core { animation: none; fill-opacity: 0.35; }
+.fof-relay-idle .fof-relay-cell { animation: none; }

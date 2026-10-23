@@ -24,7 +24,8 @@ from . import status
 from .feed import Feed
 from .flows import derive_flows
 from .model import (
-    AcLoads, Alarm, Battery, DcLoads, Generator, Grid, InverterCharger, Solar, SolarCharger, System,
+    AcLoads, AcPhase, Alarm, AlarmCheck, Battery, BatteryHistory, Cell, DcLoads, EnergyCounter, Generator, Grid,
+    InverterCharger, Led, Solar, SolarCharger, System, TemperatureSensor,
 )
 
 CYCLE_S = 600
@@ -41,6 +42,13 @@ CHARGER_MAX_W = 1600.0
 CHARGER_EFFICIENCY = 0.94
 INVERTER_EFFICIENCY = 0.92
 LOW_BATTERY_ALARM_PERCENT = 20.0
+BATTERY_AH = 200.0
+# Eight cells in series, each a few millivolts off the pack's mean, the last
+# running high enough near full that the battery balances it.
+CELL_OFFSETS_V = (-0.004, 0.002, 0.000, -0.002, 0.003, -0.001, 0.001, 0.001)
+BALANCE_ABOVE_PERCENT = 95.0
+INVERTER_RATED_W = 2400.0
+INVERTER_MAX_CHARGE_A = 70.0
 
 
 def _window(phase: float, start: float, end: float) -> bool:
@@ -162,20 +170,67 @@ def snapshot(t: float) -> System:
     activity = "charging" if m.battery_w > 5 else "discharging" if m.battery_w < -5 else "idle"
     remaining_wh = max(0.0, soc - 10) / 100 * BATTERY_CAPACITY_WH
     alarms = [Alarm(name="Low battery", level="warning")] if soc < LOW_BATTERY_ALARM_PERCENT else []
+    topping = max(0.0, soc - BALANCE_ABOVE_PERCENT)
+    cell_voltages = [voltage / len(CELL_OFFSETS_V) + offset for offset in CELL_OFFSETS_V]
+    cell_voltages[-1] += topping * 0.004
+    cells = [Cell(voltage_v=round(v, 3), balancing=n == len(cell_voltages) - 1 and topping > 0)
+             for n, v in enumerate(cell_voltages)]
+    battery_temperature = 21.0 + abs(m.battery_w) * 0.002
+    checks = [
+        AlarmCheck(name=name, level=level) for name, level in (
+            ("Low battery", "warning" if soc < LOW_BATTERY_ALARM_PERCENT else "ok"),
+            ("High voltage", "ok"), ("Low cell voltage", "ok"), ("High cell voltage", "ok"),
+            ("Cell imbalance", "ok"), ("High temperature", "ok"), ("Low temperature", "ok"),
+            ("High charge current", "ok"), ("High discharge current", "ok"), ("Internal failure", "ok"),
+        )
+    ]
     battery = Battery(
         status=status.battery(soc, activity, alarms),
         soc_percent=round(soc, 1),
         voltage_v=voltage,
         current_a=current,
         power_w=round(m.battery_w),
-        temperature_c=round(21.0 + abs(m.battery_w) * 0.002, 1),
+        temperature_c=round(battery_temperature, 1),
         time_to_go_s=round(remaining_wh / -m.battery_w * 3600) if activity == "discharging" else None,
         activity=activity,
         max_charge_voltage_v=28.4,
         max_charge_current_a=150.0,
         max_discharge_current_a=200.0,
-        min_cell_voltage_v=round(voltage / 8 - 0.004, 3),
-        max_cell_voltage_v=round(voltage / 8 + 0.006 + max(0.0, soc - 95) * 0.004, 3),
+        min_cell_voltage_v=min(cell.voltage_v for cell in cells),
+        max_cell_voltage_v=max(cell.voltage_v for cell in cells),
+        alarms=alarms,
+        checks=checks,
+        capacity_ah=round(soc / 100 * BATTERY_AH, 1),
+        installed_capacity_ah=BATTERY_AH,
+        consumed_ah=round((100 - soc) / 100 * BATTERY_AH, 1),
+        health_percent=97.0,
+        cells=cells,
+        balancing=topping > 0,
+        temperatures=[
+            TemperatureSensor(name="Cells 1-4", temperature_c=round(battery_temperature - 0.2, 1)),
+            TemperatureSensor(name="Cells 5-8", temperature_c=round(battery_temperature + 0.3, 1)),
+        ],
+        switch_temperature_c=round(battery_temperature + 2.5 + abs(m.battery_w) * 0.002, 1),
+        charge_allowed=soc < 100,
+        discharge_allowed=soc > 5,
+        charge_limited_by="Cell voltage" if topping > 0 else None,
+        discharge_limited_by=None,
+        applied_charge_voltage_v=28.2,
+        max_cell_charge_voltage_v=3.55,
+        low_voltage_v=24.0,
+        modules_online=1,
+        modules_offline=0,
+        modules_blocking_charge=1 if soc >= 100 else 0,
+        modules_blocking_discharge=0,
+        manufacturer="Example Cells",
+        firmware_version="1.4.2",
+        history=BatteryHistory(
+            charge_cycles=41.0, full_discharges=0.0, deepest_discharge_ah=142.0, last_discharge_ah=96.5,
+            average_discharge_ah=74.0, total_drawn_ah=8210.0, charged_kwh=221.4, discharged_kwh=209.8,
+            min_voltage_v=23.9, max_voltage_v=28.5, min_cell_voltage_v=2.98, max_cell_voltage_v=3.58,
+            min_temperature_c=4.5, max_temperature_c=36.0, low_voltage_alarms=1.0, high_voltage_alarms=0.0,
+            since_full_charge_s=None if soc >= 99.5 else round((100 - soc) * 2400),
+        ),
     )
 
     ac_in = (m.on_output_w + m.charger_dc_w / CHARGER_EFFICIENCY) if m.ac_source else 0.0
@@ -185,6 +240,13 @@ def snapshot(t: float) -> System:
         inverter_alarms.append(Alarm(name="High temperature", level="warning"))
     if _window(m.phase, 0.530, 0.535):
         inverter_alarms.append(Alarm(name="Overload", level="alarm"))
+    out_v = round(_shore_voltage(t % CYCLE_S), 1) if m.ac_source else INVERTER_V
+    out_hz = round(_shore_frequency(t % CYCLE_S), 2) if m.ac_source else SHORE_HZ
+    lit = {"Mains": m.ac_source is not None, "Bulk": state == "bulk", "Absorption": state == "absorption",
+           "Float": state == "float", "Inverter": state == "inverting", "Overload": False,
+           "Low battery": soc < LOW_BATTERY_ALARM_PERCENT,
+           "Temperature": any(a.name == "High temperature" for a in inverter_alarms)}
+    alarming = {a.name: a.level for a in inverter_alarms}
     inverter = InverterCharger(
         status=status.inverter_charger(state, inverter_alarms),
         mode="on",
@@ -194,12 +256,59 @@ def snapshot(t: float) -> System:
         charge_current_a=round(m.inverter_dc_w / voltage, 1),
         dc_power_w=round(m.inverter_dc_w),
         alarms=inverter_alarms,
+        # Shore power on AC input 1 and the generator on AC input 2.
+        ac_inputs=2,
+        active_input=1 if m.ac_source == "grid" else 2 if m.ac_source == "generator" else None,
+        product_name="Example 24/3000/70",
+        firmware_version="502",
+        rated_power_w=INVERTER_RATED_W,
+        phases=1,
+        units=1,
+        uptime_s=round(t % CYCLE_S * TIME_SCALE + 86400),
+        input_connected=m.ac_source is not None,
+        input_current_limit_a=SHORE_LIMIT_A,
+        input_phases=[AcPhase(
+            phase="L1", voltage_v=out_v, current_a=round(ac_in / out_v, 1), power_w=round(ac_in),
+            apparent_power_va=round(ac_in * 1.04), frequency_hz=out_hz,
+        )] if m.ac_source else [],
+        output_phases=[AcPhase(
+            phase="L1", voltage_v=out_v, current_a=round(m.on_output_w / out_v, 1), power_w=round(m.on_output_w),
+            apparent_power_va=round(m.on_output_w * 1.06), frequency_hz=out_hz,
+        )],
+        output_apparent_power_va=round(m.on_output_w * 1.06),
+        dc_voltage_v=voltage,
+        max_charge_current_a=INVERTER_MAX_CHARGE_A,
+        battery_ripple_v=round(0.02 + abs(m.inverter_dc_w) * 0.00004, 2),
+        battery_charge_voltage_v=28.2,
+        battery_charge_current_a=150.0 if soc < 100 else 0.0,
+        battery_discharge_current_a=200.0,
+        battery_low_voltage_v=24.0,
+        charging_disabled=False,
+        too_cold_to_charge=False,
+        too_low_to_invert=soc < 5,
+        power_assist=True,
+        ups_function=True,
+        weak_input=False,
+        output_voltage_setting_v=INVERTER_V,
+        energy=[
+            EnergyCounter(source="input_1", target="output", kwh=184.3),
+            EnergyCounter(source="input_1", target="battery", kwh=96.1),
+            EnergyCounter(source="input_2", target="output", kwh=21.7),
+            EnergyCounter(source="input_2", target="battery", kwh=38.4),
+            EnergyCounter(source="battery", target="output", kwh=142.9),
+        ],
+        checks=[AlarmCheck(name=name, level=alarming.get(name, "ok")) for name in (
+            "High temperature", "Overload", "Low battery", "DC ripple", "High DC voltage", "High DC current",
+            "Supply lost", "Temperature sensor", "Voltage sensor",
+        )],
+        leds=[Led(name=name, state="on" if on else "off") for name, on in lit.items()],
     )
 
     shore = m.ac_source == "grid"
     grid = Grid(
         status="normal",
         kind="shore",
+        ac_input=1,
         connected=_shore_connected(m.phase),
         power_w=round((ac_in if shore else 0.0) + m.on_input_w),
         voltage_v=round(_shore_voltage(t % CYCLE_S), 1) if _shore_connected(m.phase) else 0.0,
@@ -211,6 +320,7 @@ def snapshot(t: float) -> System:
     running = m.ac_source == "generator"
     generator = Generator(
         status="normal",
+        ac_input=2,
         running=running,
         power_w=round(ac_in) if running else 0,
         run_time_s=round((m.phase - 0.20) * CYCLE_S * TIME_SCALE) if running else None,
@@ -218,9 +328,9 @@ def snapshot(t: float) -> System:
 
     west_offline = _window(m.phase, 0.48, 0.53)
     chargers = [
-        _charger("East array", m.east_w, east_wh, soc),
+        _charger("East array", m.east_w, east_wh, soc, _sun_peak_so_far(m.phase, 0.25, 0.70, 480.0), 412.6),
         SolarCharger(status="offline", name="West array") if west_offline
-        else _charger("West array", m.west_w, west_wh, soc),
+        else _charger("West array", m.west_w, west_wh, soc, _sun_peak_so_far(m.phase, 0.32, 0.80, 420.0), 365.1),
     ]
     solar_w = m.east_w + (0.0 if west_offline else m.west_w)
     solar = Solar(
@@ -263,14 +373,29 @@ def snapshot(t: float) -> System:
     return system
 
 
-def _charger(name: str, power_w: float, yield_wh: float, soc: float) -> SolarCharger:
+def _sun_peak_so_far(phase: float, rise: float, set_: float, peak_w: float) -> float:
+    """The most an array has made today by `phase`: its curve rises to the middle of its day, then falls."""
+    return _sun(min(phase, (rise + set_) / 2), rise, set_, peak_w) if phase >= rise else 0.0
+
+
+def _charger(name: str, power_w: float, yield_wh: float, soc: float, peak_w: float, total_kwh: float) -> SolarCharger:
     state = _charge_state(soc) if power_w > 0 else "off"
+    battery_v = 25.6 + (soc - 50) * 0.012
+    # Two panels in series: about 36 V each in sun, a little more lightly loaded.
+    pv_v = 72.0 - power_w * 0.01 if power_w > 0 else 0.0
     return SolarCharger(
         status=status.solar_charger(state, power_w),
         name=name,
         power_w=round(power_w),
         state=state,
         yield_today_kwh=round(yield_wh / 1000, 2),
+        pv_voltage_v=round(pv_v, 1),
+        pv_current_a=round(power_w / pv_v, 1) if pv_v else 0.0,
+        battery_voltage_v=round(battery_v, 2),
+        battery_current_a=round(power_w * 0.97 / battery_v, 1),
+        max_power_today_w=round(peak_w),
+        yield_total_kwh=round(total_kwh + yield_wh / 1000, 2),
+        error=0,
     )
 
 

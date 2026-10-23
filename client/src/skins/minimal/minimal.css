@@ -174,11 +174,116 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* Without motion, an arrow shows each flow's direction. */
   .flow {
     animation: none;
+    marker-mid: url(#minimal-flow-arrow);
   }
 
   .charge-bar > div {
     transition: none;
   }
 }
+
+/* A part with a page of its own opens it when clicked. */
+.panel-opens { cursor: pointer; }
+.panel-opens:hover { border-color: var(--text-muted); }
+.panel-header h2 a { color: inherit; text-decoration: none; }
+.panel-header h2 a:hover,
+.panel-header h2 a:focus-visible { text-decoration: underline; }
+
+/* A part's own page fills the space the panels take. */
+.minimal-page { display: block; }
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.page-header h2 { margin: 0; }
+
+.page-back {
+  font: inherit;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid currentColor;
+  border-radius: 0.4rem;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.cells {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.cell {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.5rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 0.4rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.cell-lowest { border-color: var(--status-attention); }
+.cell-highest { border-color: var(--status-normal); }
+.cell-number,
+.cell-note { font-size: 0.8em; opacity: 0.75; }
+
+.cell-bar {
+  position: relative;
+  height: 2.5rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 0.25rem;
+  overflow: hidden;
+}
+
+.cell-bar > span {
+  position: absolute;
+  inset: auto 0 0;
+  background: var(--status-good);
+  opacity: 0.6;
+}
+
+.page-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.page-group h3 { margin: 0 0 0.4rem; font-size: 1em; }
+
+.checks { margin: 0; padding: 0; list-style: none; }
+.checks li { display: flex; align-items: center; gap: 0.4rem; }
+.check-level { margin-left: auto; opacity: 0.75; }
+
+/* An inverter/charger's front panel lights. */
+.leds {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.35rem 1rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.led { display: flex; align-items: center; gap: 0.5rem; }
+
+.led-light {
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 50%;
+}
+
+.led-on .led-light,
+.led-blinking .led-light { background: var(--status-good); border-color: var(--status-good); }

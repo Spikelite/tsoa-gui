@@ -11,7 +11,7 @@ def test_charging_from_the_grid_with_solar():
         live=True,
         grid=Grid(status="normal", kind="grid", connected=True, power_w=900),
         inverter_charger=InverterCharger(status="good", ac_in_power_w=800, dc_power_w=500),
-        battery=Battery(status="good"),
+        battery=Battery(status="good", power_w=760),
         solar=Solar(status="good", power_w=300),
         ac_loads=AcLoads(status="normal", on_output_w=250, on_input_w=100),
         dc_loads=DcLoads(status="normal", power_w=40),
@@ -20,9 +20,25 @@ def test_charging_from_the_grid_with_solar():
         ("grid", "inverter_charger", 800),
         ("grid", "ac_loads", 100),
         ("inverter_charger", "ac_loads", 250),
-        ("inverter_charger", "battery", 500),
-        ("solar", "battery", 300),
-        ("battery", "dc_loads", 40),
+        ("inverter_charger", "dc_bus", 500),
+        ("solar", "dc_bus", 300),
+        ("dc_bus", "dc_loads", 40),
+        ("dc_bus", "battery", 760),
+    }
+
+
+def test_dc_loads_draw_from_the_bus_whichever_way_the_battery_goes():
+    # Discharging: the battery and solar together feed the inverter/charger and the DC loads.
+    system = System(
+        live=True,
+        inverter_charger=InverterCharger(status="normal", dc_power_w=-900),
+        battery=Battery(status="normal", power_w=-700),
+        solar=Solar(status="good", power_w=250),
+        dc_loads=DcLoads(status="normal", power_w=50),
+    )
+    assert paths(system) == {
+        ("dc_bus", "inverter_charger", 900), ("battery", "dc_bus", 700), ("solar", "dc_bus", 250),
+        ("dc_bus", "dc_loads", 50),
     }
 
 

@@ -75,3 +75,28 @@ body {
   padding: 2rem clamp(0.75rem, 2vw, 2rem);
   color: var(--text-muted);
 }
+
+/* Large enough to read across a room on a wall display. */
+.clock {
+  margin-left: auto;
+  color: var(--text);
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.skin-menu {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.skin-menu select {
+  padding: 0.15rem 0.3rem;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  font: inherit;
+}

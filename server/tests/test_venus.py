@@ -29,6 +29,8 @@ DEVICE = {
     ("system", 0, "Dc/Pv/Power"): 310.0,
     ("system", 0, "Dc/System/Power"): 45.0,
     ("vebus", 276, "Connected"): 1,
+    ("vebus", 276, "Ac/NumberOfAcInputs"): 2,
+    ("vebus", 276, "Ac/ActiveIn/ActiveInput"): 0,
     ("vebus", 276, "Mode"): 3,
     ("vebus", 276, "State"): 3,
     ("vebus", 276, "Ac/ActiveIn/L1/V"): 231.5,
@@ -89,14 +91,20 @@ def test_build_reads_the_whole_installation():
 
     assert system.generator.running is False
 
+    # Shore power is wired to AC input 1 and the generator to AC input 2, and
+    # the inverter/charger, which has both, is taking power from input 1.
+    assert (system.grid.ac_input, system.generator.ac_input) == (1, 2)
+
     inverter = system.inverter_charger
     assert (inverter.mode, inverter.state, inverter.status) == ("on", "bulk", "warning")
     assert [a.name for a in inverter.alarms] == ["High temperature"]
     assert inverter.ac_in_power_w == 1050.0 and inverter.ac_out_power_w == 700.0
     assert inverter.dc_power_w == 26.4 * 12.0
+    assert (inverter.ac_inputs, inverter.active_input) == (2, 1)
 
     battery = system.battery
     assert (battery.soc_percent, battery.activity, battery.status) == (64.5, "charging", "good")
+    assert battery.voltage_v == 26.4
     assert battery.time_to_go_s is None  # only while discharging
     assert battery.max_charge_current_a == 100.0 and battery.min_cell_voltage_v == 3.29
 
@@ -110,7 +118,7 @@ def test_build_reads_the_whole_installation():
     assert (system.dc_loads.power_w, system.dc_loads.measured_by) == (45.0, "calculation")
     assert {(f.source, f.target) for f in system.flows} == {
         ("grid", "inverter_charger"), ("grid", "ac_loads"), ("inverter_charger", "ac_loads"),
-        ("inverter_charger", "battery"), ("solar", "battery"), ("battery", "dc_loads"),
+        ("inverter_charger", "dc_bus"), ("solar", "dc_bus"), ("dc_bus", "dc_loads"), ("dc_bus", "battery"),
     }
 
 
@@ -131,6 +139,121 @@ def test_a_running_generator_is_the_active_input():
     system = build(readings(values), live=True)
     assert system.generator.running and not system.grid.connected
     assert ("generator", "inverter_charger") in {(f.source, f.target) for f in system.flows}
+
+
+def test_an_inverter_charger_on_neither_input_says_so():
+    values = dict(DEVICE)
+    values[("vebus", 276, "Ac/ActiveIn/ActiveInput")] = 240
+    assert build(readings(values), live=True).inverter_charger.active_input is None
+
+
+def test_inputs_are_unknown_where_the_system_does_not_say():
+    values = {k: v for k, v in DEVICE.items() if not k[2].startswith(("Settings/SystemSetup", "Ac/NumberOf"))}
+    system = build(readings(values), live=True)
+    assert system.grid.ac_input is None and system.inverter_charger.ac_inputs is None
+
+
+def test_a_battery_that_reports_its_cells_gives_its_detail():
+    values = dict(DEVICE)
+    for n, voltage in enumerate([3.301, 3.305, 3.298, 3.310], start=1):
+        values[("battery", 512, f"Voltages/Cell{n}")] = voltage
+        values[("battery", 512, f"Balances/Cell{n}")] = 1 if n == 4 else 0
+    values.update({
+        ("battery", 512, "System/Temperature1"): 21.0,
+        ("battery", 512, "System/Temperature1Name"): "Front",
+        ("battery", 512, "System/Temperature2"): 21.4,
+        ("battery", 512, "System/MOSTemperature"): 24.5,
+        ("battery", 512, "Io/AllowToCharge"): 0,
+        ("battery", 512, "Io/AllowToDischarge"): 1,
+        ("battery", 512, "Info/ChargeLimitation"): "SoC",
+        ("battery", 512, "Info/DischargeLimitation"): "  ",
+        ("battery", 512, "ConsumedAmphours"): -12.5,
+        ("battery", 512, "InstalledCapacity"): 200.0,
+        ("battery", 512, "Soh"): 98,
+        ("battery", 512, "Alarms/LowSoc"): 0,
+        ("battery", 512, "Alarms/HighCellVoltage"): 1,
+        ("battery", 512, "History/ChargeCycles"): 12,
+        ("battery", 512, "History/DeepestDischarge"): -150.0,
+        ("system", 0, "Control/EffectiveChargeVoltage"): 27.6,
+    })
+    battery = build(readings(values), live=True).battery
+
+    # The pack's voltage comes from the system, apart from its cells'.
+    assert battery.voltage_v == 26.4
+    assert [(c.voltage_v, c.balancing) for c in battery.cells] == [
+        (3.301, False), (3.305, False), (3.298, False), (3.310, True)]
+    assert [(t.name, t.temperature_c) for t in battery.temperatures] == [("Front", 21.0), ("Sensor 2", 21.4)]
+    assert battery.switch_temperature_c == 24.5
+    assert (battery.charge_allowed, battery.discharge_allowed) == (False, True)
+    # A blank reason is no reason.
+    assert (battery.charge_limited_by, battery.discharge_limited_by) == ("SoC", None)
+    # Amp-hours drawn read as positive amounts.
+    assert battery.consumed_ah == 12.5
+    assert battery.history.deepest_discharge_ah == 150.0
+    assert battery.history.charge_cycles == 12
+    assert (battery.installed_capacity_ah, battery.health_percent) == (200.0, 98)
+    assert battery.applied_charge_voltage_v == 27.6
+    assert [(c.name, c.level) for c in battery.checks] == [
+        ("High cell voltage", "warning"), ("Low state of charge", "ok")]
+    assert [(a.name, a.level) for a in battery.alarms] == [("High cell voltage", "warning")]
+
+
+def test_an_inverter_charger_gives_its_detail():
+    values = dict(DEVICE)
+    values.update({
+        ("vebus", 276, "ProductName"): "Example 24/3000",
+        ("vebus", 276, "FirmwareVersion"): 0x502,
+        ("vebus", 276, "Ac/Out/NominalInverterPower"): 2400,
+        ("vebus", 276, "Ac/Out/L1/S"): 760,
+        ("vebus", 276, "Ac/ActiveIn/L1/V"): 231.0,
+        ("vebus", 276, "Ac/ActiveIn/Connected"): 1,
+        ("vebus", 276, "Devices/0/UpTime"): 3600,
+        ("vebus", 276, "Devices/0/Diagnostics/UBatRipple"): 0.05,
+        ("vebus", 276, "BatteryOperationalLimits/MaxChargeVoltage"): 28.2,
+        ("vebus", 276, "Devices/0/ExtendStatus/ChargeDisabledDueToLowTemp"): 0,
+        ("vebus", 276, "Settings/PowerAssistEnabled"): True,
+        ("vebus", 276, "Energy/AcIn1ToAcOut"): 6.5,
+        ("vebus", 276, "Energy/InverterToAcOut"): 0.25,
+        ("vebus", 276, "Leds/Mains"): 1,
+        ("vebus", 276, "Leds/Bulk"): 2,
+        ("vebus", 276, "Leds/Float"): 0,
+    })
+    inverter = build(readings(values), live=True).inverter_charger
+
+    assert (inverter.product_name, inverter.firmware_version, inverter.rated_power_w) == (
+        "Example 24/3000", "502", 2400)
+    assert [(p.phase, p.voltage_v, p.power_w, p.apparent_power_va) for p in inverter.output_phases] == [
+        ("L1", 230.2, 700.0, 760)]
+    assert [(p.phase, p.voltage_v) for p in inverter.input_phases] == [("L1", 231.0)]
+    assert (inverter.input_connected, inverter.uptime_s, inverter.battery_ripple_v) == (True, 3600, 0.05)
+    assert inverter.battery_charge_voltage_v == 28.2
+    assert (inverter.too_cold_to_charge, inverter.power_assist, inverter.weak_input) == (False, True, None)
+    assert [(e.source, e.target, e.kwh) for e in inverter.energy] == [
+        ("input_1", "output", 6.5), ("battery", "output", 0.25)]
+    assert [(led.name, led.state) for led in inverter.leds] == [("Mains", "on"), ("Bulk", "blinking"), ("Float", "off")]
+    # Per-phase alarms count once, and every condition shows, alarming or not.
+    assert [(c.name, c.level) for c in inverter.checks] == [("High temperature", "warning"), ("Overload", "ok")]
+
+
+def test_a_solar_charger_gives_its_detail():
+    values = dict(DEVICE)
+    values.update({
+        ("solarcharger", 278, "Pv/V"): 71.2,
+        ("solarcharger", 278, "Pv/I"): 4.4,
+        ("solarcharger", 278, "Dc/0/Voltage"): 26.5,
+        ("solarcharger", 278, "Dc/0/Current"): 11.3,
+        ("solarcharger", 278, "History/Daily/0/MaxPower"): 455,
+        ("solarcharger", 278, "Yield/User"): 812.4,
+        ("solarcharger", 278, "ErrorCode"): 0,
+    })
+    east = build(readings(values), live=True).solar.chargers[0]
+    assert (east.pv_voltage_v, east.pv_current_a, east.battery_voltage_v, east.battery_current_a) == (71.2, 4.4, 26.5, 11.3)
+    assert (east.max_power_today_w, east.yield_total_kwh, east.error) == (455, 812.4, 0)
+
+
+def test_a_battery_that_reports_no_detail_has_none():
+    battery = build(readings(DEVICE), live=True).battery
+    assert (battery.cells, battery.temperatures, battery.checks, battery.history) == ([], [], [], None)
 
 
 def test_readings_go_stale_without_messages():
