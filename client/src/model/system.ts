@@ -555,6 +555,34 @@ export interface SolarCharger {
   power_w: number | null;
   state: ChargerState | null;
   yield_today_kwh: number | null;
+  /**
+   * Voltage from the panels.
+   */
+  pv_voltage_v: number | null;
+  /**
+   * Current from the panels.
+   */
+  pv_current_a: number | null;
+  /**
+   * Voltage at the charger's battery terminals.
+   */
+  battery_voltage_v: number | null;
+  /**
+   * Current the charger gives the battery.
+   */
+  battery_current_a: number | null;
+  /**
+   * The most power it has given today.
+   */
+  max_power_today_w: number | null;
+  /**
+   * Energy it has harvested since its counter was reset.
+   */
+  yield_total_kwh: number | null;
+  /**
+   * The charger's own error code, 0 when there is none.
+   */
+  error: number | null;
 }
 /**
  * This interface was referenced by `System`'s JSON-Schema

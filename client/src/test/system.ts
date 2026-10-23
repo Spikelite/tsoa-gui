@@ -123,8 +123,16 @@ export const system: System = {
     power_w: 310,
     yield_today_kwh: 1.42,
     chargers: [
-      { status: "good", name: "East array", power_w: 310, state: "bulk", yield_today_kwh: 1.42 },
-      { status: "offline", name: "West array", power_w: null, state: null, yield_today_kwh: null },
+      {
+        status: "good", name: "East array", power_w: 310, state: "bulk", yield_today_kwh: 1.42,
+        pv_voltage_v: 68.9, pv_current_a: 4.5, battery_voltage_v: 26.4, battery_current_a: 11.4,
+        max_power_today_w: 455, yield_total_kwh: 812.4, error: 0,
+      },
+      {
+        status: "offline", name: "West array", power_w: null, state: null, yield_today_kwh: null,
+        pv_voltage_v: null, pv_current_a: null, battery_voltage_v: null, battery_current_a: null,
+        max_power_today_w: null, yield_total_kwh: null, error: null,
+      },
     ],
   },
   ac_loads: {

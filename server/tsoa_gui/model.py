@@ -268,6 +268,15 @@ class SolarCharger(Part):
     state: ChargerState | None = None
     yield_today_kwh: float | None = None
 
+    # The detail, for the solar page.
+    pv_voltage_v: float | None = Field(None, description="Voltage from the panels.")
+    pv_current_a: float | None = Field(None, description="Current from the panels.")
+    battery_voltage_v: float | None = Field(None, description="Voltage at the charger's battery terminals.")
+    battery_current_a: float | None = Field(None, description="Current the charger gives the battery.")
+    max_power_today_w: float | None = Field(None, description="The most power it has given today.")
+    yield_total_kwh: float | None = Field(None, description="Energy it has harvested since its counter was reset.")
+    error: int | None = Field(None, description="The charger's own error code, 0 when there is none.")
+
 
 class Solar(Part):
     power_w: float | None = Field(None, description="Total solar power, from every charger.")

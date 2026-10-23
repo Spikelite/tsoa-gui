@@ -307,6 +307,10 @@ def _count(value: object) -> int | None:
     return value if isinstance(value, int) and not isinstance(value, bool) and value > 0 else None
 
 
+def _code(value: float | None) -> int | None:
+    return None if value is None else int(value)
+
+
 def _checks(r: Readings, service: str, instance: int) -> list[AlarmCheck]:
     """Every condition a service watches for, from its Alarms/ paths: 0 clear, 1 a warning, 2 an alarm."""
     levels: dict[int, Literal["ok", "warning", "alarm"]] = {0: "ok", 1: "warning", 2: "alarm"}
@@ -459,6 +463,14 @@ def _solar(r: Readings) -> Solar | None:
             power_w=power,
             state=state,
             yield_today_kwh=r.number("solarcharger", instance, "History/Daily/0/Yield"),
+            pv_voltage_v=r.number("solarcharger", instance, "Pv/V"),
+            pv_current_a=r.number("solarcharger", instance, "Pv/I"),
+            battery_voltage_v=r.number("solarcharger", instance, "Dc/0/Voltage"),
+            battery_current_a=r.number("solarcharger", instance, "Dc/0/Current"),
+            max_power_today_w=r.number("solarcharger", instance, "History/Daily/0/MaxPower"),
+            yield_total_kwh=_first(r.number("solarcharger", instance, "Yield/User"),
+                                   r.number("solarcharger", instance, "Yield/System")),
+            error=_code(r.number("solarcharger", instance, "ErrorCode")),
         ))
     # DC-coupled solar from the chargers, plus PV inverters on the AC side.
     sources = [r.number("system", 0, "Dc/Pv/Power")]

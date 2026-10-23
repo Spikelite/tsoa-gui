@@ -328,9 +328,9 @@ def snapshot(t: float) -> System:
 
     west_offline = _window(m.phase, 0.48, 0.53)
     chargers = [
-        _charger("East array", m.east_w, east_wh, soc),
+        _charger("East array", m.east_w, east_wh, soc, _sun_peak_so_far(m.phase, 0.25, 0.70, 480.0), 412.6),
         SolarCharger(status="offline", name="West array") if west_offline
-        else _charger("West array", m.west_w, west_wh, soc),
+        else _charger("West array", m.west_w, west_wh, soc, _sun_peak_so_far(m.phase, 0.32, 0.80, 420.0), 365.1),
     ]
     solar_w = m.east_w + (0.0 if west_offline else m.west_w)
     solar = Solar(
@@ -373,14 +373,29 @@ def snapshot(t: float) -> System:
     return system
 
 
-def _charger(name: str, power_w: float, yield_wh: float, soc: float) -> SolarCharger:
+def _sun_peak_so_far(phase: float, rise: float, set_: float, peak_w: float) -> float:
+    """The most an array has made today by `phase`: its curve rises to the middle of its day, then falls."""
+    return _sun(min(phase, (rise + set_) / 2), rise, set_, peak_w) if phase >= rise else 0.0
+
+
+def _charger(name: str, power_w: float, yield_wh: float, soc: float, peak_w: float, total_kwh: float) -> SolarCharger:
     state = _charge_state(soc) if power_w > 0 else "off"
+    battery_v = 25.6 + (soc - 50) * 0.012
+    # Two panels in series: about 36 V each in sun, a little more lightly loaded.
+    pv_v = 72.0 - power_w * 0.01 if power_w > 0 else 0.0
     return SolarCharger(
         status=status.solar_charger(state, power_w),
         name=name,
         power_w=round(power_w),
         state=state,
         yield_today_kwh=round(yield_wh / 1000, 2),
+        pv_voltage_v=round(pv_v, 1),
+        pv_current_a=round(power_w / pv_v, 1) if pv_v else 0.0,
+        battery_voltage_v=round(battery_v, 2),
+        battery_current_a=round(power_w * 0.97 / battery_v, 1),
+        max_power_today_w=round(peak_w),
+        yield_total_kwh=round(total_kwh + yield_wh / 1000, 2),
+        error=0,
     )
 
 

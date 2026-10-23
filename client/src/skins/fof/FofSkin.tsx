@@ -15,6 +15,7 @@ import {
 import { Title } from "../Title";
 import { BatteryDeck } from "./BatteryDeck";
 import { InverterDeck } from "./InverterDeck";
+import { PartDeck } from "./PartDeck";
 import { Conduits } from "./Conduits";
 import { Core, Rows } from "./Core";
 import { GeneratorCore } from "./GeneratorCore";
@@ -176,6 +177,7 @@ export function FofSkin({ model, connected = true }: { model: System; connected?
           {part === "inverter_charger" && model.inverter_charger && (
             <InverterDeck inverter={model.inverter_charger} model={model} />
           )}
+          {part !== "battery" && part !== "inverter_charger" && <PartDeck part={part} model={model} />}
         </div>
       ) : (
       <div className="fof-diagram">

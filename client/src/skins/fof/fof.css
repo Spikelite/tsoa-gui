@@ -1245,6 +1245,12 @@
 
 .fof-deck-hub .fof-ring-unit { width: 13em; margin: 0; }
 
+/* Any other part drawn large: its overview drawing, half as big again. */
+/* Free to shrink to the page, which a grid's item is not by default. */
+.fof-deck-art { min-width: 0; }
+.fof-deck-art .fof-schematic-unit { width: 39em; }
+.fof-deck-art .fof-panel-unit { --fof-panel: 21; max-width: 100%; }
+
 .fof-deck-leds {
   display: grid;
   grid-template-columns: repeat(2, auto);

@@ -232,6 +232,22 @@ def test_an_inverter_charger_gives_its_detail():
     assert [(c.name, c.level) for c in inverter.checks] == [("High temperature", "warning"), ("Overload", "ok")]
 
 
+def test_a_solar_charger_gives_its_detail():
+    values = dict(DEVICE)
+    values.update({
+        ("solarcharger", 278, "Pv/V"): 71.2,
+        ("solarcharger", 278, "Pv/I"): 4.4,
+        ("solarcharger", 278, "Dc/0/Voltage"): 26.5,
+        ("solarcharger", 278, "Dc/0/Current"): 11.3,
+        ("solarcharger", 278, "History/Daily/0/MaxPower"): 455,
+        ("solarcharger", 278, "Yield/User"): 812.4,
+        ("solarcharger", 278, "ErrorCode"): 0,
+    })
+    east = build(readings(values), live=True).solar.chargers[0]
+    assert (east.pv_voltage_v, east.pv_current_a, east.battery_voltage_v, east.battery_current_a) == (71.2, 4.4, 26.5, 11.3)
+    assert (east.max_power_today_w, east.yield_total_kwh, east.error) == (455, 812.4, 0)
+
+
 def test_a_battery_that_reports_no_detail_has_none():
     battery = build(readings(DEVICE), live=True).battery
     assert (battery.cells, battery.temperatures, battery.checks, battery.history) == ([], [], [], None)

@@ -1,9 +1,10 @@
 import type {
-  AcPhase, AlarmCheck, Battery, Cell, EnergyEnd, InverterCharger, PartName, System,
+  AcLoads, AcPhase, AlarmCheck, Battery, Cell, ChargerState, DcLoads, EnergyCounter, EnergyEnd, Generator, Grid,
+  InverterCharger, PartName, Solar, SolarCharger, Status, System,
 } from "../model/system";
-import { batteryState, inverterState, MODES } from "./describe";
+import { batteryState, generatorState, gridState, inverterState, MODES, partTitle, solarState } from "./describe";
 import * as f from "./format";
-import { inputName, type Reading } from "./readings";
+import { dcLoadsState, inputName, type Measured, type Reading } from "./readings";
 
 // What a part's own page shows, shared by every skin as readings.ts is for
 // the overview: readings in titled groups, and for a battery that reports
@@ -13,7 +14,9 @@ import { inputName, type Reading } from "./readings";
 export type DetailGroup = { title: string; readings: Reading[] };
 
 /** The parts that have a page of their own. */
-export const DETAILED: PartName[] = ["battery", "inverter_charger"];
+export const DETAILED: PartName[] = [
+  "grid", "generator", "inverter_charger", "battery", "solar", "ac_loads", "dc_loads",
+];
 
 const allowed = (value: boolean | null) => (value === null ? [] : [value ? "Allowed" : "Blocked"]);
 const yesNo = (value: boolean | null) => (value === null ? [] : [value ? "Yes" : "No"]);
@@ -268,6 +271,216 @@ export function inverterGroups(inverter: InverterCharger, model: System): Detail
     },
   ];
   return groups.filter((group) => shown(group.readings));
+}
+
+/** The AC input a supply is wired to, where no other known supply shares it. */
+function ownInput(part: "grid" | "generator", model: System): 1 | 2 | null {
+  const input = model[part]?.ac_input ?? null;
+  const other = part === "grid" ? model.generator : model.grid;
+  return input !== null && other?.ac_input !== input ? input : null;
+}
+
+/** An energy counter as seen from one of its ends. */
+function energyFrom(end: EnergyEnd, model: System) {
+  return (counter: EnergyCounter): Reading[] =>
+    counter.source === end
+      ? [{ label: `To ${energyEnd(counter.target, model).toLowerCase()}`, value: counter.kwh, format: f.kilowattHours }]
+      : counter.target === end
+        ? [{ label: `From ${energyEnd(counter.source, model).toLowerCase()}`, value: counter.kwh, format: f.kilowattHours }]
+        : [];
+}
+
+/**
+ * What the inverter/charger knows of a supply on an input of its own: what
+ * arrives at the input while the supply is the one in use, and the energy
+ * it has carried from the input and to it.
+ */
+function supplyGroups(part: "grid" | "generator", model: System): DetailGroup[] {
+  const inverter = model.inverter_charger;
+  const input = ownInput(part, model);
+  if (inverter === null || input === null) {
+    return [];
+  }
+  const inUse = inverter.active_input === input && inverter.input_connected !== false;
+  return [
+    {
+      title: "At the inverter",
+      readings: inUse ? [
+        { label: "Power", value: inverter.ac_in_power_w, format: f.power },
+        { label: "Current limit", value: inverter.input_current_limit_a, format: f.amps },
+        ...phaseReadings(inverter.input_phases),
+      ] : [],
+    },
+    { title: "Energy", readings: inverter.energy.flatMap(energyFrom(`input_${input}`, model)) },
+  ];
+}
+
+export function gridGroups(grid: Grid, model: System): DetailGroup[] {
+  const groups: DetailGroup[] = [
+    {
+      title: "Supply",
+      readings: [
+        { label: "Power", value: grid.power_w, format: f.power, always: true },
+        { label: "Voltage", value: grid.voltage_v, format: f.volts },
+        { label: "Current", value: grid.current_a, format: f.amps },
+        { label: "Frequency", value: grid.frequency_hz, format: f.hertz },
+      ],
+    },
+    {
+      title: "Connection",
+      readings: [
+        ...worded("Connected", yesNo(grid.connected)),
+        ...worded("Wired to", grid.ac_input === null ? [] : [`AC input ${grid.ac_input}`]),
+        { label: "Input limit", value: grid.input_current_limit_a, format: f.amps },
+      ],
+    },
+    ...supplyGroups("grid", model),
+  ];
+  return groups.filter((group) => shown(group.readings));
+}
+
+export function generatorGroups(generator: Generator, model: System): DetailGroup[] {
+  const groups: DetailGroup[] = [
+    {
+      title: "Output",
+      readings: [
+        { label: "Power", value: generator.power_w, format: f.power, always: true },
+        ...worded("Running", yesNo(generator.running)),
+        { label: "Running for", value: generator.run_time_s, format: f.duration },
+        ...worded("Wired to", generator.ac_input === null ? [] : [`AC input ${generator.ac_input}`]),
+      ],
+    },
+    ...supplyGroups("generator", model),
+  ];
+  return groups.filter((group) => shown(group.readings));
+}
+
+const CHARGER_STATES: Record<ChargerState, string> = {
+  off: "Off", fault: "Fault", bulk: "Bulk", absorption: "Absorption", float: "Float", storage: "Storage",
+  equalize: "Equalize", starting: "Starting", external_control: "External control", other: "Other",
+};
+
+function chargerGroup(charger: SolarCharger): DetailGroup {
+  if (charger.status === "offline") {
+    return { title: charger.name, readings: worded("State", ["Not reporting"]) };
+  }
+  return {
+    title: charger.name,
+    readings: [
+      { label: "Power", value: charger.power_w, format: f.power, always: true },
+      ...worded("State", charger.state === null ? [] : [CHARGER_STATES[charger.state]]),
+      { label: "Panel voltage", value: charger.pv_voltage_v, format: f.volts },
+      { label: "Panel current", value: charger.pv_current_a, format: f.amps },
+      { label: "Battery voltage", value: charger.battery_voltage_v, format: f.volts },
+      { label: "Charge current", value: charger.battery_current_a, format: f.amps },
+      { label: "Most today", value: charger.max_power_today_w, format: f.power },
+      { label: "Today", value: charger.yield_today_kwh, format: f.kilowattHours },
+      { label: "Since reset", value: charger.yield_total_kwh, format: f.kilowattHours },
+      ...worded("Error", charger.error === null ? [] : [charger.error === 0 ? "None" : `Code ${charger.error}`]),
+    ],
+  };
+}
+
+export function solarGroups(solar: Solar): DetailGroup[] {
+  const reporting = solar.chargers.filter((charger) => charger.status !== "offline").length;
+  const groups: DetailGroup[] = [
+    {
+      title: "Total",
+      readings: [
+        { label: "Power", value: solar.power_w, format: f.power, always: true },
+        { label: "Today", value: solar.yield_today_kwh, format: f.kilowattHours },
+        { label: "Chargers", value: solar.chargers.length > 0 ? solar.chargers.length : null, format: f.count },
+        { label: "Reporting", value: solar.chargers.length > 1 ? reporting : null, format: f.count },
+      ],
+    },
+    ...solar.chargers.map(chargerGroup),
+  ];
+  return groups.filter((group) => shown(group.readings));
+}
+
+export function acLoadsGroups(loads: AcLoads, model: System): DetailGroup[] {
+  const inverter = model.inverter_charger;
+  const groups: DetailGroup[] = [
+    {
+      title: "Loads",
+      readings: [
+        { label: "Power", value: loads.power_w, format: f.power, always: true },
+        { label: "Voltage", value: loads.voltage_v, format: f.volts },
+        { label: "Current", value: loads.current_a, format: f.amps },
+        { label: "Frequency", value: loads.frequency_hz, format: f.hertz },
+      ],
+    },
+    {
+      title: "Fed from",
+      readings: [
+        { label: "The inverter", value: loads.on_output_w, format: f.power },
+        { label: "The supply side", value: loads.on_input_w, format: f.power },
+      ],
+    },
+    {
+      title: "Phases",
+      readings: inverter !== null && inverter.output_phases.length > 1 ? phaseReadings(inverter.output_phases) : [],
+    },
+    { title: "Energy", readings: (inverter?.energy ?? []).flatMap(energyFrom("output", model)) },
+  ];
+  return groups.filter((group) => shown(group.readings));
+}
+
+const MEASURED_BY = { meter: "A meter", calculation: "Worked out from the others" };
+
+export function dcLoadsGroups(loads: DcLoads, model: System): DetailGroup[] {
+  // The loads hang on the battery, so they draw their power at its voltage.
+  const voltage = model.battery?.voltage_v ?? null;
+  const current = loads.power_w !== null && voltage ? loads.power_w / voltage : null;
+  const groups: DetailGroup[] = [
+    {
+      title: "Loads",
+      readings: [
+        { label: "Power", value: loads.power_w, format: f.power, always: true },
+        { label: "Current", value: current, format: f.amps },
+        { label: "Voltage", value: voltage, format: f.volts },
+        ...worded("Measured by", loads.measured_by === null ? [] : [MEASURED_BY[loads.measured_by]]),
+      ],
+    },
+  ];
+  return groups.filter((group) => shown(group.readings));
+}
+
+/** A page drawn the same way for any part: every part's but the battery's and the inverter/charger's. */
+export type PartDetail = { title: string; status: Status; state: string; headline: Measured; groups: DetailGroup[] };
+
+export function partDetail(part: PartName, model: System): PartDetail | null {
+  const power = (value: number | null): Measured => ({ label: "Power", value, format: f.power, always: true });
+  const title = partTitle(part, model);
+  switch (part) {
+    case "grid":
+      return model.grid && {
+        title, status: model.grid.status, state: gridState(model.grid), headline: power(model.grid.power_w),
+        groups: gridGroups(model.grid, model),
+      };
+    case "generator":
+      return model.generator && {
+        title, status: model.generator.status, state: generatorState(model.generator),
+        headline: power(model.generator.power_w), groups: generatorGroups(model.generator, model),
+      };
+    case "solar":
+      return model.solar && {
+        title, status: model.solar.status, state: solarState(model.solar), headline: power(model.solar.power_w),
+        groups: solarGroups(model.solar),
+      };
+    case "ac_loads":
+      return model.ac_loads && {
+        title, status: model.ac_loads.status, state: "In use", headline: power(model.ac_loads.power_w),
+        groups: acLoadsGroups(model.ac_loads, model),
+      };
+    case "dc_loads":
+      return model.dc_loads && {
+        title, status: model.dc_loads.status, state: dcLoadsState(model.dc_loads),
+        headline: power(model.dc_loads.power_w), groups: dcLoadsGroups(model.dc_loads, model),
+      };
+    default:
+      return null;
+  }
 }
 
 /** The part a page is for, if the system has it and it has a page. */

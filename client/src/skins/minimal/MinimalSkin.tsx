@@ -1,8 +1,9 @@
 import type { System } from "../../model/system";
-import { detailedPart } from "../details";
+import { detailedPart, partDetail } from "../details";
 import { useEscapeCloses, usePart } from "../partView";
 import { BatteryPage } from "./BatteryPage";
 import { InverterPage } from "./InverterPage";
+import { PartPage } from "./PartPage";
 import { Flows } from "./Flows";
 import "./minimal.css";
 import {
@@ -16,12 +17,15 @@ export function MinimalSkin({ model }: { model: System }) {
   const part = detailedPart(usePart(), model);
   useEscapeCloses(part !== null);
   if (part !== null) {
+    const detail = partDetail(part, model);
     return (
       <div className="minimal minimal-page">
         {part === "battery" && model.battery && <BatteryPage battery={model.battery} />}
         {part === "inverter_charger" && model.inverter_charger && (
           <InverterPage inverter={model.inverter_charger} model={model} />
         )}
+        {detail && <PartPage part={part} title={detail.title} status={detail.status} state={detail.state}
+          groups={detail.groups} checks={[]} />}
       </div>
     );
   }

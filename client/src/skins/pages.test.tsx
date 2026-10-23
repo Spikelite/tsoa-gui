@@ -103,8 +103,32 @@ describe("a part's own page", () => {
     expect(within(screen.getByRole("list", { name: "Cells" })).getAllByRole("listitem")).toHaveLength(8);
   });
 
-  it("ignores a part with no page, or one the system lacks", () => {
-    window.history.replaceState(null, "", "/?part=solar");
+  it("shows the same detail for every other part in every skin", () => {
+    const parts = [
+      ["grid", "Shore power", ["1.25 kW", "16.0 A", "AC input 1", "1.05 kW", "120.50 kWh", "64.20 kWh"]],
+      ["solar", "Solar", ["68.9 V", "455 W", "812.40 kWh", "None", "Not reporting", "Bulk"]],
+      ["ac_loads", "AC loads", ["900 W", "700 W", "200 W", "120.50 kWh", "88.90 kWh"]],
+      ["dc_loads", "DC loads", ["Worked out from the others"]],
+    ] as const;
+    for (const [part, name, values] of parts) {
+      const minimal = shownOnPage(<MinimalSkin model={system} />, part, name);
+      const fof = shownOnPage(<FofSkin model={system} />, part, name);
+      expect(fof).toEqual(minimal);
+      expect(minimal).toEqual(expect.arrayContaining([...values]));
+    }
+  });
+
+  it("gives a generator its own page", () => {
+    const model = {
+      ...system, generator: { status: "good", ac_input: null, running: true, power_w: 2100, run_time_s: 5400 },
+    } as const;
+    const minimal = shownOnPage(<MinimalSkin model={model} />, "generator", "Generator");
+    expect(shownOnPage(<FofSkin model={model} />, "generator", "Generator")).toEqual(minimal);
+    expect(minimal).toEqual(expect.arrayContaining(["2.10 kW", "Yes", "1 h 30 min"]));
+  });
+
+  it("ignores a part the system lacks", () => {
+    window.history.replaceState(null, "", "/?part=generator");
     render(<MinimalSkin model={system} />);
     expect(screen.getByRole("region", { name: "Solar" })).toBeInTheDocument();
     cleanup();

@@ -1884,6 +1884,90 @@
             }
           ],
           "default": null
+        },
+        "pv_voltage_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Voltage from the panels."
+        },
+        "pv_current_a": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Current from the panels."
+        },
+        "battery_voltage_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Voltage at the charger's battery terminals."
+        },
+        "battery_current_a": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Current the charger gives the battery."
+        },
+        "max_power_today_w": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The most power it has given today."
+        },
+        "yield_total_kwh": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Energy it has harvested since its counter was reset."
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The charger's own error code, 0 when there is none."
         }
       },
       "required": [
@@ -1891,7 +1975,14 @@
         "name",
         "power_w",
         "state",
-        "yield_today_kwh"
+        "yield_today_kwh",
+        "pv_voltage_v",
+        "pv_current_a",
+        "battery_voltage_v",
+        "battery_current_a",
+        "max_power_today_w",
+        "yield_total_kwh",
+        "error"
       ],
       "title": "SolarCharger",
       "type": "object"
