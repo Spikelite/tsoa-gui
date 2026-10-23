@@ -33,12 +33,12 @@ if [ "$here" != "$release" ]; then
     rm -rf "$release"
     cp -R "$here" "$release"
 fi
-# The server reads the release as an account of its own, whatever the umask
-# was when it was unpacked.
-chmod -R a+rX "$release"
 # Compiled here, as root, because the server runs as an account that cannot
 # write into the release; otherwise every start would compile it again.
-"$python" -m compileall -q "$release/app" "$release/vendor" >/dev/null || true
+"$python" "$release/precompile.py" "$release/app" "$release/vendor" || true
+# The server reads the release as that account, whatever the umask was when
+# it was unpacked.
+chmod -R a+rX "$release"
 
 # Keep the release now in use and the one before it, to go back to. Running
 # the current release's installer again keeps the one before it as it was.
@@ -77,7 +77,10 @@ mkdir -p "$root/var"
 [ -z "$RUN_AS" ] || chown "$RUN_AS" "$root/var"
 chmod 700 "$root/var"
 
-addresses=$(ip -4 -o addr show 2>/dev/null | awk '{ split($4, a, "/"); if (a[1] != "127.0.0.1") print a[1] }') || true
+# The device's addresses on the network: not loopback, and not the
+# link-local ones a device gives itself when nothing else gives it one.
+addresses=$(ip -4 -o addr show 2>/dev/null |
+    awk '{ split($4, a, "/"); if (a[1] !~ /^127\./ && a[1] !~ /^169\.254\./) print a[1] }') || true
 if [ ! -f "$root/tls/cert.pem" ]; then
     # The device's own addresses, so a proxy in front can verify the certificate.
     # shellcheck disable=SC2086 # one argument per address

@@ -67,11 +67,13 @@ def test_the_archive_holds_the_release_with_nothing_of_who_built_it(tmp_path: Pa
         members = {m.name: m for m in tar.getmembers()}
     top = "tsoa-gui-1.0.0"
     for name in ("VERSION", "tested.json", "LICENSE", "app/client/index.html", "app/tsoa_gui/__main__.py",
-                 "install.sh", "rollback.sh", "boot.sh", "uninstall.sh", "service/run", "service/log/run"):
+                 "install.sh", "rollback.sh", "boot.sh", "uninstall.sh", "service/run", "service/log/run",
+                 "precompile.py"):
         assert f"{top}/{name}" in members, name
     assert members[f"{top}/install.sh"].mode == 0o755
     assert members[f"{top}/rollback.sh"].mode == 0o755
     assert members[f"{top}/VERSION"].mode == 0o644
+    assert members[f"{top}/precompile.py"].mode == 0o644
     assert all(m.uname == "" and m.gname == "" and m.uid == 0 for m in members.values())
     assert all(m.mtime == 1700000000 for m in members.values())
     assert not any("__pycache__" in name for name in members)
@@ -165,7 +167,7 @@ def test_install_update_and_removal(tmp_path: Path, health: ThreadingHTTPServer)
     assert (root / "tls" / "key.pem").stat().st_mode & 0o077 == 0
     assert (root / "var").stat().st_mode & 0o777 == 0o700
     assert (root / "var").stat().st_uid == os.getuid()
-    assert any((root / "releases" / "1" / "app" / "tsoa_gui").glob("__pycache__/*.pyc"))
+    assert uses_its_bytecode(root / "releases" / "1" / "app", "tsoa_gui.versions")
     assert (device / "data" / "rc.local").read_text().splitlines() == ["#!/bin/bash", "echo first", line]
     assert (device / "service" / "tsoa-gui" / "run").is_file()
     assert (device / "service" / "tsoa-gui" / "log" / "run").is_file()
@@ -188,6 +190,51 @@ def test_install_update_and_removal(tmp_path: Path, health: ThreadingHTTPServer)
     assert root.exists()
     run_script(staged(tmp_path, "4") / "uninstall.sh", device, stdin="y\n")
     assert not root.exists()
+
+
+def uses_its_bytecode(app: Path, module: str) -> bool:
+    """Whether importing module from app loads it from the bytecode compiled beside it."""
+    # Run from app, so that the source tree's own copy is not the one found.
+    imported = subprocess.run([sys.executable, "-v", "-c", f"import {module}"], capture_output=True, text=True,
+                              cwd=app, env=dict(os.environ, PYTHONPATH=str(app), PYTHONDONTWRITEBYTECODE="1"))
+    return f"code object from '{app}" in imported.stderr and "__pycache__" in imported.stderr
+
+
+def test_precompiling_needs_neither_compileall_nor_py_compile(tmp_path: Path):
+    (tmp_path / "app").mkdir()
+    (tmp_path / "app" / "example_module.py").write_text("VALUE = 1\n")
+    (tmp_path / "app" / "broken.py").write_text("def (\n")
+    # As on Venus OS, whose Python leaves both modules out.
+    script = ("import runpy, sys; sys.modules['compileall'] = sys.modules['py_compile'] = None; "
+              f"sys.argv = ['precompile.py', {str(tmp_path / 'app')!r}]; "
+              f"runpy.run_path({str(REPO / 'venus' / 'precompile.py')!r}, run_name='__main__')")
+    subprocess.run([sys.executable, "-c", script], check=True)
+    assert uses_its_bytecode(tmp_path / "app", "example_module")
+    assert not uses_its_bytecode(tmp_path / "app", "broken")
+
+
+FAKE_IP = r"""#!/bin/sh
+echo '1: lo    inet 127.0.0.1/8 scope host lo\       valid_lft forever preferred_lft forever'
+echo '2: eth0    inet 192.0.2.10/24 brd 192.0.2.255 scope global eth0\       valid_lft forever preferred_lft forever'
+echo '2: eth0    inet 169.254.7.9/16 brd 169.254.255.255 scope link eth0:ll\       valid_lft forever preferred_lft forever'
+"""
+
+
+@posix_shell
+def test_the_addresses_to_open_leave_out_loopback_and_link_local(tmp_path: Path, health: ThreadingHTTPServer):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    (bin_dir / "ip").write_text(FAKE_IP)
+    (bin_dir / "ip").chmod(0o755)
+    device = new_device(tmp_path)
+    env = {"PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}"}
+    result = run_script(staged(tmp_path, "1") / "install.sh", device, env=env, health=health)
+    assert [line.strip() for line in result.stdout.splitlines()[1:]] == ["https://192.0.2.10:8088"]
+    certificate = x509.load_pem_x509_certificate((device / "data" / "tsoa-gui" / "tls" / "cert.pem").read_bytes())
+    named = [str(ip) for ip in certificate.extensions.get_extension_for_class(
+        x509.SubjectAlternativeName).value.get_values_for_type(x509.IPAddress)]
+    assert "192.0.2.10" in named
+    assert not any(address.startswith("169.254.") for address in named)
 
 
 @posix_shell

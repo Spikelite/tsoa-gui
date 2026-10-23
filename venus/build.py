@@ -33,6 +33,8 @@ GITHUB = "https://github.com/Spikelite/tsoa-gui"
 # The Python that Venus OS ships, which a release is built and tested for.
 PYTHON = "3.12"
 SCRIPTS = ["install.sh", "rollback.sh", "uninstall.sh", "boot.sh", "service/run", "service/log/run"]
+# Run by install.sh with python3, so not executable themselves.
+HELPERS = ["precompile.py"]
 # What install.sh accepts as a version, since it names a directory there.
 VERSION_PATTERN = re.compile(r"[0-9A-Za-z][0-9A-Za-z._+-]*")
 # Written by pip as it installs, and different from one pip to the next; the
@@ -90,7 +92,7 @@ def stage(directory: Path, version: str, client: Path = REPO / "client" / "dist"
                     ignore=shutil.ignore_patterns("__pycache__"))
     shutil.copytree(client, directory / "app" / "client")
     vendor_into(directory / "vendor")
-    for script in SCRIPTS:
+    for script in SCRIPTS + HELPERS:
         (directory / script).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(VENUS / script, directory / script)
     shutil.copyfile(REPO / "LICENSE", directory / "LICENSE")
