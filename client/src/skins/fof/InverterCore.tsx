@@ -49,6 +49,9 @@ const WIRE = 1.3;
 const THREADS = 3;
 const FORKS = 3;
 const STRANDS = THREADS * FORKS;
+// How far past the square's edge a strand's waves run on, hidden, so the
+// blur that smooths them has wave on both sides of the edge.
+const RUN_ON = 30;
 // How far a thread runs straight on from the conduit before it curves away,
 // and how far along the way to its joins it forks.
 const STRAIGHT = 8;
@@ -213,7 +216,14 @@ function strand(port: HubPort, thread: number, fork: number, angles: number[]) {
   // conduit, so its waves roll the way the power goes.
   const route = port.outward ? [...line].reverse() : line;
   const d = `M${route.map(at).join(" L")}`;
-  return { d, outline, length, stroke: width + 1 };
+  // Its waves run on out past the square's edge, along the conduit, hidden
+  // under the conduit's own, so the blur that smooths them has wave on both
+  // sides of where the two meet; `edge` is how far along that path the edge is.
+  const beyond = p(-RUN_ON, place * width);
+  const waves = port.outward ? `${d} L${at(beyond)}` : `M${at(beyond)} L${route.map(at).join(" L")}`;
+  // The strand itself starts 2 units outside the edge, over the conduit's end.
+  const edge = port.outward ? length - 2 : RUN_ON;
+  return { d, outline, length, width, stroke: width + 1, waves, edge };
 }
 
 /**
@@ -364,23 +374,26 @@ export function InverterCore({ inverter, hub }: { inverter: InverterCharger; hub
                   <mask id={shape} maskUnits="userSpaceOnUse" x="0" y="0" width={SIZE} height={SIZE}>
                     {lines.map((line, n) => <path key={n} d={line.outline} fill="#fff" />)}
                   </mask>
+                  {/* Blurred along the conduit, not across the strands, which
+                      are too narrow for a blur across them to leave their color. */}
                   <filter id={`${shape}-blur`} filterUnits="userSpaceOnUse" x="0" y="0" width={SIZE} height={SIZE}>
-                    <feGaussianBlur stdDeviation={(SOFTEN * cycle) / WAVE} />
+                    <feGaussianBlur stdDeviation={port.side === "left" || port.side === "right"
+                      ? `${(SOFTEN * cycle) / WAVE} 0` : `0 ${(SOFTEN * cycle) / WAVE}`} />
                   </filter>
                   <g mask={`url(#${CSS.escape(shape)})`}>
                     <g filter={`url(#${CSS.escape(shape)}-blur)`}>
                       {lines.map((line, n) => {
-                        // A crest is at the conduit's end of the thread as it
-                        // reaches the square's edge, which for a thread running
-                        // in is its start and for one running out is its end.
-                        const crestAt = port.outward ? line.length : 0;
-                        const phase = fraction(crestAt / cycle - 0.5 - port.crossing);
+                        // A crest is where the strand meets the square's edge as
+                        // the conduit's crest reaches the edge.
+                        const phase = fraction(line.edge / cycle - 0.5 - port.crossing);
                         return STROKES.map((layer, index) => {
                           const dash = layer.share * cycle;
                           const gap = (cycle - dash) / 2;
+                          // Exactly a strand wide, so side by side the strands'
+                          // waves make the conduit's, with none overlapping.
                           return (
-                            <path key={`${n}-${index}`} className="fof-thread-wave" d={line.d}
-                              strokeWidth={line.stroke + 4}
+                            <path key={`${n}-${index}`} className="fof-thread-wave" d={line.waves}
+                              strokeWidth={line.width}
                               strokeDasharray={`0 ${gap.toFixed(2)} ${dash.toFixed(2)} ${gap.toFixed(2)}`}
                               strokeOpacity={layer.opacity}
                               style={{ "--depth": layer.depth, "--fof-phase": phase.toFixed(3) } as CSSProperties} />
