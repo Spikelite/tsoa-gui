@@ -375,6 +375,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* An alarm never runs past its block of readings into a neighbour: where its
+   name and status do not fit on one line, the status wraps under the name. */
+.fof-alarm dt { max-width: 100%; }
+.fof-alarm .fof-name-pill { flex-wrap: wrap; row-gap: 0; white-space: normal; }
+
 /* Equipment drawn below a part's readings: the generator's column and the
    inverter/charger's ring, made of the same plates, cells and hub, where the
    conduits plug in. */
@@ -476,7 +481,16 @@
   align-items: start;
 }
 
-.fof-readout-hub > .fof-name-row { grid-column: 2 / 4; grid-row: 1; }
+/* The name starts over the hub's left edge. A name made longer by its status
+   grows leftward from the hub's right edge, over the free space above the
+   supplies' conduits, rather than into the readings at the hub's top right. */
+.fof-readout-hub > .fof-name-row {
+  grid-column: 2 / 4;
+  grid-row: 1;
+  justify-self: end;
+  width: max-content;
+  min-width: 100%;
+}
 .fof-readout-hub > .fof-unit { grid-column: 2 / 4; grid-row: 2; margin: 0.2em 0 0; }
 
 /* The foot of the hub's row is half the hub, 6em, below its middle; the
