@@ -950,8 +950,10 @@
    animation. */
 .fof-conduit-wave {
   stroke: color-mix(in oklab, var(--fof-plasma-deep) calc(var(--depth) * 100%), var(--fof-plasma));
-  stroke-width: var(--fof-width);
-  stroke-opacity: calc(0.05 + var(--depth) * 0.1);
+  /* Wider than the conduit, so the blur keeps the wave's full depth to its
+     edges; the mask trims it back to the conduit. */
+  stroke-width: calc(var(--fof-width) + 1.4em);
+  stroke-opacity: var(--opacity, calc(0.05 + var(--depth) * 0.1));
   stroke-dasharray: 0 calc((14em - var(--length)) / 2) var(--length) calc((14em - var(--length)) / 2);
   animation: fof-roll var(--fof-roll) linear infinite;
   /* Timed so that a crest reaches the conduit's far end as each cycle starts. */
@@ -962,6 +964,9 @@
 
 /* A link carrying nothing just now: dim, and still. */
 .fof-conduit-idle .fof-conduit-body { stroke: #4a4436; }
+
+/* The shape a conduit's blurred waves are trimmed to: the conduit itself. */
+.fof-conduit-mask { fill: none; stroke: #fff; stroke-width: var(--fof-width); }
 .fof-conduit-idle .fof-conduit-wave,
 .fof-conduit-idle .fof-conduit-chevron { display: none; }
 
