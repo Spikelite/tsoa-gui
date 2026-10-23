@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 import type { Grid } from "../../model/system";
+import { useCarried, type Along } from "./carry";
 
 const WIDTH = 400;
 const HEIGHT = 180;
@@ -29,6 +30,9 @@ const LATTICE = [
   "M45 32 L56 50 M55 32 L44 50",
 ];
 const INSULATORS: [number, number][] = [[8, 32], [92, 32], [18, 72], [82, 72]];
+
+// The tower starts and stops dripping as the cycle that would send a wave starts.
+const FEEDS: Along = { keys: ["grid-inverter_charger", "grid-ac_loads"], end: "source" };
 
 // The drip, over one wave's cycle. The pips rest in the conduit's yellow.
 // The first turns steadily blue until it is full, then the second, then the
@@ -75,7 +79,7 @@ const DRIPS = Array.from({ length: PILLS }, (_, pip) => drip(pip)).join(" ");
 // still.
 export function GridTower({ grid }: { grid: Grid }) {
   const power = grid.power_w ?? 0;
-  const feeding = grid.status !== "offline" && grid.connected !== false && power > 0;
+  const feeding = useCarried(grid.status !== "offline" && grid.connected !== false && power > 0, FEEDS);
 
   return (
     <div className={`fof-unit fof-schematic-unit fof-tower-unit ${feeding ? "fof-duty-feeding" : "fof-duty-idle"}`}

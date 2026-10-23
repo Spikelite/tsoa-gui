@@ -5,6 +5,7 @@ import { batteryState } from "../describe";
 import { Eased } from "../Eased";
 import { openPart, partAddress } from "../partView";
 import { batteryReadings, isWorded, type Reading } from "../readings";
+import { useCarried, type Along } from "./carry";
 import { StatusWords } from "./StatusPill";
 
 // Ten cells, so each is a tenth of the charge, the share people read at a glance.
@@ -15,6 +16,21 @@ const CELLS = CELLS_PER_ROW * ROWS;
 // feeds the block, outward to the nearest unlit cell each time, left first on
 // a tie. The next row starts again from its middle, under the last row's.
 const FILL = [2, 1, 3, 0, 4];
+
+type Direction = "up" | "down" | "still";
+
+// The pulse changes direction with the conduit: charging, as a change reaches
+// the battery along the conduit feeding it, and discharging, as the cycle
+// that sends a wave from it starts. A conduit turning round runs the way it
+// ran until it empties, so either way round of each is looked for.
+const CHARGING: Along = {
+  keys: ["dc_bus-battery", "inverter_charger-battery", "battery-dc_bus", "battery-inverter_charger"], end: "target",
+};
+const DISCHARGING: Along = {
+  keys: ["battery-dc_bus", "battery-inverter_charger", "dc_bus-battery", "inverter_charger-battery"], end: "source",
+};
+const pulseAlong = (next: Direction, previous: Direction) =>
+  next === "up" || (next === "still" && previous === "up") ? CHARGING : DISCHARGING;
 
 // The battery as one block: two rows of five cells held between a single pair
 // of end caps, with its name above its left end, its charge and state beside
@@ -27,7 +43,8 @@ const FILL = [2, 1, 3, 0, 4];
 export function Core({ battery }: { battery: Battery }) {
   const heading = useId();
   const soc = battery.soc_percent;
-  const direction = battery.activity === "charging" ? "up" : battery.activity === "discharging" ? "down" : "still";
+  const direction = useCarried<Direction>(
+    battery.activity === "charging" ? "up" : battery.activity === "discharging" ? "down" : "still", pulseAlong);
   const charge = Math.max(0, Math.min(100, soc ?? 0));
   const lit = (charge / 100) * CELLS;
   const offline = battery.status === "offline";

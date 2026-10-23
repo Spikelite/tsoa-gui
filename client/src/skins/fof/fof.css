@@ -998,6 +998,26 @@
 .fof-conduit-idle .fof-conduit-wave,
 .fof-conduit-idle .fof-conduit-chevron { display: none; }
 
+/* A conduit carrying a change between active and idle: dim, with its active
+   stretches over it in yellow and its waves only in those. Conduits.tsx lays
+   the stretches out as a dash pattern over a ring of --fof-ring waves, which
+   rolls along with the waves, so a change moves at their pace. */
+.fof-conduit-carrying .fof-conduit-body { stroke: #4a4436; }
+
+.fof-conduit-carried {
+  stroke: var(--fof-conduit);
+  stroke-width: var(--fof-width);
+}
+
+.fof-conduit-carried,
+.fof-conduit-carrying .fof-conduit-mask {
+  stroke-dasharray: var(--fof-carried);
+  animation: fof-carry calc(var(--fof-roll) * var(--fof-ring)) linear infinite;
+  animation-delay: calc(var(--fof-phase, 0) * var(--fof-roll) * -1);
+}
+
+@keyframes fof-carry { to { stroke-dashoffset: calc(var(--fof-ring) * -14em); } }
+
 /* The motion shows the direction, so the chevron appears only without it. */
 .fof-conduit-chevron {
   display: none;

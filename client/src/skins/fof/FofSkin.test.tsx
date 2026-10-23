@@ -1,5 +1,5 @@
-import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { act, render, screen, within } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { system } from "../../test/system";
 import { FofSkin } from "./FofSkin";
@@ -64,11 +64,46 @@ describe("FofSkin", () => {
     expect(container.querySelector(".fof-status-words")?.textContent).not.toContain(",");
   });
 
-  it("stills the bank when the battery is idle, and runs it downward while discharging", () => {
-    const { rerender } = render(<FofSkin model={{ ...system, battery: { ...system.battery!, activity: "idle" } }} />);
-    expect(screen.getByRole("meter").className).toContain("fof-still");
-    rerender(<FofSkin model={{ ...system, battery: { ...system.battery!, activity: "discharging" } }} />);
-    expect(screen.getByRole("meter").className).toContain("fof-down");
+  it("stills the bank when the battery is idle, and runs it downward once it is discharging", () => {
+    // The skin's changes keep to the page's clock, which is performance's.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
+    try {
+      const { rerender } = render(<FofSkin model={{ ...system, battery: { ...system.battery!, activity: "idle" } }} />);
+      expect(screen.getByRole("meter").className).toContain("fof-still");
+      rerender(<FofSkin model={{ ...system, battery: { ...system.battery!, activity: "discharging" } }} />);
+      // Not at once, but as the cycle that would send a wave from it starts.
+      expect(screen.getByRole("meter").className).toContain("fof-still");
+      act(() => vi.advanceTimersByTime(60_000));
+      expect(screen.getByRole("meter").className).toContain("fof-down");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("carries a conduit's change to idle along it with its waves, not at once", () => {
+    // The skin's changes keep to the page's clock, which is performance's.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
+    try {
+      const { container, rerender } = render(<FofSkin model={system} />);
+      const solar = () => container.querySelector("[data-flow='solar-dc_bus']")!;
+      act(() => vi.advanceTimersByTime(0));
+      expect(solar().getAttribute("class")).not.toMatch(/fof-conduit-(idle|carrying)/);
+      rerender(<FofSkin model={{ ...system, flows: system.flows.filter((flow) => flow.source !== "solar") }} />);
+      act(() => vi.advanceTimersByTime(0));
+      // Dim, with what is still active on it drawn over it and its waves still rolling.
+      expect(solar()).toHaveClass("fof-conduit-carrying");
+      expect(solar().querySelector(".fof-conduit-carried")).not.toBeNull();
+      expect(solar().querySelectorAll(".fof-conduit-wave").length).toBeGreaterThan(0);
+      // React draws again between steps, and each draw times the next.
+      for (let step = 0; step < 30; step++) {
+        act(() => vi.advanceTimersByTime(2_000));
+      }
+      expect(solar()).toHaveClass("fof-conduit-idle");
+      expect(solar()).not.toHaveClass("fof-conduit-carrying");
+      expect(solar().querySelector(".fof-conduit-wave")).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("colors the inverter/charger's ring by what it is doing, and stills it when it is not reporting", () => {
@@ -104,6 +139,21 @@ describe("FofSkin", () => {
       "dc_bus-battery", "dc_bus-dc_loads",
     ]);
     expect(container.querySelector("[data-flow='dc_bus-dc_loads']")).toHaveClass("fof-conduit-idle");
+  });
+
+  it("changes a conduit at once where the screen asks for reduced motion", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
+    vi.stubGlobal("matchMedia", (query: string) => ({ matches: query.includes("reduce") }));
+    try {
+      const { container, rerender } = render(<FofSkin model={system} />);
+      act(() => vi.advanceTimersByTime(0));
+      rerender(<FofSkin model={{ ...system, flows: system.flows.filter((flow) => flow.source !== "solar") }} />);
+      act(() => vi.advanceTimersByTime(0));
+      expect(container.querySelector("[data-flow='solar-dc_bus']")).toHaveClass("fof-conduit-idle");
+    } finally {
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    }
   });
 
   it("shows a part that is not reporting without its readings", () => {
