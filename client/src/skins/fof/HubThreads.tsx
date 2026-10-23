@@ -26,6 +26,9 @@ export function HubThreads({ hub, box }: { hub: HubPorts; box: Box }) {
         height={2 * HUB_EDGE} rx={HUB_EDGE / 3} />
       {wound.map(({ port, index, lines }) => {
         const shape = `${id}-${index}`;
+        // Blurred along the conduit, as its waves run there.
+        const spread = (SOFTEN * cycle) / WAVE;
+        const blur = port.side === "left" || port.side === "right" ? `${spread} ${spread * 0.2}` : `${spread * 0.2} ${spread}`;
         return (
           <g key={port.key} className={`fof-thread${port.idle ? " fof-thread-idle" : ""}`}
             style={{ "--fof-roll": `var(--fof-roll-${port.key}, 4s)` } as CSSProperties}>
@@ -38,43 +41,43 @@ export function HubThreads({ hub, box }: { hub: HubPorts; box: Box }) {
                   clipPath={`url(#${CSS.escape(`${shape}-${n}`)})`} />
               </g>
             ))}
-            {/* The waves of all the port's strands under one blur, as the
-                conduits' are, trimmed to the strands' outlines. */}
-            {!port.idle && (
-              <>
-                <mask id={shape} maskUnits="userSpaceOnUse" x="0" y="0" width={SIZE} height={SIZE}>
-                  {lines.map((line, n) => <path key={n} d={line.outline} fill="#fff" />)}
-                </mask>
-                {/* Blurred along the conduit, not across the strands, which
-                    are too narrow for a blur across them to leave their color. */}
-                <filter id={`${shape}-blur`} filterUnits="userSpaceOnUse" x="0" y="0" width={SIZE} height={SIZE}>
-                  <feGaussianBlur stdDeviation={port.side === "left" || port.side === "right"
-                    ? `${(SOFTEN * cycle) / WAVE} 0` : `0 ${(SOFTEN * cycle) / WAVE}`} />
-                </filter>
-                <g mask={`url(#${CSS.escape(shape)})`}>
-                  <g filter={`url(#${CSS.escape(shape)}-blur)`}>
-                    {lines.map((line, n) => {
-                      // A crest is where the strand meets the square's edge as
-                      // the conduit's crest reaches the edge.
-                      const phase = fraction(line.edge / cycle - 0.5 - port.crossing);
-                      return STROKES.map((layer, stroke) => {
+            {/* Each strand's waves under the same blur as the conduits', drawn
+                wider than the strand and trimmed to its own share of the
+                conduit, as a conduit's are to the conduit, so its edges show
+                the wave and not the body under it. */}
+            {!port.idle && lines.map((line, n) => {
+              const strand = `${shape}-${n}`;
+              // A crest is where the strand meets the square's edge as the
+              // conduit's crest reaches the edge.
+              const phase = fraction(line.edge / cycle - 0.5 - port.crossing);
+              return (
+                <g key={`waves-${n}`}>
+                  <mask id={`${strand}-share`} maskUnits="userSpaceOnUse" {...line.box}>
+                    {/* Hard-edged, so that where two strands' shares meet each pixel
+                        is wholly one strand's: soft edges would each cover half
+                        of it and leave a faint seam. */}
+                    <path d={line.share} fill="#fff" shapeRendering="crispEdges" />
+                  </mask>
+                  <filter id={`${strand}-blur`} filterUnits="userSpaceOnUse" {...line.box}>
+                    <feGaussianBlur stdDeviation={blur} />
+                  </filter>
+                  <g mask={`url(#${CSS.escape(`${strand}-share`)})`}>
+                    <g filter={`url(#${CSS.escape(`${strand}-blur`)})`}>
+                      {STROKES.map((layer, stroke) => {
                         const dash = layer.share * cycle;
                         const gap = (cycle - dash) / 2;
-                        // Exactly a strand wide, so side by side the strands'
-                        // waves make the conduit's, with none overlapping.
                         return (
-                          <path key={`${n}-${stroke}`} className="fof-thread-wave" d={line.waves}
-                            strokeWidth={line.width}
+                          <path key={stroke} className="fof-thread-wave" d={line.waves} strokeWidth={line.width + 8}
                             strokeDasharray={`0 ${gap.toFixed(2)} ${dash.toFixed(2)} ${gap.toFixed(2)}`}
                             strokeOpacity={layer.opacity}
                             style={{ "--depth": layer.depth, "--fof-phase": phase.toFixed(3) } as CSSProperties} />
                         );
-                      });
-                    })}
+                      })}
+                    </g>
                   </g>
                 </g>
-              </>
-            )}
+              );
+            })}
           </g>
         );
       })}
