@@ -102,8 +102,7 @@ export function SkinSegment() {
       <button ref={button} type="button" className="fof-segment fof-select-button" aria-haspopup="listbox"
         aria-expanded={open} aria-controls={list} aria-label={`Skin: ${current?.name ?? ""}`}
         onClick={() => (open ? fold(false) : show())} onKeyDown={onButtonKey}>
-        <span className="fof-select-caption" aria-hidden="true">Skin</span>
-        <span>{current?.name}</span>
+        {current?.name}
       </button>
       <div className="fof-select-drop" aria-hidden={!open}>
         <span className="fof-select-bar" style={{ height: reach }} />

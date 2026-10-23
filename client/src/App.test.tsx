@@ -66,6 +66,8 @@ describe("App", () => {
     emit("model", system);
     fireEvent.change(screen.getByRole("combobox", { name: "Skin" }), { target: { value: "sci-fi-fof" } });
     const choice = await screen.findByRole("button", { name: "Skin: Sci-Fi FOF" });
+    // Like the bar's other segments, it shows only its value.
+    expect(choice).toHaveTextContent(/^Sci-Fi FOF$/);
     expect(screen.queryByRole("combobox", { name: "Skin" })).not.toBeInTheDocument();
     expect(screen.getAllByLabelText("Time of day")).toHaveLength(1);
     expect(screen.getAllByRole("heading", { level: 1, name: "tsoa-gui" })).toHaveLength(1);

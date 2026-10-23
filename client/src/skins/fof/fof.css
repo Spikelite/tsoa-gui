@@ -156,8 +156,6 @@
   cursor: pointer;
 }
 
-.fof-select-caption { font-size: 0.8em; }
-
 .fof-select-button:focus-visible,
 .fof-select-option:focus-visible {
   outline: 2px solid var(--fof-ink);
@@ -1033,8 +1031,7 @@
   .fof-readout-lead > .fof-state-line { margin: 0.35em 0; }
 
   .fof-cap { width: 1.2em; }
-  .fof-label,
-  .fof-select-caption { display: none; }
+  .fof-label { display: none; }
   .fof-segment,
   .fof-link { padding: 0 0.5em; }
 
