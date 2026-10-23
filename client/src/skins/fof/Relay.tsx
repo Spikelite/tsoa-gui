@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 
+import { fraction } from "./hubGeometry";
 import type { HubSide } from "./hubPorts";
 
 /** A conduit where it meets the relay, as the conduits work it out. */
@@ -26,7 +27,6 @@ const PULSE = 30;
 
 const ANGLE: Record<HubSide, number> = { right: 0, bottom: 90, left: 180, top: 270 };
 
-const fraction = (value: number) => ((value % 1) + 1) % 1;
 
 // The DC bus drawn as a plasma relay where its conduits meet: a dark round
 // body with a port on each side a conduit plugs into, a ring of cells chasing

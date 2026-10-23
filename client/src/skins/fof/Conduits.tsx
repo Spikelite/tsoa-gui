@@ -3,10 +3,12 @@ import { useId, useLayoutEffect, useRef, useState, type CSSProperties } from "re
 import type { Flow, PartName } from "../../model/system";
 import { flowSpeed } from "../minimal/flowSpeed";
 import { approach, conduitPath, usePanelMeasure, type Box } from "../panelBoxes";
+import { fraction } from "./hubGeometry";
 import { HUB_EDGE, HUB_VIEW, portShift, type HubPort, type HubPorts } from "./hubPorts";
 import { HubThreads } from "./HubThreads";
 import { Relay, RELAY, RELAY_CORE, type RelayLink } from "./Relay";
 import { SOFTEN, STROKES, WAVE } from "./waves";
+import { steadyPeriod } from "./wavePeriod";
 
 /** The box round a conduit's route, from the points its path passes through. */
 function extent(d: string) {
@@ -15,7 +17,6 @@ function extent(d: string) {
   const ys = points.map(([, y]) => y);
   return { x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) };
 }
-import { steadyPeriod } from "./wavePeriod";
 
 /** Each conduit's period, kept from before where its power has not moved far enough to change it. */
 function settle(previous: Partial<Record<string, number>>, flows: Flow[]): Partial<Record<string, number>> {
@@ -54,7 +55,9 @@ function hubNudge(
   return 0;
 }
 
-const fraction = (value: number) => Number((((value % 1) + 1) % 1).toFixed(3));
+// Rounded, so that the hub, which hears these through a comparison of the
+// whole set, is not told of changes too small to see.
+const rounded = (value: number) => Number(fraction(value).toFixed(3));
 
 /**
  * Where a conduit meets the hub, if it does, and when in its cycle a crest
@@ -87,8 +90,8 @@ function hubPort(flow: Flow, from: Box, to: Box, hub: Box, length: number, em: n
     idle: flow.power_w <= 0,
     // A conduit launched from its source, as a supply's is from its row of
     // pips, has its crest at its start as each cycle starts instead.
-    crossing: outward ? fraction(-(length - toEdge) / wave)
-      : from.launch ? fraction((length - toEdge) / wave) : fraction(1 - toEdge / wave),
+    crossing: outward ? rounded(-(length - toEdge) / wave)
+      : from.launch ? rounded((length - toEdge) / wave) : rounded(1 - toEdge / wave),
   };
 }
 
