@@ -1,11 +1,19 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 
 import type { Flow, PartName } from "../../model/system";
 import { flowSpeed } from "../minimal/flowSpeed";
 import { approach, conduitPath, usePanelMeasure, type Box } from "../panelBoxes";
 import { HUB_EDGE, HUB_VIEW, portShift, type HubPort, type HubPorts } from "./hubPorts";
 import { Relay, RELAY, RELAY_CORE, type RelayLink } from "./Relay";
-import { LAYERS, WAVE } from "./waves";
+import { SOFTEN, STROKES, WAVE } from "./waves";
+
+/** The box round a conduit's route, from the points its path passes through. */
+function extent(d: string) {
+  const points = [...d.matchAll(/(-?[\d.]+),(-?[\d.]+)/g)].map((match) => [Number(match[1]), Number(match[2])] as const);
+  const xs = points.map(([x]) => x);
+  const ys = points.map(([, y]) => y);
+  return { x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) };
+}
 import { steadyPeriod } from "./wavePeriod";
 
 /** Each conduit's period, kept from before where its power has not moved far enough to change it. */
@@ -76,7 +84,10 @@ function hubPort(flow: Flow, from: Box, to: Box, hub: Box, length: number, em: n
     width: Number((((1 + 0.2 * flowSpeed(flow.power_w)) * em) / scale).toFixed(2)),
     outward,
     idle: flow.power_w <= 0,
-    crossing: outward ? fraction(-(length - toEdge) / wave) : fraction(1 - toEdge / wave),
+    // A conduit launched from its source, as a supply's is from its row of
+    // pips, has its crest at its start as each cycle starts instead.
+    crossing: outward ? fraction(-(length - toEdge) / wave)
+      : from.launch ? fraction((length - toEdge) / wave) : fraction(1 - toEdge / wave),
   };
 }
 
@@ -104,6 +115,7 @@ export function Conduits({ flows, inputs = {}, onHubPorts }: {
   onHubPorts?: (ports: HubPorts) => void;
 }) {
   const svg = useRef<SVGSVGElement>(null);
+  const soften = useId();
   const [nudge, setNudge] = useState(0);
 
   // Moves the hub before the panels are measured, so they are measured where it is.
@@ -195,9 +207,11 @@ export function Conduits({ flows, inputs = {}, onHubPorts }: {
     const core = RELAY_CORE * em;
     const rim = RELAY * em;
     // A conduit into the bus has a crest at its end, the bus, as each cycle
-    // starts; one out of it has a crest at its far end then, so its crests
-    // leave the bus as far before as its length takes.
-    const start = outward ? (core - path.length) / wave : -rim / wave;
+    // starts, or at its start if its source launches it; one out of it has a
+    // crest at its far end then, so its crests leave the bus as far before
+    // as its length takes.
+    const start = outward ? (core - path.length) / wave
+      : from.launch ? (path.length - rim) / wave : -rim / wave;
     return [{
       key: `${flow.source}-${flow.target}`,
       side: main === "x" ? (heading > 0 ? "right" : "left") : heading > 0 ? "bottom" : "top",
@@ -231,15 +245,35 @@ export function Conduits({ flows, inputs = {}, onHubPorts }: {
         // which with each crest centered in its wave is always half a cycle.
         const wave = WAVE * em;
         const phase = from.launch ? 0.5 : ((((length - wave / 2) % wave) + wave) % wave) / wave;
+        // The blur and the mask that keeps it inside the conduit reach a
+        // little past its route, by as much as the conduit's width and the blur's spread.
+        const box = extent(d);
+        const margin = 3 * em;
+        const region = { x: box.x - margin, y: box.y - margin, width: box.width + 2 * margin, height: box.height + 2 * margin };
+        const mask = `${soften}-${key}`;
         return (
           <g key={key} className={`fof-conduit fof-speed-${speed}${flow.power_w > 0 ? "" : " fof-conduit-idle"}`}
             style={{ "--fof-phase": phase.toFixed(3), "--fof-roll": `${period}s` } as CSSProperties}
             data-flow={key}>
             <path className="fof-conduit-body" d={d} />
-            {LAYERS.map((layer, index) => (
-              <path key={index} className="fof-conduit-wave" d={d}
-                style={{ "--length": `${layer.length}em`, "--depth": layer.depth } as CSSProperties} />
-            ))}
+            {flow.power_w > 0 && (
+              <>
+                <mask id={mask} maskUnits="userSpaceOnUse" {...region}>
+                  <path className="fof-conduit-mask" d={d} />
+                </mask>
+                <filter id={`${mask}-blur`} filterUnits="userSpaceOnUse" {...region}>
+                  <feGaussianBlur stdDeviation={SOFTEN * em} />
+                </filter>
+                <g mask={`url(#${CSS.escape(mask)})`}>
+                  <g filter={`url(#${CSS.escape(mask)}-blur)`}>
+                    {STROKES.map((layer, index) => (
+                      <path key={index} className="fof-conduit-wave" d={d}
+                        style={{ "--length": `${layer.length}em`, "--depth": layer.depth, "--opacity": layer.opacity } as CSSProperties} />
+                    ))}
+                  </g>
+                </g>
+              </>
+            )}
             <path className="fof-conduit-chevron" d="M-5 -6 L3 0 L-5 6"
               transform={`translate(${middle.x} ${middle.y}) rotate(${angle})`} />
           </g>

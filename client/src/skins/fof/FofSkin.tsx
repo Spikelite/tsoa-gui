@@ -29,15 +29,21 @@ import { withIdleLinks } from "./links";
 import { throughHub } from "./throughHub";
 import "./fof.css";
 
-/** Which of the hub's two AC inputs each supply plugs into, where the inverter/charger has two. */
+/**
+ * Where on the hub's left side each supply plugs in: at the AC input it is
+ * wired to, where the inverter/charger has two. With one input that both a
+ * grid or shore supply and a generator share, through a transfer switch,
+ * they still meet the hub apart, the grid or shore supply above and the
+ * generator below, so their conduits never lie one over the other.
+ */
 function hubInputs(model: System): Partial<Record<PartName, 1 | 2>> {
-  if ((model.inverter_charger?.ac_inputs ?? 1) < 2) {
-    return {};
+  if ((model.inverter_charger?.ac_inputs ?? 1) >= 2) {
+    return {
+      ...(model.grid?.ac_input ? { grid: model.grid.ac_input } : {}),
+      ...(model.generator?.ac_input ? { generator: model.generator.ac_input } : {}),
+    };
   }
-  return {
-    ...(model.grid?.ac_input ? { grid: model.grid.ac_input } : {}),
-    ...(model.generator?.ac_input ? { generator: model.generator.ac_input } : {}),
-  };
+  return model.grid && model.generator ? { grid: 1, generator: 2 } : {};
 }
 
 /** A part's readings as rows, its headline first. */

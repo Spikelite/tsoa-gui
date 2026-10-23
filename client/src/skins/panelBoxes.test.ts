@@ -31,6 +31,33 @@ describe("flowPoints", () => {
   });
 });
 
+/** A path's length, of its straight runs and its quadratic curves, by many short steps. */
+function measured(d: string): number {
+  const numbers = (text: string) => text.trim().split(/[\s,]+/).map(Number);
+  let length = 0;
+  let at = [0, 0];
+  for (const [, command, args] of d.matchAll(/([MLQ])([^MLQ]*)/g)) {
+    const n = numbers(args!);
+    if (command === "M") {
+      at = [n[0]!, n[1]!];
+    } else if (command === "L") {
+      length += Math.hypot(n[0]! - at[0]!, n[1]! - at[1]!);
+      at = [n[0]!, n[1]!];
+    } else {
+      let last = at;
+      for (let step = 1; step <= 1000; step++) {
+        const s = step / 1000;
+        const r = 1 - s;
+        const point = [r * r * at[0]! + 2 * r * s * n[0]! + s * s * n[2]!, r * r * at[1]! + 2 * r * s * n[1]! + s * s * n[3]!];
+        length += Math.hypot(point[0]! - last[0]!, point[1]! - last[1]!);
+        last = point;
+      }
+      at = [n[2]!, n[3]!];
+    }
+  }
+  return length;
+}
+
 describe("conduitPath", () => {
   const left = { x: 0, y: 0, halfWidth: 50, halfHeight: 20 };
 
@@ -132,7 +159,10 @@ describe("conduitPath", () => {
   it("measures its length along the bends", () => {
     expect(conduitPath(left, { x: 300, y: 0, halfWidth: 50, halfHeight: 20 }, 28).length).toBe(200);
     // 200 across and 100 down, less the corners the two elbows cut.
-    expect(conduitPath(left, { x: 300, y: 100, halfWidth: 50, halfHeight: 20 }, 28).length).toBeCloseTo(252.28, 2);
+    const bent = conduitPath(left, { x: 300, y: 100, halfWidth: 50, halfHeight: 20 }, 28);
+    expect(bent.length).toBeCloseTo(278.9, 1);
+    // As long as its path really is: the straight runs and the two curves, measured finely.
+    expect(bent.length).toBeCloseTo(measured(bent.d), 1);
   });
 
   it("runs straight down from a hub's center even when its readings lie below it", () => {

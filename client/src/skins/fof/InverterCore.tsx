@@ -3,7 +3,7 @@ import { useId, type CSSProperties } from "react";
 import type { InverterCharger, InverterState } from "../../model/system";
 import { flowSpeed } from "../minimal/flowSpeed";
 import { HUB_EDGE, HUB_VIEW, type HubPort, type HubPorts, type HubSide } from "./hubPorts";
-import { thinned } from "./waves";
+import { SOFTEN, STROKES, WAVE } from "./waves";
 
 /** What the inverter/charger is doing with power, which tints its core. */
 type Duty = "inverting" | "charging" | "passing" | "idle";
@@ -56,10 +56,6 @@ const FORK_AT = 0.5;
 // How many legs of the winding a pulse runs each way from where a thread joins.
 const RUN = 4;
 const PULSE = 10;
-// A third of the conduits' wave strokes, each standing for the three: a
-// strand is narrow enough that they make as smooth a wave, and many strands
-// make many strokes to draw.
-const THREAD_LAYERS = thinned(3);
 
 const SIDE_ANGLE: Record<HubSide, number> = { right: 0, bottom: 90, left: 180, top: 270 };
 
@@ -162,7 +158,8 @@ function strand(port: HubPort, thread: number, fork: number, angles: number[]) {
   const width = port.width / STRANDS;
   // Across the conduit, threads in order, each thread's strands in order within it.
   const place = (thread - (THREADS - 1) / 2) * FORKS + (fork - (FORKS - 1) / 2);
-  const start = p(-0.5, place * width);
+  // Starting a little over the conduit's end, so no seam shows where they meet.
+  const start = p(-2, place * width);
   const straight = p(STRAIGHT, place * width);
   const middle = polar(WIND.outer, angles[1]!);
   const center = p(STRAIGHT, (thread - (THREADS - 1) / 2) * FORKS * width);
@@ -339,34 +336,57 @@ export function InverterCore({ inverter, hub }: { inverter: InverterCharger; hub
           }),
         )}
         <path className="fof-hub-wire fof-hub-coil" d={COIL} />
-        {wound.map(({ port, index, lines }) => lines.map((line, n) => {
-          const clip = `${id}-${index}-${n}`;
-          // A crest is at the conduit's end of the thread as it reaches the
-          // square's edge, which for a thread running in is its start and for
-          // one running out is its end.
-          const crestAt = port.outward ? line.length : 0;
-          const phase = fraction(crestAt / cycle - 0.5 - port.crossing);
+        {wound.map(({ port, index, lines }) => {
+          const shape = `${id}-${index}`;
           return (
-            <g key={`${port.key}-${n}`} className={`fof-thread${port.idle ? " fof-thread-idle" : ""}`}>
-              <clipPath id={clip}>
-                <path d={line.outline} />
-              </clipPath>
-              <g clipPath={`url(#${CSS.escape(clip)})`}
-                style={{ "--fof-roll": `var(--fof-roll-${port.key}, 4s)`, "--fof-phase": phase.toFixed(3) } as CSSProperties}>
-                <path className="fof-thread-body" d={line.d} strokeWidth={line.stroke} />
-                {!port.idle && THREAD_LAYERS.map((layer, index) => {
-                  const dash = layer.share * cycle;
-                  const gap = (cycle - dash) / 2;
-                  return (
-                    <path key={index} className="fof-thread-wave" d={line.d} strokeWidth={line.stroke}
-                      strokeDasharray={`0 ${gap.toFixed(2)} ${dash.toFixed(2)} ${gap.toFixed(2)}`}
-                      strokeOpacity={layer.opacity} style={{ "--depth": layer.depth } as CSSProperties} />
-                  );
-                })}
-              </g>
+            <g key={port.key} className={`fof-thread${port.idle ? " fof-thread-idle" : ""}`}
+              style={{ "--fof-roll": `var(--fof-roll-${port.key}, 4s)` } as CSSProperties}>
+              {lines.map((line, n) => (
+                <g key={n}>
+                  <clipPath id={`${shape}-${n}`}>
+                    <path d={line.outline} />
+                  </clipPath>
+                  <path className="fof-thread-body" d={line.d} strokeWidth={line.stroke}
+                    clipPath={`url(#${CSS.escape(`${shape}-${n}`)})`} />
+                </g>
+              ))}
+              {/* The waves of all the port's strands under one blur, as the
+                  conduits' are, trimmed to the strands' outlines. */}
+              {!port.idle && (
+                <>
+                  <mask id={shape} maskUnits="userSpaceOnUse" x="0" y="0" width={SIZE} height={SIZE}>
+                    {lines.map((line, n) => <path key={n} d={line.outline} fill="#fff" />)}
+                  </mask>
+                  <filter id={`${shape}-blur`} filterUnits="userSpaceOnUse" x="0" y="0" width={SIZE} height={SIZE}>
+                    <feGaussianBlur stdDeviation={(SOFTEN * cycle) / WAVE} />
+                  </filter>
+                  <g mask={`url(#${CSS.escape(shape)})`}>
+                    <g filter={`url(#${CSS.escape(shape)}-blur)`}>
+                      {lines.map((line, n) => {
+                        // A crest is at the conduit's end of the thread as it
+                        // reaches the square's edge, which for a thread running
+                        // in is its start and for one running out is its end.
+                        const crestAt = port.outward ? line.length : 0;
+                        const phase = fraction(crestAt / cycle - 0.5 - port.crossing);
+                        return STROKES.map((layer, index) => {
+                          const dash = layer.share * cycle;
+                          const gap = (cycle - dash) / 2;
+                          return (
+                            <path key={`${n}-${index}`} className="fof-thread-wave" d={line.d}
+                              strokeWidth={line.stroke + 4}
+                              strokeDasharray={`0 ${gap.toFixed(2)} ${dash.toFixed(2)} ${gap.toFixed(2)}`}
+                              strokeOpacity={layer.opacity}
+                              style={{ "--depth": layer.depth, "--fof-phase": phase.toFixed(3) } as CSSProperties} />
+                          );
+                        });
+                      })}
+                    </g>
+                  </g>
+                </>
+              )}
             </g>
           );
-        }))}
+        })}
         {wound.map(({ port, index, lines }) => !port.idle && lines.flatMap((line, n) => line.runs.map((run, way) => {
           // Round the winding, a pulse in sets off from a thread's end as a
           // crest reaches it; a pulse out arrives there as a crest leaves it.
