@@ -97,6 +97,13 @@ except Serving:
     assert "tsoa-gui will not start: Python is" in result.stderr
 
 
+def test_a_cut_off_is_a_state_of_charge_with_or_without_its_sign():
+    assert server_main.percent("20") == server_main.percent("20%") == 20.0
+    for value in ("", "100", "-5", "twenty"):
+        with pytest.raises(Exception):
+            server_main.percent(value)
+
+
 def test_an_account_is_a_user_and_group_id():
     assert server_main.account("8088:8089") == (8088, 8089)
     for value in ("8088", "tsoa:tsoa", ":8088", "8088:"):

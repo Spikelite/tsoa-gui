@@ -23,8 +23,9 @@ def account(value: str) -> tuple[int, int]:
 
 
 def percent(value: str) -> float:
+    # Written in a configuration file, a percentage is as likely as not to carry its sign.
     try:
-        number = float(value)
+        number = float(value.strip().removesuffix("%"))
     except ValueError:
         number = -1.0
     if not 0 <= number < 100:
