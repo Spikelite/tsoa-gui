@@ -133,12 +133,14 @@ export function FofSkin({ model, connected = true }: { model: System; connected?
 
   // A CSS animation counts from when it starts, and the skin's start at
   // different moments: a conduit once the panels are measured, and any
-  // animation again whenever its pace changes. Pinning them all to the
-  // page's clock keeps the ones timed to each other, a conduit and what it
-  // feeds or is fed by, in step.
+  // animation again whenever its pace changes. Pinning the ones that repeat
+  // forever to the page's clock keeps those timed to each other, a conduit
+  // and what it feeds or is fed by, in step. One that runs once, such as a
+  // page zooming open or the skin menu unfolding, is left to play from its
+  // own start.
   useLayoutEffect(() => {
     root.current?.getAnimations?.({ subtree: true }).forEach((animation) => {
-      if (animation.startTime !== 0) {
+      if (animation.startTime !== 0 && animation.effect?.getComputedTiming().iterations === Infinity) {
         animation.startTime = 0;
       }
     });
