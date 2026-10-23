@@ -73,8 +73,18 @@ function Readout(props: {
           <StatusWords status={props.status} separator />
         </h2>
       </div>
-      <p className="fof-state-line">{offline ? "Not reporting" : props.state}</p>
-      {rows}
+      {props.layout === "hub" ? (
+        // Beside a hub, the state and readings are one block, placed by its foot.
+        <div className="fof-hub-readings">
+          <p className="fof-state-line">{offline ? "Not reporting" : props.state}</p>
+          {rows}
+        </div>
+      ) : (
+        <>
+          <p className="fof-state-line">{offline ? "Not reporting" : props.state}</p>
+          {rows}
+        </>
+      )}
       {props.art}
     </section>
   );

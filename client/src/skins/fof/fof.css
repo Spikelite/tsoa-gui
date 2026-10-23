@@ -461,12 +461,13 @@
 }
 
 /* A hub: its name above its left edge, and its state and readings at its
-   top right, from the name's row down, just clear of its right side. They
-   end above the hub's middle, where a conduit leaves its right side, and
-   where the column is too narrow for them they run on into the space
-   beyond it, which nothing crosses above that conduit. The two middle
-   columns are the hub's halves. On a narrow screen there is no room beside
-   the hub, so the readings go above it. */
+   top right, just clear of its right side. The readings are placed by their
+   foot, a little above the conduit that leaves the hub's middle on its right
+   side, however wide that conduit is, and grow upward as rows are added, so
+   no row ever comes down onto it. Where the column is too narrow for them
+   they run on into the space beyond it, which nothing crosses above that
+   conduit. The two middle columns are the hub's halves. On a narrow screen
+   there is no room beside the hub, so the readings go above it. */
 .fof-readout-hub {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 6em 6em minmax(0, 1fr);
@@ -478,22 +479,21 @@
 .fof-readout-hub > .fof-name-row { grid-column: 2 / 4; grid-row: 1; }
 .fof-readout-hub > .fof-unit { grid-column: 2 / 4; grid-row: 2; margin: 0.2em 0 0; }
 
-.fof-readout-hub > .fof-state-line,
-.fof-readout-hub > .fof-rows {
+/* The foot of the hub's row is half the hub, 6em, below its middle; the
+   widest conduit reaches 0.9em above that middle, and a clear 0.5em more. */
+.fof-hub-readings {
   grid-column: 4;
   grid-row: 1 / span 2;
+  align-self: end;
   justify-self: start;
-  margin-left: 0.6em;
+  /* As wide as it reads well, but never past the gap after the column, so
+     it stays clear of the next column's name. The gap is the diagram's own. */
+  width: min(15em, calc(100% + clamp(3em, 7vw, 9em) - 1.8em));
+  margin: 0 0 7.4em 0.6em;
 }
 
-.fof-readout-hub > .fof-state-line { margin-top: 0.35em; margin-bottom: 0; }
-/* As wide as it reads well, but never past the gap after the column, so
-   it stays clear of the next column's name. The gap is the diagram's own. */
-.fof-readout-hub > .fof-rows {
-  width: min(15em, calc(100% + clamp(3em, 7vw, 9em) - 1.2em));
-  max-width: none;
-  margin-top: 1.7em;
-}
+.fof-hub-readings > .fof-state-line { margin: 0 0 0.35em; }
+.fof-hub-readings > .fof-rows { width: 100%; max-width: none; }
 .fof-ring-unit { width: 12em; }
 
 .fof-duty-inverting { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #cfe6ff; --fof-ring: var(--fof-plasma-deep); }
@@ -1001,9 +1001,7 @@
   .fof-readout-schematic > .fof-rows { order: 3; }
   .fof-readout-lead > .fof-unit,
   .fof-readout-hub > .fof-unit { margin: 0.8em auto 0; }
-  .fof-readout-hub > .fof-state-line,
-  .fof-readout-hub > .fof-rows { margin-left: 0; }
-  .fof-readout-hub > .fof-rows { width: 100%; margin-top: 0; }
+  .fof-hub-readings { width: 100%; margin: 0; }
   .fof-readout-lead > .fof-state-line { margin: 0.35em 0; }
 
   .fof-cap { width: 1.2em; }
