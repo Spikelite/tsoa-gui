@@ -4,18 +4,19 @@ import type { Solar } from "../../model/system";
 import { cableKeyframes, percent, PIP, PIPS, pipKeyframes, ROW_END, ROW_MIDDLE, SCHEMATIC } from "./schematic";
 
 const { width: WIDTH, height: HEIGHT } = SCHEMATIC;
-// The array: two rows of two panels, each three cells by three.
-const PANEL = { width: 54, height: 50, gap: 6, left: 6, top: 8 };
+// The array: three rows of two panels, each three cells by three.
+const ROWS = 3;
+const PANEL = { width: 54, height: 38, gap: 6, left: 6, top: 6 };
 const CELLS = 3;
 
-const PANELS = [0, 1].flatMap((row) => [0, 1].map((column) => ({
+const PANELS = Array.from({ length: ROWS }, (_, row) => row).flatMap((row) => [0, 1].map((column) => ({
   x: PANEL.left + column * (PANEL.width + PANEL.gap),
   y: PANEL.top + row * (PANEL.height + PANEL.gap),
   // How far the panel is from the array's output, at its bottom right, in panels.
-  distance: (1 - row) + (1 - column),
+  distance: (ROWS - 1 - row) + (1 - column),
 })));
 const ARRAY_RIGHT = PANEL.left + 2 * PANEL.width + PANEL.gap;
-const ARRAY_BOTTOM = PANEL.top + 2 * PANEL.height + PANEL.gap;
+const ARRAY_BOTTOM = PANEL.top + ROWS * PANEL.height + (ROWS - 1) * PANEL.gap;
 
 // The cycle, as shares of one wave's time on the conduit. Light gathers in
 // every cell of every panel, each cell at its own pace, until the array is
@@ -51,7 +52,7 @@ const KEYFRAMES = [
 const CABLE_PATH = `M${ARRAY_RIGHT - 8} ${ARRAY_BOTTOM} V${ROW_MIDDLE - 8} Q${ARRAY_RIGHT - 8} ${ROW_MIDDLE} ${ARRAY_RIGHT} ${ROW_MIDDLE} H${PIP.first - 3}`;
 
 // The solar chargers drawn as a schematic of an array, in the console's way of
-// showing equipment: four panels in outline, each a grid of cells, with a
+// showing equipment: six panels in outline, each a grid of cells, with a
 // cable down to a row of pips, as the grid's tower has, where the conduit to
 // the battery sets off, and the solar readings in the space above the row.
 // While the sun is on it, light gathers in each cell until the array is full,
@@ -68,8 +69,6 @@ export function SolarArray({ solar }: { solar: Solar }) {
       aria-hidden="true">
       <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="fof-unit-art">
         <style>{KEYFRAMES}</style>
-        <path className="fof-schematic-line"
-          d={`M${ARRAY_RIGHT / 2} ${ARRAY_BOTTOM} V${HEIGHT - 4} M${ARRAY_RIGHT / 2 - 18} ${HEIGHT - 4} H${ARRAY_RIGHT / 2 + 18}`} />
         {PANELS.map((panel, index) => (
           <g key={index}>
             {Array.from({ length: CELLS * CELLS }, (_, place) => (
