@@ -63,9 +63,7 @@ def test_readings_stay_in_range():
         assert all(flow.power_w > 0 for flow in system.flows)
         battery = system.battery
         if battery.activity == "discharging":
-            assert battery.power_w < 0 and battery.time_to_go_s > 0
-        else:
-            assert battery.time_to_go_s is None
+            assert battery.power_w < 0
 
 
 def test_an_offline_charger_reports_nothing():

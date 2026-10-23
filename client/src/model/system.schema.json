@@ -286,7 +286,7 @@
           ],
           "default": null
         },
-        "time_to_go_s": {
+        "cut_off_soc_percent": {
           "anyOf": [
             {
               "type": "number"
@@ -296,7 +296,19 @@
             }
           ],
           "default": null,
-          "description": "Time left at the present discharge rate. Unknown while charging or idle."
+          "description": "The state of charge at which the system cuts its AC loads to protect the battery: ESS's minimum where the device has one, otherwise tsoa-gui's own setting."
+        },
+        "time_left": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimeLeft"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Time to empty or to full. None while idle, or where the battery's capacity is not known."
         },
         "activity": {
           "anyOf": [
@@ -644,7 +656,8 @@
         "current_a",
         "power_w",
         "temperature_c",
-        "time_to_go_s",
+        "cut_off_soc_percent",
+        "time_left",
         "activity",
         "max_charge_voltage_v",
         "max_charge_current_a",
@@ -2022,6 +2035,35 @@
         "temperature_c"
       ],
       "title": "TemperatureSensor",
+      "type": "object"
+    },
+    "TimeLeft": {
+      "additionalProperties": false,
+      "description": "How long the battery's present direction lasts, at the current it has averaged lately.",
+      "properties": {
+        "toward": {
+          "description": "Empty is the cut-off state of charge, while discharging; full is 100%, while charging.",
+          "enum": [
+            "empty",
+            "full"
+          ],
+          "type": "string"
+        },
+        "seconds": {
+          "description": "Time until then. Past a month, a month.",
+          "type": "number"
+        },
+        "settled": {
+          "description": "Whether the average behind it has run long enough to be trusted. A fresh estimate is rough and moves often.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "toward",
+        "seconds",
+        "settled"
+      ],
+      "title": "TimeLeft",
       "type": "object"
     }
   },

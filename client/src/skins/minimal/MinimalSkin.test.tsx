@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import type { Battery } from "../../model/system";
 import { system } from "../../test/system";
 import { flowSpeed } from "./flowSpeed";
 import { MinimalSkin } from "./MinimalSkin";
@@ -45,6 +46,31 @@ describe("MinimalSkin", () => {
     render(<MinimalSkin model={system} />);
     expect(within(panel("Battery")).queryByText("Temperature")).not.toBeInTheDocument();
     expect(within(panel("Battery")).getByText("Cell spread")).toBeInTheDocument();
+  });
+
+  it("shows the battery's time to empty or full, rounded until its estimate settles", () => {
+    const shown = (battery: Partial<Battery>) => {
+      const { unmount } = render(<MinimalSkin model={{ ...system, battery: { ...system.battery!, ...battery } }} />);
+      const rows = [...within(panel("Battery")).getAllByRole("term")]
+        .filter((term) => term.textContent?.startsWith("Time"))
+        .map((term) => `${term.textContent}: ${term.nextElementSibling?.textContent}`);
+      unmount();
+      return rows;
+    };
+    const discharging = { activity: "discharging", power_w: -300, current_a: -11.4 } as const;
+    expect(shown({ ...discharging, time_left: { toward: "empty", seconds: 19260, settled: true } }))
+      .toEqual(["Time to empty: 5 h 21 min"]);
+    expect(shown({ ...discharging, time_left: { toward: "empty", seconds: 19260, settled: false } }))
+      .toEqual(["Time to empty: About 5 h"]);
+    expect(shown({ ...discharging, time_left: { toward: "empty", seconds: 1500, settled: false } }))
+      .toEqual(["Time to empty: About 30 min"]);
+    expect(shown({ ...discharging, time_left: { toward: "empty", seconds: 400000, settled: true } }))
+      .toEqual(["Time to empty: Over 3 days"]);
+    // Discharging, but with nothing to estimate from.
+    expect(shown({ ...discharging, time_left: null })).toEqual(["Time to empty: unknown"]);
+    expect(shown({ time_left: { toward: "full", seconds: 7200, settled: true } })).toEqual(["Time to full: 2 h 0 min"]);
+    expect(shown({ time_left: { toward: "full", seconds: 0, settled: true } })).toEqual(["Time to full: Full"]);
+    expect(shown({ activity: "idle", power_w: 0, current_a: 0, time_left: null })).toEqual(["Time left: Idle"]);
   });
 
   it("shows a charger that is not reporting as offline", () => {

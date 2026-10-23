@@ -22,6 +22,17 @@ def account(value: str) -> tuple[int, int]:
     return int(uid), int(gid)
 
 
+def percent(value: str) -> float:
+    # Written in a configuration file, a percentage is as likely as not to carry its sign.
+    try:
+        number = float(value.strip().removesuffix("%"))
+    except ValueError:
+        number = -1.0
+    if not 0 <= number < 100:
+        raise argparse.ArgumentTypeError(f"expected a state of charge from 0 to under 100, not {value!r}")
+    return number
+
+
 def drop_privileges(run_as: tuple[int, int] | None) -> None:
     if run_as is None:
         return
@@ -40,6 +51,9 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--mqtt-host", default="127.0.0.1",
                         help="the device's MQTT broker (default: %(default)s, the device itself)")
     parser.add_argument("--mqtt-port", type=int, default=1883, help="(default: %(default)s)")
+    parser.add_argument("--cut-off-soc", type=percent, default=10.0, metavar="PERCENT",
+                        help="the state of charge at which the system cuts its AC loads, for time to empty, where "
+                             "the device has no ESS minimum of its own (default: %(default)g)")
     parser.add_argument("--mock", action="store_true",
                         help="serve invented readings that run through a day every ten minutes, instead of a device's")
     parser.add_argument("--certfile", type=Path, help="TLS certificate, to serve HTTPS")
@@ -65,6 +79,8 @@ def main(argv: list[str] | None = None) -> None:
 
     from . import mock, venus
     from .app import create_app
+    from .feed import Feed
+    from .time_left import TimeLeftEstimator
 
     if args.mock:
         jobs = [mock.run]
@@ -72,7 +88,7 @@ def main(argv: list[str] | None = None) -> None:
         jobs = [lambda feed: venus.run(feed, args.mqtt_host, args.mqtt_port)]
     # No access log: on the device every line is a write to its storage.
     config = uvicorn.Config(
-        create_app(args.client, jobs=jobs),
+        create_app(args.client, feed=Feed(prepare=TimeLeftEstimator(args.cut_off_soc).apply), jobs=jobs),
         host=args.host,
         port=args.port,
         ssl_certfile=args.certfile,

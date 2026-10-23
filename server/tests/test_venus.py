@@ -25,7 +25,6 @@ DEVICE = {
     ("system", 0, "Dc/Battery/Current"): 18.2,
     ("system", 0, "Dc/Battery/Power"): 480.0,
     ("system", 0, "Dc/Battery/State"): 1,
-    ("system", 0, "Dc/Battery/TimeToGo"): 86400,
     ("system", 0, "Dc/Pv/Power"): 310.0,
     ("system", 0, "Dc/System/Power"): 45.0,
     ("vebus", 276, "Connected"): 1,
@@ -105,7 +104,7 @@ def test_build_reads_the_whole_installation():
     battery = system.battery
     assert (battery.soc_percent, battery.activity, battery.status) == (64.5, "charging", "good")
     assert battery.voltage_v == 26.4
-    assert battery.time_to_go_s is None  # only while discharging
+    assert battery.cut_off_soc_percent is None  # no ESS
     assert battery.max_charge_current_a == 100.0 and battery.min_cell_voltage_v == 3.29
 
     solar = system.solar
@@ -151,6 +150,20 @@ def test_inputs_are_unknown_where_the_system_does_not_say():
     values = {k: v for k, v in DEVICE.items() if not k[2].startswith(("Settings/SystemSetup", "Ac/NumberOf"))}
     system = build(readings(values), live=True)
     assert system.grid.ac_input is None and system.inverter_charger.ac_inputs is None
+
+
+def test_the_cut_off_is_ess_minimum_or_batterylife_limit():
+    def cut_off(state, limit=35.0, minimum=20.0):
+        values = {**DEVICE, ("settings", 0, "Settings/CGwacs/BatteryLife/State"): state,
+                  ("settings", 0, "Settings/CGwacs/BatteryLife/SocLimit"): limit,
+                  ("settings", 0, "Settings/CGwacs/BatteryLife/MinimumSocLimit"): minimum}
+        return build(readings(values), live=True).battery.cut_off_soc_percent
+
+    assert cut_off(0) is None  # ESS not in use
+    assert cut_off(2) == 35.0  # BatteryLife's own limit, above the minimum
+    assert cut_off(2, limit=None) == 20.0
+    assert cut_off(9) == 20.0  # keeping the battery charged
+    assert cut_off(10) == 20.0  # without BatteryLife
 
 
 def test_a_battery_that_reports_its_cells_gives_its_detail():

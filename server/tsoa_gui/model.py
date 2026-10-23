@@ -205,14 +205,29 @@ class BatteryHistory(_Model):
     since_full_charge_s: float | None = Field(None, description="Time since the battery was last fully charged.")
 
 
+class TimeLeft(_Model):
+    """How long the battery's present direction lasts, at the current it has averaged lately."""
+
+    toward: Literal["empty", "full"] = Field(
+        description="Empty is the cut-off state of charge, while discharging; full is 100%, while charging.")
+    seconds: float = Field(description="Time until then. Past a month, a month.")
+    settled: bool = Field(
+        description="Whether the average behind it has run long enough to be trusted. A fresh estimate is "
+                    "rough and moves often.")
+
+
 class Battery(Part):
     soc_percent: float | None = Field(None, description="State of charge.")
     voltage_v: float | None = None
     current_a: float | None = Field(None, description="Positive while charging, negative while discharging.")
     power_w: float | None = Field(None, description="Positive while charging, negative while discharging.")
     temperature_c: float | None = None
-    time_to_go_s: float | None = Field(
-        None, description="Time left at the present discharge rate. Unknown while charging or idle.")
+    cut_off_soc_percent: float | None = Field(
+        None, description="The state of charge at which the system cuts its AC loads to protect the battery: "
+                          "ESS's minimum where the device has one, otherwise tsoa-gui's own setting.")
+    time_left: TimeLeft | None = Field(
+        None, description="Time to empty or to full. None while idle, or where the battery's capacity is not "
+                          "known.")
     activity: Literal["idle", "charging", "discharging"] | None = None
     max_charge_voltage_v: float | None = Field(None, description="Charge voltage limit.")
     max_charge_current_a: float | None = Field(None, description="Charge current limit.")

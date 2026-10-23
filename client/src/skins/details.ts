@@ -4,7 +4,7 @@ import type {
 } from "../model/system";
 import { batteryState, generatorState, gridState, inverterState, MODES, partTitle, solarState } from "./describe";
 import * as f from "./format";
-import { dcLoadsState, inputName, type Measured, type Reading } from "./readings";
+import { dcLoadsState, inputName, timeLeftReadings, type Measured, type Reading } from "./readings";
 
 // What a part's own page shows, shared by every skin as readings.ts is for
 // the overview: readings in titled groups, and for a battery that reports
@@ -81,7 +81,8 @@ export function batteryGroups(battery: Battery): DetailGroup[] {
         { label: "Capacity", value: battery.installed_capacity_ah, format: f.ampHours },
         { label: "Used since full", value: battery.consumed_ah, format: f.ampHours },
         { label: "Health", value: battery.health_percent, format: f.percent },
-        { label: "Time to go", value: battery.time_to_go_s, format: f.duration },
+        ...timeLeftReadings(battery),
+        { label: "Cut-off", value: battery.cut_off_soc_percent, format: f.percent },
       ],
     },
     {

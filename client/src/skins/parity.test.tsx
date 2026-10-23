@@ -14,7 +14,7 @@ const everything: System = {
   ...system,
   generator: { status: "normal", ac_input: 2, running: true, power_w: 2100, run_time_s: 1800 },
   inverter_charger: { ...system.inverter_charger!, ac_inputs: 2, active_input: 2 },
-  battery: { ...system.battery!, temperature_c: 21.5, time_to_go_s: 36000 },
+  battery: { ...system.battery!, temperature_c: 21.5, time_left: { toward: "full", seconds: 36000, settled: true } },
   solar: {
     ...system.solar!,
     chargers: system.solar!.chargers.map((charger) => ({ ...charger, status: "good", power_w: 155 })),

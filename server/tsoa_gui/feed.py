@@ -1,17 +1,22 @@
 """The latest system model, handed to everyone listening whenever it changes."""
 import asyncio
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 
 from .model import System
 
 
 class Feed:
-    def __init__(self) -> None:
+    def __init__(self, prepare: Callable[[System], System] | None = None) -> None:
+        # What the server works out over time, such as the battery's time
+        # left, is added here, whichever job built the model.
+        self._prepare = prepare
         self.latest: System | None = None
         self._listeners: set[asyncio.Queue[System]] = set()
 
     def publish(self, model: System) -> None:
+        if self._prepare is not None:
+            model = self._prepare(model)
         self.latest = model
         for queue in self._listeners:
             # A listener that has fallen behind needs only the newest model,

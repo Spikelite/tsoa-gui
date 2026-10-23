@@ -71,12 +71,31 @@ export function batteryReadings(battery: Battery): Readings {
       { label: "Voltage", value: battery.voltage_v, format: f.volts, always: true },
       { label: "Current", value: battery.current_a, format: f.amps },
       { label: "Temperature", value: battery.temperature_c, format: f.celsius },
-      { label: "Time to go", value: battery.time_to_go_s, format: f.duration },
+      ...timeLeftReadings(battery),
       { label: "Charge limit", value: battery.max_charge_current_a, format: f.amps },
       { label: "Discharge limit", value: battery.max_discharge_current_a, format: f.amps },
       { label: "Cell spread", value: spread, format: f.millivolts },
     ],
   };
+}
+
+/**
+ * How long the battery's present direction lasts: time to empty while it
+ * discharges, time to full while it charges, and a word while it is idle.
+ * Charging or discharging with no estimate, it is shown as unknown.
+ */
+export function timeLeftReadings(battery: Battery): Reading[] {
+  const estimate = battery.time_left;
+  if (estimate !== null) {
+    return [{ label: estimate.toward === "empty" ? "Time to empty" : "Time to full", text: f.timeLeft(estimate) }];
+  }
+  if (battery.activity === "idle") {
+    return [{ label: "Time left", text: "Idle" }];
+  }
+  if (battery.activity === null) {
+    return [];
+  }
+  return [{ label: battery.activity === "discharging" ? "Time to empty" : "Time to full", value: null, format: f.duration, always: true }];
 }
 
 /** The solar readings; each charger's own power is listed apart, where there is more than one. */
