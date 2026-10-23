@@ -376,10 +376,10 @@ def _battery(r: Readings) -> Battery | None:
 
     cells = []
     for n in range(1, MOST_CELLS + 1):
-        voltage = detail(f"Voltages/Cell{n}")
-        if voltage is None:
+        cell_voltage = detail(f"Voltages/Cell{n}")
+        if cell_voltage is None:
             break
-        cells.append(Cell(voltage_v=voltage, balancing=flag(f"Balances/Cell{n}")))
+        cells.append(Cell(voltage_v=cell_voltage, balancing=flag(f"Balances/Cell{n}")))
     sensors = [
         TemperatureSensor(name=words(f"System/Temperature{n}Name") or f"Sensor {n}", temperature_c=reading)
         for n in range(1, MOST_SENSORS + 1)
