@@ -1,0 +1,5 @@
+# The Venus OS versions tsoa-gui has been run on, oldest first, one to a line.
+# Each release's notes list them. Add a version once a release has been
+# installed and checked on a device running it.
+v3.81
+v3.85

@@ -6,7 +6,7 @@ The addresses on this page, such as `192.0.2.10`, are examples. Use your own dev
 
 ## What you need
 
-A Victron GX device, such as a Cerbo GX or an Ekrano GX, or a Raspberry Pi, running Venus OS v3.70 or later. Each release's notes name the Python and pydantic versions it was tested with; tsoa-gui uses the ones Venus ships, and a release refuses to install on a device with others. It needs about 20 MB on the device's data partition, for the release in use and the one before it.
+A Victron GX device, such as a Cerbo GX or an Ekrano GX, or a Raspberry Pi, running Venus OS v3.70 or later. Each release's notes name the Python and pydantic versions it was tested with, and the Venus OS versions it has been run on. tsoa-gui uses the Python and pydantic that Venus ships, and checks those two, not the firmware's version: a release refuses to install on a device with others, and runs on any firmware with the same ones, including firmware it has not been run on. It needs about 20 MB on the device's data partition, for the release in use and the one before it.
 
 A computer on the same network, with `ssh` and `scp`. Windows 10 and 11, macOS and Linux all have them: on Windows, use PowerShell.
 
