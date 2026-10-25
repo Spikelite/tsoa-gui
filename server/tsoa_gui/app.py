@@ -18,8 +18,13 @@ log = logging.getLogger(__name__)
 Job = Callable[[Feed], Awaitable[None]]
 
 
-def create_app(client_dir: Path | None = None, feed: Feed | None = None, jobs: Sequence[Job] = ()) -> FastAPI:
-    """The app, serving the model from feed, which the jobs keep current while it runs."""
+def create_app(client_dir: Path | None = None, feed: Feed | None = None, jobs: Sequence[Job] = (),
+               stopping: Callable[[], bool] = lambda: False) -> FastAPI:
+    """The app, serving the model from feed, which the jobs keep current while it runs.
+
+    Its event streams end once stopping() is true, which the server running it
+    sets as it starts to shut down.
+    """
     feed = feed if feed is not None else Feed()
 
     @asynccontextmanager
@@ -53,7 +58,7 @@ def create_app(client_dir: Path | None = None, feed: Feed | None = None, jobs: S
 
     @app.get("/api/system/events", response_class=EventSourceResponse)
     async def system_events() -> AsyncIterator[ServerSentEvent]:
-        async for event in model_events(feed):
+        async for event in model_events(feed, stopping):
             yield event
 
     # Mounted last: a mount at the root would otherwise answer for /api too.

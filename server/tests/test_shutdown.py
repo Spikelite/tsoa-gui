@@ -1,8 +1,9 @@
-"""The server stops promptly when told to, even with a browser's stream open.
+"""The server stops promptly and cleanly when told to, even with a browser's stream open.
 
-A browser's event stream never ends on its own, so without a limit on the
-graceful shutdown the supervisor's restart left the old server stopped but
-never gone. Signals only work this way on POSIX systems.
+A browser's event stream never ends on its own, so the server ends it as it
+starts to stop. Otherwise the graceful shutdown waits out its limit and then
+cuts the stream off, logging a traceback for each one. Signals only work
+this way on POSIX systems.
 """
 import os
 import signal
@@ -26,7 +27,7 @@ def test_the_server_exits_on_sigterm_with_a_stream_open():
         probe.bind(("127.0.0.1", 0))
         port = probe.getsockname()[1]
     server = subprocess.Popen([sys.executable, "-m", "tsoa_gui", "--mock", "--port", str(port)], cwd=SERVER,
-                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                              stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
     try:
         deadline = time.monotonic() + 15
         while True:
@@ -43,8 +44,13 @@ def test_the_server_exits_on_sigterm_with_a_stream_open():
             assert next(lines).startswith(("retry:", "event:"))
             os.kill(server.pid, signal.SIGTERM)
             # Uvicorn re-raises the signal once it has shut down, so the exit
-            # is SIGTERM's own; what matters is that it comes, and in time.
+            # is SIGTERM's own. It comes before the graceful shutdown's limit,
+            # because nothing was left to cut off.
+            asked = time.monotonic()
             assert server.wait(timeout=SHUTDOWN_TIMEOUT_S + 5) in (0, -signal.SIGTERM)
+            assert time.monotonic() - asked < SHUTDOWN_TIMEOUT_S
+        log = server.stderr.read()
+        assert "ERROR" not in log and "Traceback" not in log, log
     finally:
         if server.poll() is None:
             server.kill()

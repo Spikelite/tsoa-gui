@@ -31,6 +31,36 @@ def test_the_stream_starts_with_the_whole_model_then_sends_changes():
     run(scenario)
 
 
+def test_the_stream_ends_once_the_server_is_stopping():
+    async def scenario():
+        feed = Feed()
+        feed.publish(snapshot(10))
+        stopping = False
+        events = model_events(feed, lambda: stopping)
+        assert (await anext(events)).event == "model"
+        stopping = True
+        # It ends while waiting for a change, without one ever being published.
+        try:
+            await anext(events)
+        except StopAsyncIteration:
+            return
+        raise AssertionError("the stream went on after the server began to stop")
+
+    run(scenario)
+
+
+def test_a_stream_that_has_sent_nothing_ends_once_the_server_is_stopping():
+    async def scenario():
+        events = model_events(Feed(), lambda: True)
+        try:
+            await anext(events)
+        except StopAsyncIteration:
+            return
+        raise AssertionError("the stream went on after the server began to stop")
+
+    run(scenario)
+
+
 def test_the_stream_waits_for_the_first_reading():
     async def scenario():
         feed = Feed()
