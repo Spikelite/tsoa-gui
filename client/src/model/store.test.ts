@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { SystemStore } from "./store";
+import { CHECK_EVERY_MS, RELOAD_AFTER_MS, SystemStore } from "./store";
 
 class FakeStream {
   closed = false;
@@ -20,15 +20,27 @@ class FakeStream {
   }
 }
 
-function storeWithStream() {
+function storeWithStream(answers = false) {
   const streams: FakeStream[] = [];
+  const server = { answers, asked: 0 };
+  const reload = vi.fn();
   const store = new SystemStore("/stream", () => {
     const stream = new FakeStream();
     streams.push(stream);
     return stream;
+  }, {
+    answers: () => {
+      server.asked += 1;
+      return Promise.resolve(server.answers);
+    },
+    reload,
   });
-  return { store, streams };
+  return { store, streams, server, reload };
 }
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe("SystemStore", () => {
   it("opens the stream on the first subscriber and closes it after the last", () => {
@@ -63,6 +75,61 @@ describe("SystemStore", () => {
     store.subscribe(() => {});
     streams[0]!.emit("patch", { battery: { soc_percent: 51 } });
     expect(store.getSnapshot().model).toBeNull();
+  });
+
+  it("reloads the page once the server answers again after a long loss of the stream", async () => {
+    vi.useFakeTimers();
+    const { store, streams, server, reload } = storeWithStream();
+    store.subscribe(() => {});
+    streams[0]!.emit("model", { live: true });
+    streams[0]!.emit("error");
+    // Nobody is asked before the wait is up, and nothing reloads while the
+    // server does not answer.
+    await vi.advanceTimersByTimeAsync(RELOAD_AFTER_MS - 1);
+    expect(server.asked).toBe(0);
+    await vi.advanceTimersByTimeAsync(1 + 3 * CHECK_EVERY_MS);
+    expect(server.asked).toBe(4);
+    expect(reload).not.toHaveBeenCalled();
+    server.answers = true;
+    await vi.advanceTimersByTimeAsync(CHECK_EVERY_MS);
+    expect(reload).toHaveBeenCalledTimes(1);
+    // It reloads once, and asks no more.
+    await vi.advanceTimersByTimeAsync(5 * CHECK_EVERY_MS);
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(server.asked).toBe(5);
+  });
+
+  it("asks nothing and reloads nothing when the stream comes back in time", async () => {
+    vi.useFakeTimers();
+    const { store, streams, server, reload } = storeWithStream(true);
+    store.subscribe(() => {});
+    streams[0]!.emit("model", { live: true });
+    streams[0]!.emit("error");
+    await vi.advanceTimersByTimeAsync(RELOAD_AFTER_MS - 1000);
+    streams[0]!.emit("model", { live: true });
+    await vi.advanceTimersByTimeAsync(10 * RELOAD_AFTER_MS);
+    expect(server.asked).toBe(0);
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  it("waits for the server when the stream fails before its first model", async () => {
+    vi.useFakeTimers();
+    const { store, streams, reload } = storeWithStream(true);
+    store.subscribe(() => {});
+    streams[0]!.emit("error");
+    await vi.advanceTimersByTimeAsync(RELOAD_AFTER_MS);
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops asking once nothing reads the stream", async () => {
+    vi.useFakeTimers();
+    const { store, streams, server, reload } = storeWithStream(true);
+    const unsubscribe = store.subscribe(() => {});
+    streams[0]!.emit("error");
+    unsubscribe();
+    await vi.advanceTimersByTimeAsync(10 * RELOAD_AFTER_MS);
+    expect(server.asked).toBe(0);
+    expect(reload).not.toHaveBeenCalled();
   });
 
   it("shows a lost connection but keeps the last model", () => {
