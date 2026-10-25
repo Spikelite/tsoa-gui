@@ -179,6 +179,22 @@ export function AcLoadsPanel({ loads }: { loads: AcLoads }) {
     <Panel part="ac_loads" title="AC loads" status={loads.status} state="In use">
       <Headline reading={readings.headline} />
       <Details readings={readings} />
+      {/* Each circuit its own meter measures, listed as solar lists its chargers. */}
+      {loads.circuits.length > 0 && (
+        <ul className="chargers">
+          {loads.circuits.map((circuit) => (
+            <li key={circuit.name}>
+              <StatusIcon status={circuit.status} />
+              <span className="charger-name">{circuit.name}</span>
+              {circuit.status === "offline" ? (
+                <span>Not reporting</span>
+              ) : (
+                <Eased value={circuit.power_w} format={f.power} />
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </Panel>
   );
 }

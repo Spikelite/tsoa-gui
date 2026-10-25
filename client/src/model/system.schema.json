@@ -1,5 +1,102 @@
 {
   "$defs": {
+    "AcCircuit": {
+      "additionalProperties": false,
+      "description": "One circuit of AC loads that an energy meter of its own measures.",
+      "properties": {
+        "status": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Status"
+            }
+          ],
+          "description": "How this part is doing. Every skin gives each level the same color: good green, normal blue, attention yellow, warning orange, fault red, offline black, always paired with an icon or a label so color is never the only signal."
+        },
+        "name": {
+          "description": "The circuit's name, as its meter reports it.",
+          "type": "string"
+        },
+        "power_w": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Power the circuit draws. Some meters give its size without its direction."
+        },
+        "voltage_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Voltage on the circuit, its first phase where it has more."
+        },
+        "current_a": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Current the circuit draws, all phases together."
+        },
+        "power_factor": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The circuit's power factor, where it has one phase."
+        },
+        "energy_kwh": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Energy the circuit has used, since its meter began counting."
+        },
+        "phases": {
+          "description": "Each phase the meter measures, where it measures more than one.",
+          "items": {
+            "$ref": "#/$defs/AcPhase"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "status",
+        "name",
+        "power_w",
+        "voltage_v",
+        "current_a",
+        "power_factor",
+        "energy_kwh",
+        "phases"
+      ],
+      "title": "AcCircuit",
+      "type": "object"
+    },
     "AcLoads": {
       "additionalProperties": false,
       "properties": {
@@ -82,6 +179,13 @@
           ],
           "default": null,
           "description": "Frequency on the inverter/charger's AC output."
+        },
+        "circuits": {
+          "description": "Each circuit an energy meter of its own measures. They come from other meters than the totals above, so their sum need not match power_w.",
+          "items": {
+            "$ref": "#/$defs/AcCircuit"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -91,7 +195,8 @@
         "on_input_w",
         "voltage_v",
         "current_a",
-        "frequency_hz"
+        "frequency_hz",
+        "circuits"
       ],
       "title": "AcLoads",
       "type": "object"

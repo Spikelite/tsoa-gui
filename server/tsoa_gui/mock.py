@@ -24,7 +24,7 @@ from . import status
 from .feed import Feed
 from .flows import derive_flows
 from .model import (
-    AcLoads, AcPhase, Alarm, AlarmCheck, Battery, BatteryHistory, Cell, DcLoads, EnergyCounter, Generator, Grid,
+    AcCircuit, AcLoads, AcPhase, Alarm, AlarmCheck, Battery, BatteryHistory, Cell, DcLoads, EnergyCounter, Generator, Grid,
     InverterCharger, Led, Solar, SolarCharger, System, TemperatureSensor,
 )
 
@@ -142,6 +142,19 @@ def _moment(t: float, soc: float) -> _Moment:
         east, west, solar = east * scale, west * scale, solar - curtail
         battery = solar + inverter_dc - dc
     return _Moment(phase, east, west, on_output, on_input, dc, source, charger_dc, inverter_dc, battery)
+
+
+def _circuits(on_output_w: float, volts: float, phase: float) -> list[AcCircuit]:
+    """Two invented metered circuits, each drawing a share of the loads on the inverter/charger's output."""
+    def circuit(name: str, share: float, power_factor: float, kwh_at_midnight: float, kwh_a_day: float) -> AcCircuit:
+        power = on_output_w * share
+        return AcCircuit(
+            status="normal", name=name, power_w=round(power, 1), voltage_v=round(volts, 1),
+            current_a=round(power / (volts * power_factor), 2) if volts else None, power_factor=power_factor,
+            energy_kwh=round(kwh_at_midnight + kwh_a_day * phase, 3),
+        )
+
+    return [circuit("Kitchen", 0.45, 0.97, 182.4, 3.6), circuit("Workshop", 0.2, 0.88, 61.7, 1.1)]
 
 
 def _day_so_far(t: float) -> tuple[float, float, float]:
@@ -364,6 +377,7 @@ def snapshot(t: float) -> System:
             voltage_v=round(out_v, 1),
             current_a=round(m.on_output_w / out_v, 1),
             frequency_hz=round(out_hz, 2),
+            circuits=_circuits(m.on_output_w, out_v, m.phase),
         ),
         dc_loads=DcLoads(status="normal", power_w=round(m.dc_w), measured_by="calculation"),
     )

@@ -11,7 +11,7 @@ One page is both the status board and the data view. Each part of the system has
 | Inverter/charger, named Inverter on screen | mode, state (inverting, bulk, absorption, float, passthrough), AC in and out power, charge current, the AC input in use where it has two, alarms |
 | Battery | state of charge, voltage, current, power, temperature, time to empty or to full, charge limits, cell spread where the battery reports cells |
 | Solar | power per charger and in total, today's yield, charger state |
-| AC loads | power on each output |
+| AC loads | power on each output, and each circuit an energy meter of its own measures |
 | DC loads | power, where it is measured |
 
 Every skin shows the same readings for each part, from one list the skins share: a skin changes how they look, never which there are. A part the system does not have is left out. A part that is installed but not reporting is drawn as offline. Readings arrive about once a second, and every displayed value eases from its last reading to the next instead of jumping.
@@ -30,7 +30,7 @@ A part opens into a page of its own with everything the device reports about it,
 - The inverter/charger's page starts with its front panel's lights, beside its hub in Sci-Fi FOF. Then come its output and input phase by phase, its battery side and the battery limits it follows, its conditions and settings, the energy it has moved along each route between the supplies, the battery and the loads, its device details and every condition it watches.
 - The grid or shore supply and the generator show what reaches the inverter/charger from their input and the energy carried from it.
 - Solar shows each charger's panel and battery sides, its best power today and its harvest.
-- The AC loads show what feeds them and the energy delivered to them, and the DC loads their current at the battery's voltage.
+- The AC loads show what feeds them, the energy delivered to them, and each circuit an energy meter of its own measures, with its power, voltage, current, power factor and the energy it has used; the DC loads show their current at the battery's voltage.
 
 Every page but the battery's and the inverter/charger's draws its part large, as on the overview, with its readings in groups. Clicking a part opens its page, which Sci-Fi FOF draws inside its frame, growing out of where the part sat. The page has its own address, `?part=battery`, so a kiosk can open straight onto it, and the browser's back button, Escape or the page's Overview control returns to the whole system.
 

@@ -144,6 +144,16 @@ export const system: System = {
     voltage_v: 230.4,
     current_a: 3.1,
     frequency_hz: 50.01,
+    circuits: [
+      {
+        status: "normal", name: "Kitchen", power_w: 420, voltage_v: 230.4, current_a: 1.9, power_factor: 0.96,
+        energy_kwh: 182.4, phases: [],
+      },
+      {
+        status: "offline", name: "Workshop", power_w: null, voltage_v: null, current_a: null, power_factor: null,
+        energy_kwh: null, phases: [],
+      },
+    ],
   },
   dc_loads: { status: "normal", power_w: null, measured_by: "calculation" },
   flows: [
