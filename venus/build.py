@@ -51,6 +51,12 @@ def tested_versions() -> dict[str, str]:
     return {"python": PYTHON, "pydantic": pins["pydantic"]}
 
 
+def tested_firmware() -> list[str]:
+    """The Venus OS versions the code has been run on, as venus/tested-firmware.txt lists them."""
+    lines = (VENUS / "tested-firmware.txt").read_text(encoding="utf-8").splitlines()
+    return [line.strip() for line in lines if line.strip() and not line.startswith("#")]
+
+
 def default_version() -> str:
     described = subprocess.run(["git", "describe", "--always", "--dirty"], cwd=REPO,
                                capture_output=True, text=True, check=True).stdout.strip()
@@ -130,16 +136,23 @@ def checksum(path: Path) -> Path:
 def notes(version: str, path: Path) -> str:
     """The release's notes on GitHub, ahead of the list of changes GitHub adds."""
     tested = tested_versions()
+    firmware = tested_firmware()
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     guide = f"{GITHUB}/blob/v{version}/docs/install.md"
+    run_on = (f"It has been run on Venus OS {_listed(firmware)}." if firmware
+              else "It has not yet been run on a device.")
     return f"""tsoa-gui {version} for Venus OS devices. To install it, or to update an earlier release, follow the [install guide]({guide}).
 
-This release was tested with Python {tested["python"]} and pydantic {tested["pydantic"]}, as Venus OS ships them. On a device with other versions, after a firmware update for example, it does not run: it shows a page saying a newer release is needed.
+This release was tested with Python {tested["python"]} and pydantic {tested["pydantic"]}, as Venus OS ships them. {run_on} It runs on any Venus OS with that Python and pydantic, including firmware it has not been run on. On a device with other versions, after a firmware update for example, it does not run: it shows a page saying a newer release is needed.
 
 SHA-256 of `{path.name}`:
 
     {digest}
 """
+
+
+def _listed(items: list[str]) -> str:
+    return items[0] if len(items) == 1 else f"{', '.join(items[:-1])} and {items[-1]}"
 
 
 def main(argv: list[str] | None = None) -> None:

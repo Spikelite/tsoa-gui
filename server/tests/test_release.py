@@ -104,6 +104,17 @@ def test_the_checksum_and_notes_name_the_archive(tmp_path: Path):
     assert digest in notes
     assert "/blob/v1.0.0/docs/install.md" in notes
     assert "Python 3.12 and pydantic 2.7.4" in notes
+    assert f"It has been run on Venus OS {build._listed(build.tested_firmware())}." in notes
+
+
+def test_the_notes_name_the_firmware_a_release_was_run_on(monkeypatch, tmp_path: Path):
+    path = build.archive(staged(tmp_path, "1.0.0"), tmp_path)
+    monkeypatch.setattr(build, "tested_firmware", lambda: ["v3.81", "v3.85"])
+    assert "It has been run on Venus OS v3.81 and v3.85." in build.notes("1.0.0", path)
+    monkeypatch.setattr(build, "tested_firmware", lambda: ["v3.81", "v3.82", "v3.85"])
+    assert "It has been run on Venus OS v3.81, v3.82 and v3.85." in build.notes("1.0.0", path)
+    monkeypatch.setattr(build, "tested_firmware", lambda: [])
+    assert "It has not yet been run on a device." in build.notes("1.0.0", path)
 
 
 class Health(BaseHTTPRequestHandler):
