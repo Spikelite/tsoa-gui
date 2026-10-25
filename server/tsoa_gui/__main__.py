@@ -9,9 +9,9 @@ from . import versions
 
 BUILT_CLIENT = Path(__file__).resolve().parents[2] / "client" / "dist"
 
-# A browser's event stream never ends on its own, so a graceful shutdown
-# would wait on it forever and a restart would leave the server stopped but
-# not gone. Past this many seconds, open requests are cut off.
+# The event streams end themselves once the server starts to stop. Any other
+# request still open past this many seconds is cut off, so a stuck one never
+# leaves a restarting server stopped but not gone.
 SHUTDOWN_TIMEOUT_S = 3
 
 
@@ -86,9 +86,13 @@ def main(argv: list[str] | None = None) -> None:
         jobs = [mock.run]
     else:
         jobs = [lambda feed: venus.run(feed, args.mqtt_host, args.mqtt_port)]
+    # The app's event streams end once the server, made below, starts to stop.
+    server: uvicorn.Server | None = None
+    app = create_app(args.client, feed=Feed(prepare=TimeLeftEstimator(args.cut_off_soc).apply), jobs=jobs,
+                     stopping=lambda: server is not None and server.should_exit)
     # No access log: on the device every line is a write to its storage.
     config = uvicorn.Config(
-        create_app(args.client, feed=Feed(prepare=TimeLeftEstimator(args.cut_off_soc).apply), jobs=jobs),
+        app,
         host=args.host,
         port=args.port,
         ssl_certfile=args.certfile,
