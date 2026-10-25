@@ -53,6 +53,8 @@ Dark mode is the default.
 
 Old readings are never passed off as current. The server marks the model stale when it has not heard from the device for ten seconds, and the page knows when it has lost the server. Every skin says which of the three it is: live, stale, or offline.
 
+A page that has lost the server for thirty seconds asks every few seconds whether the server answers, and reloads as soon as it does, so a kiosk with nobody to click comes back by itself. It never reloads while the server does not answer, since the browser would put up its own page, which never tries again.
+
 ## Skins
 
 A skin is a view over the same system model. It receives the model and its updates and decides how to draw them, and it never talks to the device itself.
