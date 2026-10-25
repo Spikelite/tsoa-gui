@@ -26,7 +26,7 @@ from . import status
 from .feed import Feed
 from .flows import derive_flows
 from .model import (
-    AcLoads, AcPhase, Alarm, AlarmCheck, Battery, BatteryHistory, Cell, ChargerState, DcLoads, EnergyCounter,
+    AcCircuit, AcLoads, AcPhase, Alarm, AlarmCheck, Battery, BatteryHistory, Cell, ChargerState, DcLoads, EnergyCounter,
     EnergyEnd, Generator, Grid, InverterCharger, InverterMode, InverterState, Led, Solar, SolarCharger, System,
     TemperatureSensor,
 )
@@ -502,11 +502,53 @@ def _solar(r: Readings) -> Solar | None:
     )
 
 
+def _circuit_names(r: Readings) -> dict[int, str]:
+    """Each AC load meter's name, made its own by its instance where another meter has the same one."""
+    names = {instance: str(r.get("acload", instance, "CustomName") or r.get("acload", instance, "ProductName")
+                           or f"AC load {instance}")
+             for instance in r.instances("acload")}
+    shared = {name for name in names.values() if list(names.values()).count(name) > 1}
+    return {instance: f"{name} {instance}" if name in shared else name for instance, name in names.items()}
+
+
+def _circuits(r: Readings) -> list[AcCircuit]:
+    """Each energy meter in the AC load role, which Venus keeps out of its own totals."""
+    circuits = []
+    names = _circuit_names(r)
+    for instance in r.instances("acload"):
+        name = names[instance]
+        if r.get("acload", instance, "Connected") == 0:
+            circuits.append(AcCircuit(status="offline", name=name))
+            continue
+        # A meter on fewer phases publishes the others' paths as null.
+        phases = [
+            AcPhase(phase=f"L{n}", voltage_v=r.number("acload", instance, f"Ac/L{n}/Voltage"),
+                    current_a=r.number("acload", instance, f"Ac/L{n}/Current"),
+                    power_w=r.number("acload", instance, f"Ac/L{n}/Power"))
+            for n in (1, 2, 3)
+            if any(r.number("acload", instance, f"Ac/L{n}/{path}") is not None
+                   for path in ("Voltage", "Current", "Power"))
+        ]
+        circuits.append(AcCircuit(
+            status="normal",
+            name=name,
+            power_w=_first(r.number("acload", instance, "Ac/Power"), r.total("acload", instance, "Ac/{}/Power")),
+            voltage_v=phases[0].voltage_v if phases else None,
+            current_a=r.total("acload", instance, "Ac/{}/Current"),
+            power_factor=r.number("acload", instance, "Ac/L1/PowerFactor") if len(phases) == 1 else None,
+            # For a load, the forward counter is the one that grows.
+            energy_kwh=r.number("acload", instance, "Ac/Energy/Forward"),
+            phases=phases if len(phases) > 1 else [],
+        ))
+    return circuits
+
+
 def _ac_loads(r: Readings) -> AcLoads | None:
     total = r.total("system", 0, "Ac/Consumption/{}/Power")
     on_output = r.total("system", 0, "Ac/ConsumptionOnOutput/{}/Power")
     on_input = r.total("system", 0, "Ac/ConsumptionOnInput/{}/Power")
-    if total is None and on_output is None and on_input is None:
+    circuits = _circuits(r)
+    if total is None and on_output is None and on_input is None and not circuits:
         return None
     # What the loads see comes from the inverter/charger's own output.
     vebus = _vebus(r)
@@ -518,6 +560,7 @@ def _ac_loads(r: Readings) -> AcLoads | None:
         voltage_v=r.number("vebus", vebus, "Ac/Out/L1/V"),
         current_a=r.total("vebus", vebus, "Ac/Out/{}/I"),
         frequency_hz=r.number("vebus", vebus, "Ac/Out/L1/F"),
+        circuits=circuits,
     )
 
 

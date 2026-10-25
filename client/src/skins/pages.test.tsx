@@ -107,7 +107,8 @@ describe("a part's own page", () => {
     const parts = [
       ["grid", "Shore power", ["1.25 kW", "16.0 A", "AC input 1", "1.05 kW", "120.50 kWh", "64.20 kWh"]],
       ["solar", "Solar", ["68.9 V", "455 W", "812.40 kWh", "None", "Not reporting", "Bulk"]],
-      ["ac_loads", "AC loads", ["900 W", "700 W", "200 W", "120.50 kWh", "88.90 kWh"]],
+      ["ac_loads", "AC loads", ["900 W", "700 W", "200 W", "120.50 kWh", "88.90 kWh", "420 W", "0.96", "182.40 kWh",
+        "Not reporting"]],
       ["dc_loads", "DC loads", ["Worked out from the others"]],
     ] as const;
     for (const [part, name, values] of parts) {

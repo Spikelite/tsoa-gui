@@ -264,6 +264,63 @@ def test_a_solar_charger_gives_its_detail():
     assert (east.max_power_today_w, east.yield_total_kwh, east.error) == (455, 812.4, 0)
 
 
+def test_each_ac_load_meter_is_a_circuit():
+    values = dict(DEVICE)
+    values.update({
+        ("acload", 50, "CustomName"): "Kitchen",
+        ("acload", 50, "ProductName"): "Energy meter",
+        ("acload", 50, "Connected"): 1,
+        ("acload", 50, "Ac/Power"): 831.2,
+        ("acload", 50, "Ac/L1/Power"): 831.2,
+        ("acload", 50, "Ac/L1/Voltage"): 230.5,
+        ("acload", 50, "Ac/L1/Current"): 3.7,
+        ("acload", 50, "Ac/L1/PowerFactor"): 0.93,
+        ("acload", 50, "Ac/L2/Power"): None,
+        ("acload", 50, "Ac/L2/Voltage"): None,
+        ("acload", 50, "Ac/L3/Voltage"): None,
+        ("acload", 50, "Ac/Energy/Forward"): 12.5,
+        ("acload", 50, "Ac/Energy/Reverse"): 0.4,
+        ("acload", 51, "ProductName"): "Energy meter",
+        ("acload", 51, "Connected"): 0,
+        ("acload", 52, "Ac/L1/Power"): 100.0,
+        ("acload", 52, "Ac/L2/Power"): 200.0,
+        ("acload", 52, "Ac/L1/Current"): 0.5,
+        ("acload", 52, "Ac/L2/Current"): 1.0,
+        ("acload", 52, "Ac/L1/Voltage"): 230.0,
+        ("acload", 52, "Ac/L2/Voltage"): 231.0,
+        ("acload", 52, "Ac/L1/PowerFactor"): 0.9,
+    })
+    kitchen, offline, two_phase = build(readings(values), live=True).ac_loads.circuits
+    assert (kitchen.name, kitchen.status, kitchen.power_w, kitchen.voltage_v, kitchen.current_a) == (
+        "Kitchen", "normal", 831.2, 230.5, 3.7)
+    assert (kitchen.power_factor, kitchen.energy_kwh, kitchen.phases) == (0.93, 12.5, [])
+    assert (offline.name, offline.status, offline.power_w) == ("Energy meter", "offline", None)
+    # Power from its phases, the first phase's voltage, and no single power factor.
+    assert (two_phase.name, two_phase.power_w, two_phase.current_a, two_phase.voltage_v) == (
+        "AC load 52", 300.0, 1.5, 230.0)
+    assert two_phase.power_factor is None
+    assert [phase.phase for phase in two_phase.phases] == ["L1", "L2"]
+
+
+def test_ac_load_meters_with_the_same_name_are_told_apart():
+    values = dict(DEVICE)
+    values.update({
+        ("acload", 50, "ProductName"): "Energy meter",
+        ("acload", 50, "Ac/Power"): 100.0,
+        ("acload", 51, "ProductName"): "Energy meter",
+        ("acload", 51, "Ac/Power"): 200.0,
+        ("acload", 52, "ProductName"): "Energy meter",
+        ("acload", 52, "CustomName"): "Kitchen",
+        ("acload", 52, "Ac/Power"): 300.0,
+    })
+    circuits = build(readings(values), live=True).ac_loads.circuits
+    assert [circuit.name for circuit in circuits] == ["Energy meter 50", "Energy meter 51", "Kitchen"]
+
+
+def test_an_installation_without_ac_load_meters_has_no_circuits():
+    assert build(readings(DEVICE), live=True).ac_loads.circuits == []
+
+
 def test_a_battery_that_reports_no_detail_has_none():
     battery = build(readings(DEVICE), live=True).battery
     assert (battery.cells, battery.temperatures, battery.checks, battery.history) == ([], [], [], None)

@@ -299,6 +299,20 @@ class Solar(Part):
     chargers: list[SolarCharger] = Field(default_factory=list)
 
 
+class AcCircuit(Part):
+    """One circuit of AC loads that an energy meter of its own measures."""
+
+    name: str = Field(description="The circuit's name, as its meter reports it.")
+    power_w: float | None = Field(
+        None, description="Power the circuit draws. Some meters give its size without its direction.")
+    voltage_v: float | None = Field(None, description="Voltage on the circuit, its first phase where it has more.")
+    current_a: float | None = Field(None, description="Current the circuit draws, all phases together.")
+    power_factor: float | None = Field(None, description="The circuit's power factor, where it has one phase.")
+    energy_kwh: float | None = Field(None, description="Energy the circuit has used, since its meter began counting.")
+    phases: list[AcPhase] = Field(
+        default_factory=list, description="Each phase the meter measures, where it measures more than one.")
+
+
 class AcLoads(Part):
     power_w: float | None = Field(None, description="Total power used by AC loads.")
     on_output_w: float | None = Field(
@@ -311,6 +325,10 @@ class AcLoads(Part):
                           "when it inverts.")
     current_a: float | None = Field(None, description="Current on the inverter/charger's AC output, all phases together.")
     frequency_hz: float | None = Field(None, description="Frequency on the inverter/charger's AC output.")
+    circuits: list[AcCircuit] = Field(
+        default_factory=list,
+        description="Each circuit an energy meter of its own measures. They come from other meters than the "
+                    "totals above, so their sum need not match power_w.")
 
 
 class DcLoads(Part):

@@ -236,6 +236,16 @@ export function FofSkin({ model, connected = true }: { model: System; connected?
             art={<LoadPanel power={model.ac_loads.power_w} status={model.ac_loads.status} feed="inverter_charger-ac_loads" />}
             layout="lead">
             <Rows readings={all(acLoadsReadings(model.ac_loads))} />
+            {model.ac_loads.circuits.map((circuit) => (
+              <div key={circuit.name} className="fof-row">
+                <dt>
+                  <NamePill name={circuit.name} status={circuit.status} />
+                </dt>
+                <dd>
+                  {circuit.status === "offline" ? "Not reporting" : <Eased value={circuit.power_w} format={f.power} />}
+                </dd>
+              </div>
+            ))}
           </Readout>
         )}
 

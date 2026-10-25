@@ -19,6 +19,10 @@ const everything: System = {
     ...system.solar!,
     chargers: system.solar!.chargers.map((charger) => ({ ...charger, status: "good", power_w: 155 })),
   },
+  ac_loads: {
+    ...system.ac_loads!,
+    circuits: system.ac_loads!.circuits.map((circuit) => ({ ...circuit, status: "normal", power_w: 130 })),
+  },
   dc_loads: { status: "normal", power_w: 42, measured_by: "meter" },
 };
 
@@ -44,5 +48,7 @@ describe("the skins", () => {
     expect(fof).toEqual(minimal);
     expect(minimal.Battery).toEqual(expect.arrayContaining(["10 h 0 min", "100.0 A", "150.0 A", "20 mV"]));
     expect(minimal["Inverter"]).toContain("Generator");
+    // Each metered circuit's power, under the AC loads.
+    expect(minimal["AC loads"]).toEqual(expect.arrayContaining(["130 W"]));
   });
 });

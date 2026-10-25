@@ -16,6 +16,7 @@ export const hertz: Format = (f) => `${f.toFixed(2)} Hz`;
 export const percent: Format = (p) => `${Math.round(p)}%`;
 export const celsius: Format = (c) => `${c.toFixed(1)} °C`;
 export const kilowattHours: Format = (e) => `${e.toFixed(2)} kWh`;
+export const powerFactor: Format = (pf) => pf.toFixed(2);
 
 export const duration: Format = (seconds) => {
   const minutes = Math.round(seconds / 60);

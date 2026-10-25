@@ -1,6 +1,6 @@
 import type {
-  AcLoads, AcPhase, AlarmCheck, Battery, Cell, ChargerState, DcLoads, EnergyCounter, EnergyEnd, Generator, Grid,
-  InverterCharger, PartName, Solar, SolarCharger, Status, System,
+  AcCircuit, AcLoads, AcPhase, AlarmCheck, Battery, Cell, ChargerState, DcLoads, EnergyCounter, EnergyEnd, Generator,
+  Grid, InverterCharger, PartName, Solar, SolarCharger, Status, System,
 } from "../model/system";
 import { batteryState, generatorState, gridState, inverterState, MODES, partTitle, solarState } from "./describe";
 import * as f from "./format";
@@ -399,6 +399,24 @@ export function solarGroups(solar: Solar): DetailGroup[] {
   return groups.filter((group) => shown(group.readings));
 }
 
+/** A circuit its own meter measures, as a group of its readings. */
+function circuitGroup(circuit: AcCircuit): DetailGroup {
+  if (circuit.status === "offline") {
+    return { title: circuit.name, readings: worded("State", ["Not reporting"]) };
+  }
+  return {
+    title: circuit.name,
+    readings: [
+      { label: "Power", value: circuit.power_w, format: f.power, always: true },
+      { label: "Voltage", value: circuit.voltage_v, format: f.volts },
+      { label: "Current", value: circuit.current_a, format: f.amps },
+      { label: "Power factor", value: circuit.power_factor, format: f.powerFactor },
+      { label: "Energy used", value: circuit.energy_kwh, format: f.kilowattHours },
+      ...phaseReadings(circuit.phases),
+    ],
+  };
+}
+
 export function acLoadsGroups(loads: AcLoads, model: System): DetailGroup[] {
   const inverter = model.inverter_charger;
   const groups: DetailGroup[] = [
@@ -418,6 +436,8 @@ export function acLoadsGroups(loads: AcLoads, model: System): DetailGroup[] {
         { label: "The supply side", value: loads.on_input_w, format: f.power },
       ],
     },
+    // Each circuit's own meter is apart from the totals above, so they need not add up to them.
+    ...loads.circuits.map(circuitGroup),
     {
       title: "Phases",
       readings: inverter !== null && inverter.output_phases.length > 1 ? phaseReadings(inverter.output_phases) : [],

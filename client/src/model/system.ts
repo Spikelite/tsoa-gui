@@ -641,6 +641,50 @@ export interface AcLoads {
    * Frequency on the inverter/charger's AC output.
    */
   frequency_hz: number | null;
+  /**
+   * Each circuit an energy meter of its own measures. They come from other meters than the totals above, so their sum need not match power_w.
+   */
+  circuits: AcCircuit[];
+}
+/**
+ * One circuit of AC loads that an energy meter of its own measures.
+ *
+ * This interface was referenced by `System`'s JSON-Schema
+ * via the `definition` "AcCircuit".
+ */
+export interface AcCircuit {
+  /**
+   * How this part is doing. Every skin gives each level the same color: good green, normal blue, attention yellow, warning orange, fault red, offline black, always paired with an icon or a label so color is never the only signal.
+   */
+  status: Status;
+  /**
+   * The circuit's name, as its meter reports it.
+   */
+  name: string;
+  /**
+   * Power the circuit draws. Some meters give its size without its direction.
+   */
+  power_w: number | null;
+  /**
+   * Voltage on the circuit, its first phase where it has more.
+   */
+  voltage_v: number | null;
+  /**
+   * Current the circuit draws, all phases together.
+   */
+  current_a: number | null;
+  /**
+   * The circuit's power factor, where it has one phase.
+   */
+  power_factor: number | null;
+  /**
+   * Energy the circuit has used, since its meter began counting.
+   */
+  energy_kwh: number | null;
+  /**
+   * Each phase the meter measures, where it measures more than one.
+   */
+  phases: AcPhase[];
 }
 /**
  * This interface was referenced by `System`'s JSON-Schema
