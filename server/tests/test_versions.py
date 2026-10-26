@@ -9,6 +9,7 @@ import pytest
 
 from tsoa_gui import __main__ as server_main
 from tsoa_gui import certificate, versions
+from tsoa_gui.headers import HEADERS
 
 SERVER = Path(__file__).resolve().parents[1]
 
@@ -56,6 +57,8 @@ def test_the_notice_answers_every_request_with_503_and_the_page():
             assert response.status_code == 503
             assert response.text == "<p>newer release</p>"
             assert response.headers["cache-control"] == "no-store"
+            for name, value in HEADERS.items():
+                assert response.headers[name] == value
         head = httpx.head(f"http://{address}/")
         assert head.status_code == 503 and head.content == b""
     finally:

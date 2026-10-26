@@ -1,6 +1,7 @@
 """The event stream each browser reads: the release, then the whole model, then what changes."""
 import asyncio
 import json
+from collections import Counter
 from collections.abc import AsyncIterator, Callable
 from typing import Any
 
@@ -15,6 +16,38 @@ RETRY_MS = 2000
 # How often a stream waiting for the next model looks to see whether the
 # server is stopping, and so the most a stop waits on an open stream.
 STOPPING_CHECK_S = 1.0
+
+# Viewing needs no sign-in, so without a limit anything on the network could
+# open streams until the device ran out of memory or file descriptors. Every
+# screen in a household or on a boat is a handful, far below either cap.
+# Behind a proxy every stream comes from the proxy's address, so the screens
+# behind it share the per-address cap.
+MAX_STREAMS = 100
+MAX_STREAMS_PER_ADDRESS = 20
+# What a refused browser is told to wait, in seconds. EventSource ignores it,
+# but the page itself tries again after about this long.
+RETRY_AFTER_S = 30
+
+
+class StreamLimit:
+    """Counts the open streams, in all and from each address, and refuses any past the caps."""
+
+    def __init__(self, total: int = MAX_STREAMS, per_address: int = MAX_STREAMS_PER_ADDRESS) -> None:
+        self.total = total
+        self.per_address = per_address
+        self._open: Counter[str] = Counter()
+
+    def take(self, address: str) -> bool:
+        """Takes a place for a stream from address, or returns False if there is none."""
+        if self._open.total() >= self.total or self._open[address] >= self.per_address:
+            return False
+        self._open[address] += 1
+        return True
+
+    def give_back(self, address: str) -> None:
+        self._open[address] -= 1
+        if self._open[address] <= 0:
+            del self._open[address]
 
 
 async def model_events(feed: Feed, stopping: Callable[[], bool] = lambda: False,
