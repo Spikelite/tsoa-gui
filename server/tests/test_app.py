@@ -1,7 +1,9 @@
+import asyncio
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from tsoa_gui import app as app_module
 from tsoa_gui.app import create_app
 from tsoa_gui.feed import Feed
 from tsoa_gui.mock import snapshot
@@ -63,3 +65,26 @@ def test_jobs_run_while_the_app_runs():
 def test_the_event_stream_is_served_as_server_sent_events():
     route = next(r for r in create_app().routes if getattr(r, "path", None) == "/api/system/events")
     assert route.response_class.media_type == "text/event-stream"
+
+
+def test_a_job_that_stops_is_started_again_with_the_model_stale_meanwhile(monkeypatch, caplog):
+    monkeypatch.setattr(app_module, "RESTART_AFTER_S", 0.05)
+    feed = Feed()
+    runs = []
+
+    async def job(feed: Feed) -> None:
+        runs.append(feed.latest.live if feed.latest is not None else None)
+        if len(runs) == 1:
+            feed.publish(snapshot(0))
+            raise RuntimeError("invented failure")
+        await asyncio.Event().wait()
+
+    async def scenario():
+        async with create_app(feed=feed, jobs=[job]).router.lifespan_context(None):
+            await asyncio.sleep(0.2)
+
+    with caplog.at_level("ERROR"):
+        asyncio.run(scenario())
+    # The second run found the first one's model marked stale.
+    assert runs == [None, False]
+    assert any(record.exc_info and "invented failure" in str(record.exc_info[1]) for record in caplog.records)

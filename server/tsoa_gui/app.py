@@ -1,6 +1,7 @@
 """The web application: the API and the built client it serves."""
 import asyncio
 import logging
+import time
 from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -17,6 +18,11 @@ log = logging.getLogger(__name__)
 
 Job = Callable[[Feed], Awaitable[None]]
 
+# A job that stops is started again after RESTART_AFTER_S, and after twice as
+# long each time it stops again within RAN_WELL_S, up to RAN_WELL_S.
+RESTART_AFTER_S = 5.0
+RAN_WELL_S = 300.0
+
 
 def create_app(client_dir: Path | None = None, feed: Feed | None = None, jobs: Sequence[Job] = (),
                stopping: Callable[[], bool] = lambda: False) -> FastAPI:
@@ -29,9 +35,7 @@ def create_app(client_dir: Path | None = None, feed: Feed | None = None, jobs: S
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-        tasks = [asyncio.create_task(job(feed)) for job in jobs]
-        for task in tasks:
-            task.add_done_callback(_report_failure)
+        tasks = [asyncio.create_task(_keep_running(job, feed)) for job in jobs]
         try:
             yield
         finally:
@@ -68,6 +72,19 @@ def create_app(client_dir: Path | None = None, feed: Feed | None = None, jobs: S
     return app
 
 
-def _report_failure(task: "asyncio.Task[None]") -> None:
-    if not task.cancelled() and task.exception() is not None:
-        log.error("a background job stopped", exc_info=task.exception())
+async def _keep_running(job: Job, feed: Feed) -> None:
+    """Runs the job, starting it again whenever it stops, with the model shown as stale until it does."""
+    wait = RESTART_AFTER_S
+    while True:
+        started = time.monotonic()
+        try:
+            await job(feed)
+            error: BaseException | None = None
+        except Exception as failure:
+            error = failure
+        if time.monotonic() - started >= RAN_WELL_S:
+            wait = RESTART_AFTER_S
+        log.error("a background job stopped, starting it again in %g s", wait, exc_info=error)
+        feed.go_stale()
+        await asyncio.sleep(wait)
+        wait = min(wait * 2, RAN_WELL_S)
