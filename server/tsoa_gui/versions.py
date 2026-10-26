@@ -18,6 +18,9 @@ import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+# Standard library alone, like this module.
+from .headers import HEADERS
+
 INSTALL_GUIDE = "https://github.com/Spikelite/tsoa-gui/blob/main/docs/install.md#after-a-venus-os-firmware-update"
 NAMES = {"python": "Python", "pydantic": "pydantic"}
 
@@ -83,6 +86,8 @@ class _Notice(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(self.page)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("Retry-After", "60")
+        for name, value in HEADERS.items():
+            self.send_header(name, value)
         self.end_headers()
         self.wfile.write(body)
 
