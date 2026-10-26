@@ -3,6 +3,7 @@ import { useId, type CSSProperties, type MouseEvent } from "react";
 import type { Battery } from "../../model/system";
 import { batteryState } from "../describe";
 import { Eased } from "../Eased";
+import { keysFor } from "../keys";
 import { openPart, partAddress } from "../partView";
 import { batteryReadings, isWorded, type Reading } from "../readings";
 import { useCarried, type Along } from "./carry";
@@ -122,10 +123,11 @@ export function Core({ battery }: { battery: Battery }) {
 }
 
 export function Rows({ readings }: { readings: Reading[] }) {
-  return readings.map((reading) => {
+  const keys = keysFor(readings.map((reading) => reading.label));
+  return readings.map((reading, index) => {
     if (isWorded(reading)) {
       return (
-        <div key={reading.label} className="fof-row">
+        <div key={keys[index]} className="fof-row">
           <dt>{reading.label}</dt>
           <dd>{reading.text}</dd>
         </div>
@@ -135,7 +137,7 @@ export function Rows({ readings }: { readings: Reading[] }) {
       return null;
     }
     return (
-      <div key={reading.label} className="fof-row">
+      <div key={keys[index]} className="fof-row">
         <dt>{reading.label}</dt>
         <dd>
           <Eased value={reading.value} format={reading.format} />

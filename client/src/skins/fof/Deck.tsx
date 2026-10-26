@@ -2,6 +2,7 @@ import { useId, type ReactNode } from "react";
 
 import type { AlarmCheck, PartName, Status } from "../../model/system";
 import { alarmingFirst, type DetailGroup } from "../details";
+import { keysFor } from "../keys";
 import { Rows } from "./Core";
 import { NamePill, StatusWords } from "./StatusPill";
 
@@ -27,6 +28,7 @@ export function Deck(props: {
   const heading = useId();
   const offline = props.status === "offline";
   const checks = alarmingFirst(props.checks);
+  const keys = keysFor(props.groups.map((group) => group.title));
   return (
     <section className={`fof-deck status-${props.status}${props.className ? ` ${props.className}` : ""}`}
       data-part={props.part} aria-labelledby={heading}>
@@ -44,7 +46,7 @@ export function Deck(props: {
       {!offline && (
         <div className="fof-deck-groups">
           {props.groups.map((group, index) => (
-            <section key={group.title} className="fof-deck-group" aria-label={group.title}>
+            <section key={keys[index]} className="fof-deck-group" aria-label={group.title}>
               <h3 className={`fof-deck-tag fof-deck-tag-${index % 3}`}>{group.title}</h3>
               <dl className="fof-rows">
                 <Rows readings={group.readings} />
