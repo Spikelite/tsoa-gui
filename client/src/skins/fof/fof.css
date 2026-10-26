@@ -1238,10 +1238,21 @@
 
 /* Every reading, in groups headed by rounded tags, flowing down balanced
    columns; the conditions the battery watches run across under them. */
+/* The part's drawing and its readings sit in the middle of the frame, while
+   the name's row runs from edge to edge. The readings are as wide as their
+   groups need side by side, so a part with few groups has them centered,
+   and one with more than fit fills the width. */
 .fof-deck-groups {
+  --fof-groups: var(--groups, 5);
+  justify-self: center;
+  width: min(100%, calc(var(--fof-groups) * 17em + (var(--fof-groups) - 1) * 2.4em));
   columns: 17em;
   column-gap: 2.4em;
 }
+
+.fof-deck-packs,
+.fof-deck-unit,
+.fof-deck-art { justify-self: center; }
 
 .fof-deck-group {
   display: grid;
@@ -1295,6 +1306,7 @@
 .fof-deck-unit {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
   gap: 1.2em 2.4em;
 }

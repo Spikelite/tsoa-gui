@@ -5,7 +5,9 @@ from fastapi.testclient import TestClient
 
 from tsoa_gui import app as app_module
 from tsoa_gui.app import create_app
+from tsoa_gui.events import RETRY_AFTER_S, StreamLimit
 from tsoa_gui.feed import Feed
+from tsoa_gui.headers import CONTENT_SECURITY_POLICY, HEADERS
 from tsoa_gui.mock import snapshot
 
 
@@ -88,3 +90,111 @@ def test_a_job_that_stops_is_started_again_with_the_model_stale_meanwhile(monkey
     # The second run found the first one's model marked stale.
     assert runs == [None, False]
     assert any(record.exc_info and "invented failure" in str(record.exc_info[1]) for record in caplog.records)
+
+
+def test_every_response_carries_the_security_headers(tmp_path: Path):
+    (tmp_path / "index.html").write_text("<!doctype html><title>placeholder</title>", encoding="utf-8")
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "assets" / "index.js").write_text("export {};", encoding="utf-8")
+    feed = Feed()
+    feed.publish(snapshot(30))
+    client = TestClient(create_app(tmp_path, feed=feed))
+    for path in ("/", "/assets/index.js", "/api/system", "/api/health", "/api/missing"):
+        response = client.get(path)
+        for name, value in HEADERS.items():
+            assert response.headers.get(name) == value, (path, name)
+
+
+def test_the_policy_keeps_scripts_and_connections_to_the_page_s_own_origin():
+    directives = dict(d.split(" ", 1) for d in CONTENT_SECURITY_POLICY.split("; "))
+    assert directives["default-src"] == "'self'"
+    assert "script-src" not in directives and "connect-src" not in directives
+    assert directives["object-src"] == "'none'"
+
+
+class Stream:
+    """An event stream request driven by hand, from a chosen address, held open until closed."""
+
+    def __init__(self, app, address: str):
+        self.status: int | None = None
+        self.headers: dict[str, str] = {}
+        self._started = asyncio.Event()
+        self._gone = asyncio.Event()
+        scope = {"type": "http", "asgi": {"version": "3.0"}, "http_version": "1.1", "method": "GET",
+                 "scheme": "http", "path": "/api/system/events", "raw_path": b"/api/system/events",
+                 "query_string": b"", "root_path": "", "headers": [(b"host", b"testserver")],
+                 "client": (address, 50000), "server": ("testserver", 80)}
+        self._task = asyncio.create_task(app(scope, self._receive, self._send))
+
+    async def _receive(self):
+        await self._gone.wait()
+        return {"type": "http.disconnect"}
+
+    async def _send(self, message):
+        if message["type"] == "http.response.start":
+            self.status = message["status"]
+            self.headers = {k.decode(): v.decode() for k, v in message["headers"]}
+            self._started.set()
+
+    async def started(self) -> "Stream":
+        await self._started.wait()
+        return self
+
+    async def close(self) -> None:
+        self._gone.set()
+        await self._task
+
+
+def run(scenario):
+    asyncio.run(asyncio.wait_for(scenario(), 5))
+
+
+def test_streams_past_the_cap_are_refused_until_one_closes():
+    async def scenario():
+        feed = Feed()
+        feed.publish(snapshot(10))
+        app = create_app(feed=feed, streams=StreamLimit(total=3, per_address=10))
+        held = [await Stream(app, f"192.0.2.{n}").started() for n in range(3)]
+        assert [s.status for s in held] == [200, 200, 200]
+
+        refused = await Stream(app, "192.0.2.9").started()
+        assert refused.status == 503
+        assert refused.headers["retry-after"] == str(RETRY_AFTER_S)
+        await refused.close()
+
+        await held.pop().close()
+        held.append(await Stream(app, "192.0.2.9").started())
+        assert held[-1].status == 200
+        for stream in held:
+            await stream.close()
+
+    run(scenario)
+
+
+def test_one_address_cannot_take_every_stream():
+    async def scenario():
+        feed = Feed()
+        feed.publish(snapshot(10))
+        app = create_app(feed=feed, streams=StreamLimit(total=10, per_address=2))
+        held = [await Stream(app, "192.0.2.1").started() for _ in range(2)]
+        refused = await Stream(app, "192.0.2.1").started()
+        assert refused.status == 503
+        await refused.close()
+        held.append(await Stream(app, "192.0.2.2").started())
+        assert [s.status for s in held] == [200, 200, 200]
+        for stream in held:
+            await stream.close()
+
+    run(scenario)
+
+
+def test_a_refused_stream_carries_the_security_headers_too():
+    async def scenario():
+        app = create_app(streams=StreamLimit(total=0))
+        refused = await Stream(app, "192.0.2.1").started()
+        assert refused.status == 503
+        for name, value in HEADERS.items():
+            assert refused.headers[name.lower()] == value
+        await refused.close()
+
+    run(scenario)
