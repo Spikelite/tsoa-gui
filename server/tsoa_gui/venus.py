@@ -460,20 +460,29 @@ def _ess_minimum_soc(r: Readings) -> float | None:
     return minimum
 
 
+def _names(r: Readings, service: str, fallback: str) -> dict[int, str]:
+    """Each device's name on a service, made its own by its instance where another device has the same one."""
+    names = {instance: str(r.get(service, instance, "CustomName") or r.get(service, instance, "ProductName")
+                           or f"{fallback} {instance}")
+             for instance in r.instances(service)}
+    shared = {name for name in names.values() if list(names.values()).count(name) > 1}
+    return {instance: f"{name} {instance}" if name in shared else name for instance, name in names.items()}
+
+
 def _solar(r: Readings) -> Solar | None:
     chargers = []
+    names = _names(r, "solarcharger", "Solar charger")
     for instance in r.instances("solarcharger"):
-        name = (r.get("solarcharger", instance, "CustomName") or r.get("solarcharger", instance, "ProductName")
-                or f"Solar charger {instance}")
+        name = names[instance]
         if r.get("solarcharger", instance, "Connected") == 0:
-            chargers.append(SolarCharger(status="offline", name=str(name)))
+            chargers.append(SolarCharger(status="offline", name=name))
             continue
         raw_state = r.get("solarcharger", instance, "State")
         state = None if raw_state is None else CHARGER_STATES.get(raw_state, "other")
         power = r.number("solarcharger", instance, "Yield/Power")
         chargers.append(SolarCharger(
             status=status.solar_charger(state, power),
-            name=str(name),
+            name=name,
             power_w=power,
             state=state,
             yield_today_kwh=r.number("solarcharger", instance, "History/Daily/0/Yield"),
@@ -502,19 +511,10 @@ def _solar(r: Readings) -> Solar | None:
     )
 
 
-def _circuit_names(r: Readings) -> dict[int, str]:
-    """Each AC load meter's name, made its own by its instance where another meter has the same one."""
-    names = {instance: str(r.get("acload", instance, "CustomName") or r.get("acload", instance, "ProductName")
-                           or f"AC load {instance}")
-             for instance in r.instances("acload")}
-    shared = {name for name in names.values() if list(names.values()).count(name) > 1}
-    return {instance: f"{name} {instance}" if name in shared else name for instance, name in names.items()}
-
-
 def _circuits(r: Readings) -> list[AcCircuit]:
     """Each energy meter in the AC load role, which Venus keeps out of its own totals."""
     circuits = []
-    names = _circuit_names(r)
+    names = _names(r, "acload", "AC load")
     for instance in r.instances("acload"):
         name = names[instance]
         if r.get("acload", instance, "Connected") == 0:

@@ -317,6 +317,20 @@ def test_ac_load_meters_with_the_same_name_are_told_apart():
     assert [circuit.name for circuit in circuits] == ["Energy meter 50", "Energy meter 51", "Kitchen"]
 
 
+def test_solar_chargers_with_the_same_name_are_told_apart():
+    values = dict(DEVICE)
+    values.update({
+        ("solarcharger", 278, "CustomName"): None,
+        ("solarcharger", 278, "ProductName"): "SmartSolar",
+        ("solarcharger", 279, "ProductName"): "SmartSolar",
+        ("solarcharger", 280, "ProductName"): "SmartSolar",
+        ("solarcharger", 280, "CustomName"): "West array",
+        ("solarcharger", 280, "Yield/Power"): 120.0,
+    })
+    chargers = build(readings(values), live=True).solar.chargers
+    assert [charger.name for charger in chargers] == ["SmartSolar 278", "SmartSolar 279", "West array"]
+
+
 def test_an_installation_without_ac_load_meters_has_no_circuits():
     assert build(readings(DEVICE), live=True).ac_loads.circuits == []
 
