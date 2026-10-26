@@ -10,7 +10,9 @@ when the battery starts charging or discharging and lengthens while it keeps
 going the same way, up to LONGEST_WINDOW_S. So an estimate appears at once and
 moves often while it is fresh, and once settled, averaged over many minutes,
 barely moves when a kettle switches on. The window starts short again whenever
-the direction changes.
+the direction changes, or the battery stays idle, or its current unknown, for
+longer than IDLE_GRACE_S. A shorter spell, such as a load switching over, adds
+nothing to the average and leaves the last estimate standing.
 
 The clock is monotonic, since the device may have no real-time clock.
 """
@@ -22,6 +24,7 @@ from .model import Battery, System, TimeLeft
 
 LONGEST_WINDOW_S = 15 * 60
 SETTLED_AFTER_S = 5 * 60
+IDLE_GRACE_S = 30
 LONGEST_S = 30 * 24 * 3600
 DEFAULT_CUT_OFF_SOC_PERCENT = 10.0
 
@@ -38,6 +41,7 @@ class TimeLeftEstimator:
         self._samples: deque[tuple[float, float]] = deque()
         self._toward: str | None = None
         self._since = 0.0
+        self._idle_since: float | None = None
         self._last: TimeLeft | None = None
 
     def apply(self, system: System) -> System:
@@ -56,15 +60,20 @@ class TimeLeftEstimator:
     def _forget(self) -> None:
         self._samples.clear()
         self._toward = None
+        self._idle_since = None
         self._last = None
 
     def _estimate(self, battery: Battery, cut_off: float) -> TimeLeft | None:
         toward = TOWARD.get(battery.activity or "")
         current = _current(battery)
-        if toward is None or current is None:
-            self._forget()
-            return None
         now = self._clock()
+        if toward is None or current is None:
+            if self._idle_since is None:
+                self._idle_since = now
+            if now - self._idle_since >= IDLE_GRACE_S:
+                self._forget()
+            return self._last
+        self._idle_since = None
         if toward != self._toward:
             self._samples.clear()
             self._toward = toward
