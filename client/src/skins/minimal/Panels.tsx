@@ -7,6 +7,7 @@ import { batteryState, generatorState, gridState, inverterState, partTitle, sola
 import { DETAILED } from "../details";
 import { Eased } from "../Eased";
 import * as f from "../format";
+import { keysFor } from "../keys";
 import {
   acLoadsReadings, batteryReadings, dcLoadsReadings, dcLoadsState, generatorReadings, gridReadings,
   inverterReadings, isWorded, solarReadings, type Measured, type Reading, type Readings,
@@ -58,12 +59,13 @@ function Details({ readings }: { readings: Readings }) {
 }
 
 export function ReadingList({ readings }: { readings: Reading[] }) {
+  const keys = keysFor(readings.map((reading) => reading.label));
   return (
     <dl>
-      {readings.map((reading) => {
+      {readings.map((reading, index) => {
         if (isWorded(reading)) {
           return (
-            <div key={reading.label} className="reading">
+            <div key={keys[index]} className="reading">
               <dt>{reading.label}</dt>
               <dd>{reading.text}</dd>
             </div>
@@ -73,7 +75,7 @@ export function ReadingList({ readings }: { readings: Reading[] }) {
           return null;
         }
         return (
-          <div key={reading.label} className="reading">
+          <div key={keys[index]} className="reading">
             <dt>{reading.label}</dt>
             <dd>
               <Eased value={reading.value} format={reading.format} />

@@ -317,6 +317,20 @@ def test_ac_load_meters_with_the_same_name_are_told_apart():
     assert [circuit.name for circuit in circuits] == ["Energy meter 50", "Energy meter 51", "Kitchen"]
 
 
+def test_solar_chargers_with_the_same_name_are_told_apart():
+    values = dict(DEVICE)
+    values.update({
+        ("solarcharger", 278, "CustomName"): None,
+        ("solarcharger", 278, "ProductName"): "SmartSolar",
+        ("solarcharger", 279, "ProductName"): "SmartSolar",
+        ("solarcharger", 280, "ProductName"): "SmartSolar",
+        ("solarcharger", 280, "CustomName"): "West array",
+        ("solarcharger", 280, "Yield/Power"): 120.0,
+    })
+    chargers = build(readings(values), live=True).solar.chargers
+    assert [charger.name for charger in chargers] == ["SmartSolar 278", "SmartSolar 279", "West array"]
+
+
 def test_an_installation_without_ac_load_meters_has_no_circuits():
     assert build(readings(DEVICE), live=True).ac_loads.circuits == []
 
@@ -419,3 +433,30 @@ def test_a_broker_outage_is_logged_once(monkeypatch, caplog):
     with caplog.at_level("WARNING"):
         asyncio.run(scenario())
     assert len([r for r in caplog.records if "lost the device's MQTT broker" in r.message]) == 1
+
+
+def test_a_model_that_cannot_be_built_shows_as_stale_until_it_can(monkeypatch, caplog):
+    monkeypatch.setattr(venus, "PUBLISH_EVERY_S", 0.01)
+    r = readings()
+    feed = Feed()
+
+    async def scenario():
+        publishing = asyncio.create_task(venus._publish(feed, r))
+        await asyncio.sleep(0.1)
+        good = feed.latest
+        # A list where the mode's number belongs cannot be looked up.
+        r.update(("vebus", 276, "Mode"), [3])
+        await asyncio.sleep(0.1)
+        broken = feed.latest
+        r.update(("vebus", 276, "Mode"), 3)
+        await asyncio.sleep(0.1)
+        publishing.cancel()
+        await asyncio.gather(publishing, return_exceptions=True)
+        return good, broken, feed.latest
+
+    with caplog.at_level("WARNING"):
+        good, broken, recovered = asyncio.run(scenario())
+    assert good.live and not broken.live and recovered.live
+    assert broken.battery == good.battery
+    assert len([record for record in caplog.records if "cannot build" in record.message]) == 1
+    assert len([record for record in caplog.records if "works again" in record.message]) == 1

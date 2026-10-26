@@ -17,6 +17,7 @@ import json
 import logging
 import re
 import time
+import traceback
 from collections.abc import Callable
 from typing import Any, Literal
 
@@ -460,20 +461,29 @@ def _ess_minimum_soc(r: Readings) -> float | None:
     return minimum
 
 
+def _names(r: Readings, service: str, fallback: str) -> dict[int, str]:
+    """Each device's name on a service, made its own by its instance where another device has the same one."""
+    names = {instance: str(r.get(service, instance, "CustomName") or r.get(service, instance, "ProductName")
+                           or f"{fallback} {instance}")
+             for instance in r.instances(service)}
+    shared = {name for name in names.values() if list(names.values()).count(name) > 1}
+    return {instance: f"{name} {instance}" if name in shared else name for instance, name in names.items()}
+
+
 def _solar(r: Readings) -> Solar | None:
     chargers = []
+    names = _names(r, "solarcharger", "Solar charger")
     for instance in r.instances("solarcharger"):
-        name = (r.get("solarcharger", instance, "CustomName") or r.get("solarcharger", instance, "ProductName")
-                or f"Solar charger {instance}")
+        name = names[instance]
         if r.get("solarcharger", instance, "Connected") == 0:
-            chargers.append(SolarCharger(status="offline", name=str(name)))
+            chargers.append(SolarCharger(status="offline", name=name))
             continue
         raw_state = r.get("solarcharger", instance, "State")
         state = None if raw_state is None else CHARGER_STATES.get(raw_state, "other")
         power = r.number("solarcharger", instance, "Yield/Power")
         chargers.append(SolarCharger(
             status=status.solar_charger(state, power),
-            name=str(name),
+            name=name,
             power_w=power,
             state=state,
             yield_today_kwh=r.number("solarcharger", instance, "History/Daily/0/Yield"),
@@ -502,19 +512,10 @@ def _solar(r: Readings) -> Solar | None:
     )
 
 
-def _circuit_names(r: Readings) -> dict[int, str]:
-    """Each AC load meter's name, made its own by its instance where another meter has the same one."""
-    names = {instance: str(r.get("acload", instance, "CustomName") or r.get("acload", instance, "ProductName")
-                           or f"AC load {instance}")
-             for instance in r.instances("acload")}
-    shared = {name for name in names.values() if list(names.values()).count(name) > 1}
-    return {instance: f"{name} {instance}" if name in shared else name for instance, name in names.items()}
-
-
 def _circuits(r: Readings) -> list[AcCircuit]:
     """Each energy meter in the AC load role, which Venus keeps out of its own totals."""
     circuits = []
-    names = _circuit_names(r)
+    names = _names(r, "acload", "AC load")
     for instance in r.instances("acload"):
         name = names[instance]
         if r.get("acload", instance, "Connected") == 0:
@@ -589,8 +590,7 @@ async def run(feed: Feed, host: str = "127.0.0.1", port: int = 1883) -> None:
             if not lost:
                 log.warning("lost the device's MQTT broker, retrying every %g s: %s", RECONNECT_AFTER_S, error)
             lost = True
-        if feed.latest is not None and feed.latest.live:
-            feed.publish(feed.latest.model_copy(update={"live": False}))
+        feed.go_stale()
         await asyncio.sleep(RECONNECT_AFTER_S)
 
 
@@ -631,7 +631,29 @@ async def _keep_alive(client: Any, portal: str) -> None:
 
 
 async def _publish(feed: Feed, readings: Readings) -> None:
+    # A value of a kind the model does not expect can make every build fail
+    # until it changes. Meanwhile the last model shows as stale rather than
+    # live, and the failure is logged when it starts, when it changes and
+    # when it ends, not every second.
+    failing: tuple[str, str, int] | None = None
     while True:
         await asyncio.sleep(PUBLISH_EVERY_S)
-        if readings.last_heard is not None:
+        if readings.last_heard is None:
+            continue
+        try:
             feed.publish(build(readings, live=readings.heard_within(STALE_AFTER_S)))
+        except Exception as error:
+            if _failure(error) != failing:
+                log.error("cannot build the system model, showing the last one as stale", exc_info=error)
+                failing = _failure(error)
+            feed.go_stale()
+        else:
+            if failing is not None:
+                log.warning("building the system model works again")
+                failing = None
+
+
+def _failure(error: Exception) -> tuple[str, str, int]:
+    """An error's kind and where it was raised, which stay the same while one fault persists, unlike its message."""
+    where = traceback.extract_tb(error.__traceback__)[-1]
+    return type(error).__name__, where.filename, where.lineno or 0

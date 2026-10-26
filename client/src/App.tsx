@@ -4,6 +4,7 @@ import { Clock } from "./Clock";
 import type { SystemStore } from "./model/store";
 import type { System } from "./model/system";
 import { useSystem } from "./model/useSystem";
+import { SkinBoundary, type Reloading } from "./SkinBoundary";
 import { link, LINK_SENTENCES } from "./skins/link";
 import { addressWithSkin, chosenSkin, rememberSkin, SKINS } from "./skins/registry";
 import { SkinChoiceContext } from "./skins/skinChoice";
@@ -16,7 +17,7 @@ function browserStorage(): Storage | null {
   }
 }
 
-export function App({ store }: { store?: SystemStore }) {
+export function App({ store, reloading }: { store?: SystemStore; reloading?: Reloading }) {
   const { model, connected } = useSystem(store);
   const [skinId, setSkinId] = useState(() => chosenSkin(window.location.search, browserStorage()));
   const skin = SKINS.find((candidate) => candidate.id === skinId) ?? SKINS[0]!;
@@ -59,11 +60,13 @@ export function App({ store }: { store?: SystemStore }) {
         {model === null ? (
           <p className="waiting">Waiting for the first readings.</p>
         ) : (
-          <SkinChoiceContext.Provider value={choice}>
-            <Suspense fallback={<p className="waiting">Loading the skin.</p>}>
-              <Skin model={model} connected={connected} />
-            </Suspense>
-          </SkinChoiceContext.Provider>
+          <SkinBoundary reloading={reloading}>
+            <SkinChoiceContext.Provider value={choice}>
+              <Suspense fallback={<p className="waiting">Loading the skin.</p>}>
+                <Skin model={model} connected={connected} />
+              </Suspense>
+            </SkinChoiceContext.Provider>
+          </SkinBoundary>
         )}
       </main>
     </div>

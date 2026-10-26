@@ -2,6 +2,7 @@ import { useId, type ReactNode } from "react";
 
 import type { AlarmCheck, PartName, Status } from "../../model/system";
 import { alarmingFirst, type DetailGroup } from "../details";
+import { keysFor } from "../keys";
 import { closePart } from "../partView";
 import { StatusIcon } from "../StatusIcon";
 import { ReadingList } from "./Panels";
@@ -23,6 +24,7 @@ export function PartPage(props: {
   const heading = useId();
   const offline = props.status === "offline";
   const checks = alarmingFirst(props.checks);
+  const keys = keysFor(props.groups.map((group) => group.title));
   return (
     <section className={`page status-${props.status}`} data-part={props.part} aria-labelledby={heading}>
       <header className="page-header">
@@ -37,8 +39,8 @@ export function PartPage(props: {
         <>
           {props.children}
           <div className="page-groups">
-            {props.groups.map((group) => (
-              <section key={group.title} className="page-group">
+            {props.groups.map((group, index) => (
+              <section key={keys[index]} className="page-group">
                 <h3>{group.title}</h3>
                 <ReadingList readings={group.readings} />
               </section>
