@@ -24,6 +24,16 @@ class Feed:
     def publish(self, model: System) -> None:
         if self._prepare is not None:
             model = self._prepare(model)
+        self._send(model)
+
+    def go_stale(self) -> None:
+        """Marks the latest model not live, for when no newer one can be had."""
+        # The latest model is already prepared, and preparing it again could
+        # fail the same way that left no newer one.
+        if self.latest is not None and self.latest.live:
+            self._send(self.latest.model_copy(update={"live": False}))
+
+    def _send(self, model: System) -> None:
         self.latest = model
         for queue in self._listeners:
             # A listener that has fallen behind needs only the newest model,

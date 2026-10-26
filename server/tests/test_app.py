@@ -4,6 +4,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from tsoa_gui import app as app_module
 from tsoa_gui.app import create_app
 from tsoa_gui.events import RETRY_AFTER_S, StreamLimit
 from tsoa_gui.feed import Feed
@@ -98,6 +99,29 @@ def test_the_stream_names_the_release_and_the_client_it_serves(tmp_path: Path):
 
 def test_a_development_run_without_a_client_has_neither():
     assert release_event() == {"version": None, "client": None}
+
+
+def test_a_job_that_stops_is_started_again_with_the_model_stale_meanwhile(monkeypatch, caplog):
+    monkeypatch.setattr(app_module, "RESTART_AFTER_S", 0.05)
+    feed = Feed()
+    runs = []
+
+    async def job(feed: Feed) -> None:
+        runs.append(feed.latest.live if feed.latest is not None else None)
+        if len(runs) == 1:
+            feed.publish(snapshot(0))
+            raise RuntimeError("invented failure")
+        await asyncio.Event().wait()
+
+    async def scenario():
+        async with create_app(feed=feed, jobs=[job]).router.lifespan_context(None):
+            await asyncio.sleep(0.2)
+
+    with caplog.at_level("ERROR"):
+        asyncio.run(scenario())
+    # The second run found the first one's model marked stale.
+    assert runs == [None, False]
+    assert any(record.exc_info and "invented failure" in str(record.exc_info[1]) for record in caplog.records)
 
 
 def test_every_response_carries_the_security_headers(tmp_path: Path):

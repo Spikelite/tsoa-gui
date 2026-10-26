@@ -1,6 +1,6 @@
 from tsoa_gui.feed import Feed
 from tsoa_gui.model import Battery, System
-from tsoa_gui.time_left import LONGEST_S, SETTLED_AFTER_S, TimeLeftEstimator
+from tsoa_gui.time_left import IDLE_GRACE_S, LONGEST_S, SETTLED_AFTER_S, TimeLeftEstimator
 
 
 class Clock:
@@ -97,9 +97,37 @@ def test_capacity_is_worked_out_where_it_is_not_reported():
 
 def test_an_idle_battery_has_no_estimate():
     clock = Clock()
+    assert run(TimeLeftEstimator(20.0, clock), clock, [0.0])[0] is None
+
+
+def test_a_brief_idle_reading_leaves_a_settled_estimate_alone():
+    clock = Clock()
     estimator = TimeLeftEstimator(20.0, clock)
-    run(estimator, clock, [-10.0] * 10)
-    assert run(estimator, clock, [0.0])[0] is None
+    steady = run(estimator, clock, [-10.0] * (SETTLED_AFTER_S + 1))[-1]
+    blip = run(estimator, clock, [0.0] * (IDLE_GRACE_S - 1))
+    assert all(result == steady for result in blip)
+    after = run(estimator, clock, [-10.0])[0]
+    assert after.settled and after.seconds == steady.seconds
+
+
+def test_a_brief_gap_in_the_current_counts_as_idle():
+    clock = Clock()
+    estimator = TimeLeftEstimator(20.0, clock)
+    steady = run(estimator, clock, [-10.0] * (SETTLED_AFTER_S + 1))[-1]
+    unknown = Battery(status="normal", soc_percent=60.0, activity="discharging", installed_capacity_ah=200.0)
+    gap = estimator.apply(System(live=True, battery=unknown)).battery.time_left
+    assert gap == steady
+    clock.now += 1
+    assert run(estimator, clock, [-10.0])[0].settled
+
+
+def test_idle_beyond_the_grace_starts_the_average_again():
+    clock = Clock()
+    estimator = TimeLeftEstimator(20.0, clock)
+    run(estimator, clock, [-10.0] * (SETTLED_AFTER_S + 1))
+    idle = run(estimator, clock, [0.0] * (IDLE_GRACE_S + 1))
+    assert idle[-1] is None
+    assert not run(estimator, clock, [-10.0])[0].settled
 
 
 def test_a_trickle_is_capped_and_the_cut_off_reached_is_none_left():
