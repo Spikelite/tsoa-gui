@@ -581,11 +581,13 @@ async def run(feed: Feed, host: str = "127.0.0.1", port: int = 1883) -> None:
     while True:
         try:
             async with aiomqtt.Client(host, port) as client:
+                feed.waiting = "broker_silent"
                 if lost:
                     log.warning("reached the device's MQTT broker again")
                     lost = False
                 await _follow(client, feed, readings)
         except aiomqtt.MqttError as error:
+            feed.waiting = "broker_unreachable"
             if not lost:
                 log.warning("lost the device's MQTT broker, retrying every %g s: %s", RECONNECT_AFTER_S, error)
             lost = True

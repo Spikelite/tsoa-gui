@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { CHECK_EVERY_MS, RELOAD_AFTER_MS, SystemStore } from "./store";
+import { CHECK_EVERY_MS, EXPLAIN_AFTER_MS, RELOAD_AFTER_MS, SystemStore } from "./store";
 
 class FakeStream {
   closed = false;
@@ -61,7 +61,9 @@ describe("SystemStore", () => {
     const stream = streams[0]!;
 
     stream.emit("model", { live: true, battery: { soc_percent: 50 } });
-    expect(store.getSnapshot()).toEqual({ model: { live: true, battery: { soc_percent: 50 } }, connected: true });
+    expect(store.getSnapshot()).toEqual({
+      model: { live: true, battery: { soc_percent: 50 } }, connected: true, waiting: null, overdue: false,
+    });
 
     const before = store.getSnapshot();
     stream.emit("patch", { battery: { soc_percent: 51 } });
@@ -137,6 +139,70 @@ describe("SystemStore", () => {
     store.subscribe(() => {});
     streams[0]!.emit("model", { live: true });
     streams[0]!.emit("error");
-    expect(store.getSnapshot()).toEqual({ model: { live: true }, connected: false });
+    expect(store.getSnapshot()).toEqual({ model: { live: true }, connected: false, waiting: null, overdue: false });
+  });
+
+  it("reloads the page when a stream names another release than the first", () => {
+    const { store, streams, reload } = storeWithStream();
+    store.subscribe(() => {});
+    const stream = streams[0]!;
+    stream.emit("release", { version: "1.0.0", client: "aaaa" });
+    stream.emit("model", { live: true });
+    // The stream reconnects after the server restarts on the same release.
+    stream.emit("error");
+    stream.emit("release", { version: "1.0.0", client: "aaaa" });
+    expect(reload).not.toHaveBeenCalled();
+    stream.emit("error");
+    stream.emit("release", { version: "1.1.0", client: "bbbb" });
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it("reloads the page when a development build's client changes, though it has no version", () => {
+    const { store, streams, reload } = storeWithStream();
+    store.subscribe(() => {});
+    streams[0]!.emit("release", { version: null, client: "aaaa" });
+    streams[0]!.emit("release", { version: null, client: "bbbb" });
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the first release across closing and reopening the stream", () => {
+    const { store, streams, reload } = storeWithStream();
+    store.subscribe(() => {})();
+    streams[0]!.emit("release", { version: "1.0.0", client: "aaaa" });
+    store.subscribe(() => {});
+    streams[1]!.emit("release", { version: "1.1.0", client: "aaaa" });
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it("marks the first model overdue after a wait, with what the server said about it", async () => {
+    vi.useFakeTimers();
+    const { store, streams } = storeWithStream();
+    store.subscribe(() => {});
+    streams[0]!.emit("release", { version: "1.0.0", client: "aaaa" });
+    streams[0]!.emit("status", { waiting: "broker_unreachable" });
+    await vi.advanceTimersByTimeAsync(EXPLAIN_AFTER_MS - 1);
+    expect(store.getSnapshot()).toMatchObject({ connected: true, waiting: "broker_unreachable", overdue: false });
+    await vi.advanceTimersByTimeAsync(1);
+    expect(store.getSnapshot().overdue).toBe(true);
+    streams[0]!.emit("status", { waiting: "broker_silent" });
+    expect(store.getSnapshot().waiting).toBe("broker_silent");
+  });
+
+  it("marks the first model overdue when the stream never opens", async () => {
+    vi.useFakeTimers();
+    const { store, streams } = storeWithStream();
+    store.subscribe(() => {});
+    streams[0]!.emit("error");
+    await vi.advanceTimersByTimeAsync(EXPLAIN_AFTER_MS);
+    expect(store.getSnapshot()).toMatchObject({ connected: false, overdue: true });
+  });
+
+  it("never marks a model overdue that arrives in time", async () => {
+    vi.useFakeTimers();
+    const { store, streams } = storeWithStream();
+    store.subscribe(() => {});
+    streams[0]!.emit("model", { live: true });
+    await vi.advanceTimersByTimeAsync(10 * EXPLAIN_AFTER_MS);
+    expect(store.getSnapshot().overdue).toBe(false);
   });
 });

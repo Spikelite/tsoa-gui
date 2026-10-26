@@ -126,7 +126,7 @@ Download the new release and check its SHA-256 as before, either on the device o
     tar xzf tsoa-gui-0.2.0.tar.gz
     sh tsoa-gui-0.2.0/install.sh
 
-The installer keeps the settings and the certificate, restarts tsoa-gui on the new release and checks that it answers. It keeps the release that was in use, to go back to, and removes any older one. Browsers already showing the page pick up the new release when they next load it.
+The installer keeps the settings and the certificate, restarts tsoa-gui on the new release and checks that it answers. It keeps the release that was in use, to go back to, and removes any older one. A page left open in a browser, a kiosk's for instance, reloads itself once tsoa-gui answers again on the new release. A page that 0.1.0 served does not, so reload it by hand once.
 
 ### After a Venus OS firmware update
 
@@ -172,7 +172,14 @@ If `wget` on the device cannot connect, check that the device reaches the intern
 
 If the installer said the release was not tested with the device's software, the device's Python or pydantic is not the one that release was built for: install the latest release, or, for an older Venus OS, check the [supported versions](#what-you-need).
 
-If the page keeps saying it is waiting for the first readings, tsoa-gui is running but has nothing from the device yet. Check that the device's own console shows readings, and look in the log for errors about MQTT. Restarting it with `svc -t /service/tsoa-gui` starts a fresh connection.
+If the page says there are no readings yet, tsoa-gui is running but has nothing from the device. The page says why:
+
+- It cannot reach the device's MQTT broker: the log has a line about losing it, with the reason. tsoa-gui reads the broker the device itself runs, on port 1883.
+- It reaches the broker but hears no readings from it: check that the device's own console shows readings.
+- It is still trying to reach the broker: the broker neither answers nor refuses, and the log says why once tsoa-gui gives up on that try.
+- The page cannot reach the tsoa-gui server: the page loaded, but the readings that follow it do not. Check that the service is running, and that a proxy in front of tsoa-gui, if there is one, passes `/api/system/events` through as a stream.
+
+Restarting it with `svc -t /service/tsoa-gui` starts a fresh connection.
 
 If the page says tsoa-gui needs a newer release, see [After a Venus OS firmware update](#after-a-venus-os-firmware-update).
 

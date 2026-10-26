@@ -1,7 +1,7 @@
 import { Suspense, useState } from "react";
 
 import { Clock } from "./Clock";
-import type { SystemStore } from "./model/store";
+import type { SystemState, SystemStore } from "./model/store";
 import type { System } from "./model/system";
 import { useSystem } from "./model/useSystem";
 import { link, LINK_SENTENCES } from "./skins/link";
@@ -17,7 +17,8 @@ function browserStorage(): Storage | null {
 }
 
 export function App({ store }: { store?: SystemStore }) {
-  const { model, connected } = useSystem(store);
+  const state = useSystem(store);
+  const { model, connected } = state;
   const [skinId, setSkinId] = useState(() => chosenSkin(window.location.search, browserStorage()));
   const skin = SKINS.find((candidate) => candidate.id === skinId) ?? SKINS[0]!;
 
@@ -57,7 +58,7 @@ export function App({ store }: { store?: SystemStore }) {
       </header>
       <main>
         {model === null ? (
-          <p className="waiting">Waiting for the first readings.</p>
+          <Waiting state={state} />
         ) : (
           <SkinChoiceContext.Provider value={choice}>
             <Suspense fallback={<p className="waiting">Loading the skin.</p>}>
@@ -76,4 +77,28 @@ function Notice({ model, connected }: { model: System | null; connected: boolean
   }
   const state = link(model, connected);
   return state === "live" ? null : <p className="notice" role="status">{LINK_SENTENCES[state]}</p>;
+}
+
+const TROUBLESHOOTING = "https://github.com/Spikelite/tsoa-gui/blob/main/docs/install.md#troubleshooting";
+
+const WAITING_SENTENCES = {
+  stream: "This page cannot reach the tsoa-gui server.",
+  connecting: "The tsoa-gui server is still trying to reach the device's MQTT broker.",
+  broker_unreachable: "The tsoa-gui server cannot reach the device's MQTT broker.",
+  broker_silent: "The tsoa-gui server reaches the device's MQTT broker, but hears no readings from it.",
+} as const;
+
+function Waiting({ state }: { state: SystemState }) {
+  if (!state.overdue) {
+    return <p className="waiting">Waiting for the first readings.</p>;
+  }
+  const cause = state.connected ? (state.waiting ?? "connecting") : "stream";
+  return (
+    <div className="waiting" role="status">
+      <p>No readings yet. {WAITING_SENTENCES[cause]}</p>
+      <p>
+        <a href={TROUBLESHOOTING}>Troubleshooting</a> in the install guide says what to check.
+      </p>
+    </div>
+  );
 }

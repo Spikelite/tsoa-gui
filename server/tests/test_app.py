@@ -1,3 +1,5 @@
+import asyncio
+import json
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -63,3 +65,34 @@ def test_jobs_run_while_the_app_runs():
 def test_the_event_stream_is_served_as_server_sent_events():
     route = next(r for r in create_app().routes if getattr(r, "path", None) == "/api/system/events")
     assert route.response_class.media_type == "text/event-stream"
+
+
+def release_event(client_dir: Path | None = None, version: str | None = None) -> dict:
+    # Read from the route itself: the test client waits for a whole response,
+    # and the stream never ends on its own.
+    route = next(r for r in create_app(client_dir, version=version).routes
+                 if getattr(r, "path", None) == "/api/system/events")
+
+    async def first():
+        events = route.endpoint()
+        event = await anext(events)
+        await events.aclose()
+        return event
+
+    event = asyncio.run(first())
+    assert event.event == "release"
+    return json.loads(event.raw_data)
+
+
+def test_the_stream_names_the_release_and_the_client_it_serves(tmp_path: Path):
+    index = tmp_path / "index.html"
+    index.write_text("<!doctype html><script src=/assets/index-aaaa.js></script>", encoding="utf-8")
+    first = release_event(tmp_path, "1.2.3")
+    assert first["version"] == "1.2.3" and first["client"]
+    # A rebuilt client is a different one, even on a development run with no version.
+    index.write_text("<!doctype html><script src=/assets/index-bbbb.js></script>", encoding="utf-8")
+    assert release_event(tmp_path)["client"] not in (None, first["client"])
+
+
+def test_a_development_run_without_a_client_has_neither():
+    assert release_event() == {"version": None, "client": None}

@@ -89,7 +89,7 @@ def main(argv: list[str] | None = None) -> None:
     # The app's event streams end once the server, made below, starts to stop.
     server: uvicorn.Server | None = None
     app = create_app(args.client, feed=Feed(prepare=TimeLeftEstimator(args.cut_off_soc).apply), jobs=jobs,
-                     stopping=lambda: server is not None and server.should_exit)
+                     stopping=lambda: server is not None and server.should_exit, version=release_version(args))
     # No access log: on the device every line is a write to its storage.
     config = uvicorn.Config(
         app,
@@ -112,14 +112,20 @@ def main(argv: list[str] | None = None) -> None:
         sys.exit(3)  # as uvicorn.run does when the server cannot start
 
 
+def release_version(args: argparse.Namespace) -> str | None:
+    """The release's version, from the VERSION file beside its tested versions; a development run has neither."""
+    if args.tested_versions is None:
+        return None
+    release_file = args.tested_versions.with_name("VERSION")
+    return release_file.read_text(encoding="utf-8").strip() if release_file.is_file() else None
+
+
 def serve_notice(args: argparse.Namespace, problems: list[str]) -> None:
     for problem in problems:
         print(f"tsoa-gui will not start: {problem}", file=sys.stderr, flush=True)
-    release_file = args.tested_versions.with_name("VERSION")
-    release = release_file.read_text(encoding="utf-8").strip() if release_file.is_file() else "this release"
+    page = versions.notice_page(release_version(args) or "this release", problems)
     try:
-        server = versions.notice_server(versions.notice_page(release, problems), args.host, args.port,
-                                        args.certfile, args.keyfile)
+        server = versions.notice_server(page, args.host, args.port, args.certfile, args.keyfile)
     except OSError as error:
         print(f"tsoa-gui cannot serve the page that says so: {error}", file=sys.stderr, flush=True)
         # Exiting would have the supervisor restart it every second and log
