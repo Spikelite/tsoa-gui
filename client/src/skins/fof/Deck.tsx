@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from "react";
+import { useId, type CSSProperties, type ReactNode } from "react";
 
 import type { AlarmCheck, PartName, Status } from "../../model/system";
 import { alarmingFirst, type DetailGroup } from "../details";
@@ -42,7 +42,7 @@ export function Deck(props: {
       {!offline && props.children}
 
       {!offline && (
-        <div className="fof-deck-groups">
+        <div className="fof-deck-groups" style={{ "--groups": props.groups.length } as CSSProperties}>
           {props.groups.map((group, index) => (
             <section key={group.title} className="fof-deck-group" aria-label={group.title}>
               <h3 className={`fof-deck-tag fof-deck-tag-${index % 3}`}>{group.title}</h3>
