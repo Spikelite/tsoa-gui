@@ -38,7 +38,7 @@ To work on the client with live reload, run the server as above and `npm run dev
 
 ## How the client gets its readings
 
-Everything a skin draws comes from one structure, the system model. `GET /api/system/events` is a stream of server-sent events: a `model` event with the whole model when the stream opens, then a `patch` event holding only what changed, each time something does. `GET /api/system` returns the current model once. The model's `live` field turns false when the server has not heard from the device for ten seconds.
+Everything a skin draws comes from one structure, the system model. `GET /api/system/events` is a stream of server-sent events. It opens with a `release` event naming the server's version, `null` on a development run, and a fingerprint of the client it serves; the page reloads when either differs from what it loaded with. Until the server has a model, a `status` event says why not each time that changes: `connecting`, `broker_unreachable` or `broker_silent`. Then comes a `model` event with the whole model, and a `patch` event holding only what changed, each time something does. `GET /api/system` returns the current model once. The model's `live` field turns false when the server has not heard from the device for ten seconds.
 
 The model is defined in `server/tsoa_gui/model.py`, and the client's TypeScript types are generated from it. After changing it, regenerate both files the client uses; the tests on both sides fail until they match:
 

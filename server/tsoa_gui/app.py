@@ -1,5 +1,6 @@
 """The web application: the API and the built client it serves."""
 import asyncio
+import hashlib
 import logging
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
@@ -26,14 +27,19 @@ RAN_WELL_S = 300.0
 
 
 def create_app(client_dir: Path | None = None, feed: Feed | None = None, jobs: Sequence[Job] = (),
-               stopping: Callable[[], bool] = lambda: False, streams: StreamLimit | None = None) -> FastAPI:
+               stopping: Callable[[], bool] = lambda: False, streams: StreamLimit | None = None,
+               version: str | None = None) -> FastAPI:
     """The app, serving the model from feed, which the jobs keep current while it runs.
 
     Its event streams end once stopping() is true, which the server running it
     sets as it starts to shut down, and no more are open at once than streams allows.
+    version is the release's, and None on a development run.
     """
     feed = feed if feed is not None else Feed()
     streams = streams if streams is not None else StreamLimit()
+    # A page reloads when either changes. A development run has no version,
+    # but a rebuilt client changes its fingerprint.
+    release = {"version": version, "client": _fingerprint(client_dir)}
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -78,7 +84,7 @@ def create_app(client_dir: Path | None = None, feed: Feed | None = None, jobs: S
 
     @app.get("/api/system/events", response_class=EventSourceResponse, dependencies=[Depends(stream_place)])
     async def system_events() -> AsyncIterator[ServerSentEvent]:
-        async for event in model_events(feed, stopping):
+        async for event in model_events(feed, stopping, release):
             yield event
 
     # Mounted last: a mount at the root would otherwise answer for /api too.
@@ -86,6 +92,14 @@ def create_app(client_dir: Path | None = None, feed: Feed | None = None, jobs: S
         app.mount("/", StaticFiles(directory=client_dir, html=True), name="client")
 
     return app
+
+
+def _fingerprint(client_dir: Path | None) -> str | None:
+    """A hash of the client's index.html, which names every asset by a hash of its content."""
+    index = client_dir / "index.html" if client_dir is not None else None
+    if index is None or not index.is_file():
+        return None
+    return hashlib.sha256(index.read_bytes()).hexdigest()[:16]
 
 
 async def _keep_running(job: Job, feed: Feed) -> None:

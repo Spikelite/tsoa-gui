@@ -435,6 +435,35 @@ def test_a_broker_outage_is_logged_once(monkeypatch, caplog):
     assert len([r for r in caplog.records if "lost the device's MQTT broker" in r.message]) == 1
 
 
+def test_the_feed_says_whether_the_broker_is_unreachable_or_silent(monkeypatch):
+    class Silent:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return FakeClient([])
+
+        async def __aexit__(self, *exc):
+            return False
+
+    class Refusing(Silent):
+        async def __aenter__(self):
+            raise venus.aiomqtt.MqttError("connection refused")
+
+    async def waiting_after(client) -> str:
+        monkeypatch.setattr(venus.aiomqtt, "Client", client)
+        feed = Feed()
+        assert feed.waiting == "connecting"
+        task = asyncio.create_task(venus.run(feed))
+        await asyncio.sleep(0.05)
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+        return feed.waiting
+
+    assert asyncio.run(waiting_after(Refusing)) == "broker_unreachable"
+    assert asyncio.run(waiting_after(Silent)) == "broker_silent"
+
+
 def test_a_model_that_cannot_be_built_shows_as_stale_until_it_can(monkeypatch, caplog):
     monkeypatch.setattr(venus, "PUBLISH_EVERY_S", 0.01)
     r = readings()

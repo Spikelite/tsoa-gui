@@ -1,7 +1,8 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "./App";
+import { EXPLAIN_AFTER_MS } from "./model/store";
 import { fakeStore } from "./test/fakeStore";
 import { system } from "./test/system";
 
@@ -11,10 +12,40 @@ describe("App", () => {
     localStorage.clear();
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("names the application and waits for the first readings", () => {
     render(<App store={fakeStore().store} />);
     expect(screen.getByRole("heading", { level: 1, name: "tsoa-gui" })).toBeInTheDocument();
     expect(screen.getByText("Waiting for the first readings.")).toBeInTheDocument();
+  });
+
+  it("says why there are no readings once it has waited a while", async () => {
+    vi.useFakeTimers();
+    const { store, emit } = fakeStore();
+    render(<App store={store} />);
+    emit("release", { version: "1.0.0", client: "aaaa" });
+    emit("status", { waiting: "broker_unreachable" });
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    await act(() => vi.advanceTimersByTimeAsync(EXPLAIN_AFTER_MS));
+    expect(screen.getByRole("status")).toHaveTextContent("cannot reach the device's MQTT broker");
+    expect(screen.getByRole("link", { name: "Troubleshooting" })).toHaveAttribute(
+      "href", expect.stringContaining("install.md#troubleshooting"));
+    emit("status", { waiting: "broker_silent" });
+    expect(screen.getByRole("status")).toHaveTextContent("hears no readings from it");
+    emit("model", system);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("says when the page cannot reach the server for the first readings", async () => {
+    vi.useFakeTimers();
+    const { store, emit } = fakeStore();
+    render(<App store={store} />);
+    emit("error");
+    await act(() => vi.advanceTimersByTimeAsync(EXPLAIN_AFTER_MS));
+    expect(screen.getByRole("status")).toHaveTextContent("This page cannot reach the tsoa-gui server");
   });
 
   it("draws the system once readings arrive", () => {

@@ -2,8 +2,14 @@
 import asyncio
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
+from typing import Literal
 
 from .model import System
+
+# Why there is no model yet, which the page says once it has waited a while:
+# the job has not yet reached the device's broker or given up on it, it cannot
+# reach it, or it reaches it but has heard no readings.
+Waiting = Literal["connecting", "broker_unreachable", "broker_silent"]
 
 
 class Feed:
@@ -12,6 +18,7 @@ class Feed:
         # left, is added here, whichever job built the model.
         self._prepare = prepare
         self.latest: System | None = None
+        self.waiting: Waiting = "connecting"
         self._listeners: set[asyncio.Queue[System]] = set()
 
     def publish(self, model: System) -> None:
