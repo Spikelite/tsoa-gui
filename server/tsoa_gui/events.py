@@ -24,8 +24,7 @@ STOPPING_CHECK_S = 1.0
 # behind it share the per-address cap.
 MAX_STREAMS = 100
 MAX_STREAMS_PER_ADDRESS = 20
-# What a refused browser is told to wait, in seconds. EventSource ignores it,
-# but the page itself tries again after about this long.
+# How long a refused browser waits before trying again, in seconds.
 RETRY_AFTER_S = 30
 
 
@@ -82,6 +81,12 @@ async def model_events(feed: Feed, stopping: Callable[[], bool] = lambda: False,
             if patch:
                 yield ServerSentEvent(event="patch", raw_data=_json(patch))
                 sent = current
+
+
+def busy_event() -> ServerSentEvent:
+    """The whole of a stream refused for want of a place: it says so, and when to try again."""
+    return ServerSentEvent(event="busy", raw_data=_json({"retry_after_s": RETRY_AFTER_S}),
+                           retry=RETRY_AFTER_S * 1000)
 
 
 def _json(value: Any) -> str:

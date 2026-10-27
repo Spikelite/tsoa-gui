@@ -39,6 +39,26 @@ describe("App", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
+  it("says at once when the server turns the page away for want of a place", () => {
+    const { store, emit } = fakeStore();
+    render(<App store={store} />);
+    emit("busy", { retry_after_s: 30 });
+    expect(screen.getByRole("status")).toHaveTextContent("has as many screens open as it allows");
+    expect(screen.queryByText("This page cannot reach the tsoa-gui server.", { exact: false })).not.toBeInTheDocument();
+    emit("error");
+    expect(screen.getByRole("status")).toHaveTextContent("has as many screens open as it allows");
+  });
+
+  it("says the server is busy, not lost, when it turns away a page that had readings", () => {
+    const { store, emit } = fakeStore();
+    render(<App store={store} />);
+    emit("model", system);
+    emit("error");
+    emit("busy", { retry_after_s: 30 });
+    expect(screen.getByRole("status")).toHaveTextContent("has as many screens open as it allows");
+    expect(screen.getByRole("status")).not.toHaveTextContent("Lost the connection");
+  });
+
   it("says when the page cannot reach the server for the first readings", async () => {
     vi.useFakeTimers();
     const { store, emit } = fakeStore();
@@ -80,6 +100,10 @@ describe("App", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Offline");
     expect(screen.getByRole("status")).toHaveTextContent("Lost the connection to the server");
     expect(screen.getByRole("status").closest(".fof-top")).not.toBeNull();
+    emit("busy", { retry_after_s: 30 });
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+    expect(screen.getByRole("status")).toHaveTextContent("Busy");
+    expect(screen.getByRole("status")).toHaveTextContent("as many screens open as it allows");
   });
 
   it("switches skins from the menu", async () => {

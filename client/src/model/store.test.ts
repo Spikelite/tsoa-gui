@@ -62,7 +62,7 @@ describe("SystemStore", () => {
 
     stream.emit("model", { live: true, battery: { soc_percent: 50 } });
     expect(store.getSnapshot()).toEqual({
-      model: { live: true, battery: { soc_percent: 50 } }, connected: true, waiting: null, overdue: false,
+      model: { live: true, battery: { soc_percent: 50 } }, connected: true, waiting: null, overdue: false, busy: false,
     });
 
     const before = store.getSnapshot();
@@ -139,7 +139,9 @@ describe("SystemStore", () => {
     store.subscribe(() => {});
     streams[0]!.emit("model", { live: true });
     streams[0]!.emit("error");
-    expect(store.getSnapshot()).toEqual({ model: { live: true }, connected: false, waiting: null, overdue: false });
+    expect(store.getSnapshot()).toEqual({
+      model: { live: true }, connected: false, waiting: null, overdue: false, busy: false,
+    });
   });
 
   it("reloads the page when a stream names another release than the first", () => {
@@ -204,5 +206,40 @@ describe("SystemStore", () => {
     streams[0]!.emit("model", { live: true });
     await vi.advanceTimersByTimeAsync(10 * EXPLAIN_AFTER_MS);
     expect(store.getSnapshot().overdue).toBe(false);
+  });
+
+  it("leaves a turned-away stream to the browser's own tries, without reloading the page", async () => {
+    vi.useFakeTimers();
+    const { store, streams, server, reload } = storeWithStream(true);
+    store.subscribe(() => {});
+    const stream = streams[0]!;
+    stream.emit("release", { version: "1.0.0", client: "aaaa" });
+    stream.emit("model", { live: true });
+    // The server restarts with every place taken, and turns the page away at each try.
+    stream.emit("error");
+    for (let tried = 0; tried < 5; tried += 1) {
+      stream.emit("busy", { retry_after_s: 30 });
+      expect(store.getSnapshot()).toMatchObject({ model: { live: true }, connected: false, busy: true });
+      stream.emit("error");
+      await vi.advanceTimersByTimeAsync(30_000);
+    }
+    expect(server.asked).toBe(0);
+    expect(reload).not.toHaveBeenCalled();
+    // A place comes free.
+    stream.emit("release", { version: "1.0.0", client: "aaaa" });
+    expect(store.getSnapshot()).toMatchObject({ connected: true, busy: false });
+  });
+
+  it("asks after the server once a turned-away browser has stopped trying", async () => {
+    vi.useFakeTimers();
+    const { store, streams, server, reload } = storeWithStream(true);
+    store.subscribe(() => {});
+    streams[0]!.emit("busy", { retry_after_s: 30 });
+    streams[0]!.emit("error");
+    await vi.advanceTimersByTimeAsync(30_000 + RELOAD_AFTER_MS - 1);
+    expect(server.asked).toBe(0);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(server.asked).toBe(1);
+    expect(reload).toHaveBeenCalledTimes(1);
   });
 });
