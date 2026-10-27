@@ -48,13 +48,13 @@ tsoa-gui runs on the Python and pydantic that Venus OS ships. Each release is te
 Log in to the device as root over SSH ([docs/install.md](docs/install.md#getting-root-access-over-ssh) shows how to turn it on), then paste this:
 
     cd /tmp
-    wget https://github.com/Spikelite/tsoa-gui/releases/download/v0.1.0/tsoa-gui-0.1.0.tar.gz
-    wget https://github.com/Spikelite/tsoa-gui/releases/download/v0.1.0/tsoa-gui-0.1.0.tar.gz.sha256
-    sha256sum -c tsoa-gui-0.1.0.tar.gz.sha256
-    tar xzf tsoa-gui-0.1.0.tar.gz
-    sh tsoa-gui-0.1.0/install.sh
+    wget https://github.com/Spikelite/tsoa-gui/releases/download/v0.2.0/tsoa-gui-0.2.0.tar.gz
+    wget https://github.com/Spikelite/tsoa-gui/releases/download/v0.2.0/tsoa-gui-0.2.0.tar.gz.sha256
+    sha256sum -c tsoa-gui-0.2.0.tar.gz.sha256
+    tar xzf tsoa-gui-0.2.0.tar.gz
+    sh tsoa-gui-0.2.0/install.sh
 
-This downloads release 0.1.0, checks it, and installs it under `/data`, which firmware updates keep. The device needs internet access for the download, and its clock must be right for the secure connection to GitHub to work. tsoa-gui then starts at every boot. The installer ends by printing the address to open. [docs/install.md](docs/install.md) covers each step in full, along with updating, going back to the previous release and uninstalling.
+This downloads release 0.2.0, checks it, and installs it under `/data`, which firmware updates keep. The device needs internet access for the download, and its clock must be right for the secure connection to GitHub to work. tsoa-gui then starts at every boot. The installer ends by printing the address to open. [docs/install.md](docs/install.md) covers each step in full, along with updating, going back to the previous release and uninstalling.
 
 ## Using it
 
