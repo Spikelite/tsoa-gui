@@ -51,11 +51,11 @@ Dark mode is the default.
 
 ## How current the readings are
 
-Old readings are never passed off as current. The server marks the model stale when it has not heard from the device for ten seconds, and also while it cannot build a model from what it hears or the job that reads the device has stopped and is waiting to start again. The page knows when it has lost the server. Every skin says which of the three it is: live, stale, or offline.
+Old readings are never passed off as current. The server marks the model stale when it has not heard from the device for ten seconds, and also while it cannot build a model from what it hears or the job that reads the device has stopped and is waiting to start again. The page knows when it has lost the server, and when the server turns it away for having as many screens open as it allows. Every skin says which of the four it is: live, stale, offline, or busy.
 
 Before the first readings arrive, the page says it is waiting. If they have not arrived after ten seconds, it says why, in plain words: the server cannot reach the device's MQTT broker, reaches it but hears nothing, or is still trying, or the page cannot reach the server at all. It links to the install guide's troubleshooting, since this is the failure someone installing for the first time is most likely to meet.
 
-A page that has lost the server for thirty seconds asks every few seconds whether the server answers, and reloads as soon as it does, so a kiosk with nobody to click comes back by itself. It never reloads while the server does not answer, since the browser would put up its own page, which never tries again.
+A page that has lost the server for thirty seconds asks every few seconds whether the server answers, and reloads as soon as it does, so a kiosk with nobody to click comes back by itself. It never reloads while the server does not answer, since the browser would put up its own page, which never tries again. A page the server turns away is told when to try again and does so by itself, so it does not reload for that.
 
 A page left open across an update reloads itself once the server is back running another release, or serving another build of the client, so a kiosk never runs an old client against a new server.
 

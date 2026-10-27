@@ -77,7 +77,7 @@ def release_event(client_dir: Path | None = None, version: str | None = None) ->
                  if getattr(r, "path", None) == "/api/system/events")
 
     async def first():
-        events = route.endpoint()
+        events = route.endpoint(placed=True)
         event = await anext(events)
         await events.aclose()
         return event
@@ -150,7 +150,10 @@ class Stream:
     def __init__(self, app, address: str):
         self.status: int | None = None
         self.headers: dict[str, str] = {}
+        self.body = b""
+        self.ended = False
         self._started = asyncio.Event()
+        self._sent = asyncio.Event()
         self._gone = asyncio.Event()
         scope = {"type": "http", "asgi": {"version": "3.0"}, "http_version": "1.1", "method": "GET",
                  "scheme": "http", "path": "/api/system/events", "raw_path": b"/api/system/events",
@@ -167,10 +170,22 @@ class Stream:
             self.status = message["status"]
             self.headers = {k.decode(): v.decode() for k, v in message["headers"]}
             self._started.set()
+        elif message["type"] == "http.response.body":
+            self.body += message.get("body", b"")
+            self.ended = not message.get("more_body", False)
+            self._sent.set()
 
     async def started(self) -> "Stream":
         await self._started.wait()
         return self
+
+    async def first_event(self) -> dict[str, str]:
+        """The first event's fields, by name, once it has arrived."""
+        while b"\n\n" not in self.body:
+            self._sent.clear()
+            await self._sent.wait()
+        lines = self.body.decode().split("\n\n", 1)[0].splitlines()
+        return dict(line.split(": ", 1) for line in lines)
 
     async def close(self) -> None:
         self._gone.set()
@@ -187,16 +202,24 @@ def test_streams_past_the_cap_are_refused_until_one_closes():
         feed.publish(snapshot(10))
         app = create_app(feed=feed, streams=StreamLimit(total=3, per_address=10))
         held = [await Stream(app, f"192.0.2.{n}").started() for n in range(3)]
-        assert [s.status for s in held] == [200, 200, 200]
+        assert [(await s.first_event())["event"] for s in held] == ["release"] * 3
 
+        # A browser's EventSource cannot read a refusal's status, so the
+        # refusal is a stream of its own, one event long, saying when to try again.
         refused = await Stream(app, "192.0.2.9").started()
-        assert refused.status == 503
-        assert refused.headers["retry-after"] == str(RETRY_AFTER_S)
-        await refused.close()
+        assert refused.status == 200
+        busy = await refused.first_event()
+        assert busy["event"] == "busy" and busy["retry"] == str(RETRY_AFTER_S * 1000)
+        assert json.loads(busy["data"]) == {"retry_after_s": RETRY_AFTER_S}
+        # It ends by itself, without the browser going away.
+        await asyncio.wait_for(refused._task, 1)
+        assert refused.ended
+        # It took no place, so the caps still hold.
+        assert (await (await Stream(app, "192.0.2.9").started()).first_event())["event"] == "busy"
 
         await held.pop().close()
         held.append(await Stream(app, "192.0.2.9").started())
-        assert held[-1].status == 200
+        assert (await held[-1].first_event())["event"] == "release"
         for stream in held:
             await stream.close()
 
@@ -210,10 +233,10 @@ def test_one_address_cannot_take_every_stream():
         app = create_app(feed=feed, streams=StreamLimit(total=10, per_address=2))
         held = [await Stream(app, "192.0.2.1").started() for _ in range(2)]
         refused = await Stream(app, "192.0.2.1").started()
-        assert refused.status == 503
+        assert (await refused.first_event())["event"] == "busy"
         await refused.close()
         held.append(await Stream(app, "192.0.2.2").started())
-        assert [s.status for s in held] == [200, 200, 200]
+        assert [(await s.first_event())["event"] for s in held] == ["release"] * 3
         for stream in held:
             await stream.close()
 
@@ -224,7 +247,7 @@ def test_a_refused_stream_carries_the_security_headers_too():
     async def scenario():
         app = create_app(streams=StreamLimit(total=0))
         refused = await Stream(app, "192.0.2.1").started()
-        assert refused.status == 503
+        assert (await refused.first_event())["event"] == "busy"
         for name, value in HEADERS.items():
             assert refused.headers[name.lower()] == value
         await refused.close()

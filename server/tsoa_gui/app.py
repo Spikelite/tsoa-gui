@@ -6,12 +6,13 @@ import time
 from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.sse import EventSourceResponse, ServerSentEvent
 from fastapi.staticfiles import StaticFiles
 
-from .events import RETRY_AFTER_S, StreamLimit, model_events
+from .events import StreamLimit, busy_event, model_events
 from .feed import Feed
 from .headers import SecurityHeaders
 from .model import System
@@ -56,18 +57,17 @@ def create_app(client_dir: Path | None = None, feed: Feed | None = None, jobs: S
     app = FastAPI(title="tsoa-gui", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
     app.add_middleware(SecurityHeaders)
 
-    # Async, so the count is only ever touched from the event loop. The place
-    # is given back once the response has ended, whether or not the stream
-    # ever started.
-    async def stream_place(request: Request) -> AsyncIterator[None]:
+    # Async, so the count is only ever touched from the event loop. A place
+    # taken is given back once the response has ended, whether or not the
+    # stream ever started.
+    async def stream_place(request: Request) -> AsyncIterator[bool]:
         address = request.client.host if request.client is not None else ""
-        if not streams.take(address):
-            raise HTTPException(status_code=503, detail="Too many event streams open",
-                                headers={"Retry-After": str(RETRY_AFTER_S)})
+        placed = streams.take(address)
         try:
-            yield
+            yield placed
         finally:
-            streams.give_back(address)
+            if placed:
+                streams.give_back(address)
 
     # Everything the server answers itself lives under /api. Behind a proxy
     # the device's own console can share this origin, and its paths are at
@@ -82,8 +82,14 @@ def create_app(client_dir: Path | None = None, feed: Feed | None = None, jobs: S
             raise HTTPException(status_code=503, detail="No readings yet")
         return feed.latest
 
-    @app.get("/api/system/events", response_class=EventSourceResponse, dependencies=[Depends(stream_place)])
-    async def system_events() -> AsyncIterator[ServerSentEvent]:
+    @app.get("/api/system/events", response_class=EventSourceResponse)
+    async def system_events(placed: Annotated[bool, Depends(stream_place)]) -> AsyncIterator[ServerSentEvent]:
+        if not placed:
+            # A browser's EventSource cannot read a refusal's status, and
+            # gives up for good on one, so a refused stream is a short one
+            # that says so and has it try again later by itself.
+            yield busy_event()
+            return
         async for event in model_events(feed, stopping, release):
             yield event
 

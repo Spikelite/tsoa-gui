@@ -119,7 +119,7 @@ function Readout(props: {
 // in the middle, loads on the right, with power moving between them through
 // conduits, all inside a frame of rounded bars. Everything is drawn in CSS
 // and SVG, with no images.
-export function FofSkin({ model, connected = true }: { model: System; connected?: boolean }) {
+export function FofSkin({ model, connected = true, busy = false }: { model: System; connected?: boolean; busy?: boolean }) {
   const root = useRef<HTMLDivElement>(null);
   // Where the conduits meet the hub, which they work out once laid out and
   // the hub needs to carry them on into its windings.
@@ -132,7 +132,7 @@ export function FofSkin({ model, connected = true }: { model: System; connected?
   const heardRoutes = useCallback((next: Routes) => {
     setRoutes((previous) => (JSON.stringify(previous) === JSON.stringify(next) ? previous : next));
   }, []);
-  const state = link(model, connected);
+  const state = link(model, connected, busy);
   const part = detailedPart(usePart(), model);
   useEscapeCloses(part !== null);
   const from = openedFrom();

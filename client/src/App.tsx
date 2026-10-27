@@ -19,7 +19,7 @@ function browserStorage(): Storage | null {
 
 export function App({ store, reloading }: { store?: SystemStore; reloading?: Reloading }) {
   const state = useSystem(store);
-  const { model, connected } = state;
+  const { model, connected, busy } = state;
   const [skinId, setSkinId] = useState(() => chosenSkin(window.location.search, browserStorage()));
   const skin = SKINS.find((candidate) => candidate.id === skinId) ?? SKINS[0]!;
 
@@ -40,7 +40,7 @@ export function App({ store, reloading }: { store?: SystemStore; reloading?: Rel
         {/* A framed skin shows the name, the clock and the skin choice in its own frame, once it is drawn. */}
         {(!skin.framed || model === null) && <h1>tsoa-gui</h1>}
         {/* A framed skin says how current the readings are in its own frame. */}
-        {!skin.framed && <Notice model={model} connected={connected} />}
+        {!skin.framed && <Notice model={model} connected={connected} busy={busy} />}
         {!skin.framed && (
           <>
             <Clock />
@@ -64,7 +64,7 @@ export function App({ store, reloading }: { store?: SystemStore; reloading?: Rel
           <SkinBoundary reloading={reloading}>
             <SkinChoiceContext.Provider value={choice}>
               <Suspense fallback={<p className="waiting">Loading the skin.</p>}>
-                <Skin model={model} connected={connected} />
+                <Skin model={model} connected={connected} busy={busy} />
               </Suspense>
             </SkinChoiceContext.Provider>
           </SkinBoundary>
@@ -74,11 +74,11 @@ export function App({ store, reloading }: { store?: SystemStore; reloading?: Rel
   );
 }
 
-function Notice({ model, connected }: { model: System | null; connected: boolean }) {
+function Notice({ model, connected, busy }: { model: System | null; connected: boolean; busy: boolean }) {
   if (model === null) {
     return null;
   }
-  const state = link(model, connected);
+  const state = link(model, connected, busy);
   return state === "live" ? null : <p className="notice" role="status">{LINK_SENTENCES[state]}</p>;
 }
 
@@ -92,6 +92,14 @@ const WAITING_SENTENCES = {
 } as const;
 
 function Waiting({ state }: { state: SystemState }) {
+  // Turned away, the page knows why at once, and nothing in the install guide would help.
+  if (state.busy) {
+    return (
+      <p className="waiting" role="status">
+        No readings yet. The tsoa-gui server has as many screens open as it allows. This page tries again by itself.
+      </p>
+    );
+  }
   if (!state.overdue) {
     return <p className="waiting">Waiting for the first readings.</p>;
   }

@@ -13,6 +13,8 @@ export interface SystemState {
   waiting: Waiting | null;
   /** Whether the first model has taken longer than EXPLAIN_AFTER_MS, so the page should say why. */
   overdue: boolean;
+  /** Whether the server turned the stream away, having as many open as it allows. The browser tries again by itself. */
+  busy: boolean;
 }
 
 interface EventStream {
@@ -55,7 +57,7 @@ const browserRecovery: Recovery = {
 // first one it hears, and reloads the page when a later stream names
 // another, so a page left open across an update runs the new client.
 export class SystemStore {
-  private state: SystemState = { model: null, connected: false, waiting: null, overdue: false };
+  private state: SystemState = { model: null, connected: false, waiting: null, overdue: false, busy: false };
   private readonly listeners = new Set<() => void>();
   private stream: EventStream | null = null;
   private readonly url: string;
@@ -67,6 +69,8 @@ export class SystemStore {
   private explaining: ReturnType<typeof setTimeout> | null = null;
   /** The release the page loaded with, as the first stream named it. */
   private release: string | null = null;
+  /** How long the browser waits before trying again, as the server said when it last turned the stream away. */
+  private busyRetryMs = 0;
 
   constructor(url = "/api/system/events", open: (url: string) => EventStream = (u) => new EventSource(u),
     recovery: Recovery = browserRecovery) {
@@ -100,9 +104,18 @@ export class SystemStore {
         return;
       }
       this.found();
-      if (!this.state.connected) {
-        this.set({ ...this.state, connected: true });
+      if (!this.state.connected || this.state.busy) {
+        this.set({ ...this.state, connected: true, busy: false });
       }
+    });
+    // A stream the server turns away ends after this one event, and the
+    // browser tries again when it says, so the store's own wait before
+    // asking after the server starts only once that try is due.
+    stream.addEventListener("busy", (event) => {
+      const { retry_after_s } = JSON.parse((event as MessageEvent<string>).data) as { retry_after_s: number };
+      this.busyRetryMs = retry_after_s * 1000;
+      this.found();
+      this.set({ ...this.state, connected: false, busy: true });
     });
     stream.addEventListener("status", (event) => {
       const { waiting } = JSON.parse((event as MessageEvent<string>).data) as { waiting: Waiting };
@@ -148,7 +161,8 @@ export class SystemStore {
   /** The stream is lost: unless it is already, the store starts its wait before asking after the server. */
   private lost(): void {
     if (this.waiting === null) {
-      this.waiting = setTimeout(() => void this.check(), RELOAD_AFTER_MS);
+      const wait = this.state.busy ? this.busyRetryMs + RELOAD_AFTER_MS : RELOAD_AFTER_MS;
+      this.waiting = setTimeout(() => void this.check(), wait);
     }
   }
 
