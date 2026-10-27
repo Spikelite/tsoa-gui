@@ -31,33 +31,33 @@ The first time, `ssh` asks whether to trust the device's key: answer `yes`. Type
 
 ## Downloading a release
 
-Releases are on the [Releases page](https://github.com/Spikelite/tsoa-gui/releases). Each has two files: `tsoa-gui-<version>.tar.gz`, the release itself, and `tsoa-gui-<version>.tar.gz.sha256`, which holds the archive's SHA-256. Checking it makes sure the archive arrived whole and is the one that was published. The examples below use version 0.1.0; use the latest release's version.
+Releases are on the [Releases page](https://github.com/Spikelite/tsoa-gui/releases). Each has two files: `tsoa-gui-<version>.tar.gz`, the release itself, and `tsoa-gui-<version>.tar.gz.sha256`, which holds the archive's SHA-256. Checking it makes sure the archive arrived whole and is the one that was published. The examples below use version 0.2.0; use the latest release's version.
 
 If the device is connected to the internet, it can download them itself. Log in, then:
 
     cd /tmp
-    wget https://github.com/Spikelite/tsoa-gui/releases/download/v0.1.0/tsoa-gui-0.1.0.tar.gz
-    wget https://github.com/Spikelite/tsoa-gui/releases/download/v0.1.0/tsoa-gui-0.1.0.tar.gz.sha256
-    sha256sum -c tsoa-gui-0.1.0.tar.gz.sha256
+    wget https://github.com/Spikelite/tsoa-gui/releases/download/v0.2.0/tsoa-gui-0.2.0.tar.gz
+    wget https://github.com/Spikelite/tsoa-gui/releases/download/v0.2.0/tsoa-gui-0.2.0.tar.gz.sha256
+    sha256sum -c tsoa-gui-0.2.0.tar.gz.sha256
 
 `sha256sum` prints `OK` when it matches. If it does not, delete both files and download them again.
 
 Otherwise, download both files from the Releases page on the computer and check the archive there. In the folder you downloaded them to, on Linux:
 
-    sha256sum -c tsoa-gui-0.1.0.tar.gz.sha256
+    sha256sum -c tsoa-gui-0.2.0.tar.gz.sha256
 
 on macOS:
 
-    shasum -a 256 -c tsoa-gui-0.1.0.tar.gz.sha256
+    shasum -a 256 -c tsoa-gui-0.2.0.tar.gz.sha256
 
 Both print `OK` when it matches. On Windows, in PowerShell:
 
-    Get-FileHash tsoa-gui-0.1.0.tar.gz
-    Get-Content tsoa-gui-0.1.0.tar.gz.sha256
+    Get-FileHash tsoa-gui-0.2.0.tar.gz
+    Get-Content tsoa-gui-0.2.0.tar.gz.sha256
 
 and compare the two long hexadecimal numbers: they must be the same, apart from upper and lower case. If they differ, download the archive again, and do not install it until they match. Then copy it to the device and log in:
 
-    scp tsoa-gui-0.1.0.tar.gz root@192.0.2.10:/tmp/
+    scp tsoa-gui-0.2.0.tar.gz root@192.0.2.10:/tmp/
     ssh root@192.0.2.10
     cd /tmp
 
@@ -65,12 +65,12 @@ and compare the two long hexadecimal numbers: they must be the same, apart from 
 
 On the device, in `/tmp` where the archive is, unpack it and run its installer:
 
-    tar xzf tsoa-gui-0.1.0.tar.gz
-    sh tsoa-gui-0.1.0/install.sh
+    tar xzf tsoa-gui-0.2.0.tar.gz
+    sh tsoa-gui-0.2.0/install.sh
 
 The installer puts the release in `/data/tsoa-gui`, makes the device start tsoa-gui at every boot, starts it, and waits until it answers. It ends by printing the addresses to open:
 
-    tsoa-gui 0.1.0 is installed and running. Open it in a browser at:
+    tsoa-gui 0.2.0 is installed and running. Open it in a browser at:
         https://192.0.2.10:8088
 
 If it says anything else instead, see [Troubleshooting](#troubleshooting). `/tmp` is cleared at the next boot, so the unpacked files there need no tidying.
@@ -117,14 +117,14 @@ The battery's time to empty runs to the state of charge at which the system cuts
 
 ### After a tsoa-gui release
 
-Download the new release and check its SHA-256 as before, either on the device or on the computer, then install it the same way. On the device, for a release 0.2.0:
+Download the new release and check its SHA-256 as before, either on the device or on the computer, then install it the same way. On the device, for a release 0.3.0:
 
     cd /tmp
-    wget https://github.com/Spikelite/tsoa-gui/releases/download/v0.2.0/tsoa-gui-0.2.0.tar.gz
-    wget https://github.com/Spikelite/tsoa-gui/releases/download/v0.2.0/tsoa-gui-0.2.0.tar.gz.sha256
-    sha256sum -c tsoa-gui-0.2.0.tar.gz.sha256
-    tar xzf tsoa-gui-0.2.0.tar.gz
-    sh tsoa-gui-0.2.0/install.sh
+    wget https://github.com/Spikelite/tsoa-gui/releases/download/v0.3.0/tsoa-gui-0.3.0.tar.gz
+    wget https://github.com/Spikelite/tsoa-gui/releases/download/v0.3.0/tsoa-gui-0.3.0.tar.gz.sha256
+    sha256sum -c tsoa-gui-0.3.0.tar.gz.sha256
+    tar xzf tsoa-gui-0.3.0.tar.gz
+    sh tsoa-gui-0.3.0/install.sh
 
 The installer keeps the settings and the certificate, restarts tsoa-gui on the new release and checks that it answers. It keeps the release that was in use, to go back to, and removes any older one. A page left open in a browser, a kiosk's for instance, reloads itself once tsoa-gui answers again on the new release. A page that 0.1.0 served does not, so reload it by hand once.
 
