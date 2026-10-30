@@ -202,17 +202,39 @@ export interface Along {
   end: End;
 }
 
+/** A change to a part's equipment on its way, and how it was timed. */
+interface Waiting<T> {
+  value: T;
+  keys: string[];
+  end: End;
+  /** When on the page's clock the change was made. */
+  made: number;
+  /** When the change before it arrives: no change arrives ahead of an earlier one. */
+  after: number;
+  /** The route it was timed by, if its conduit had one. */
+  route?: Route;
+  timer: number;
+}
+
+const routeOf = (routes: Routes, keys: string[]) => keys.map((key) => routes[key]).find((found) => found !== undefined);
+
 /**
  * `value`, changed only when a change sent along its conduit now would reach
  * the equipment: at the conduit's source, as its next wave sets off, or at
  * its target, as the change runs off its end. Without such a conduit, or with
  * reduced motion, it changes at the next moment it can.
+ *
+ * A conduit going between idle and active also changes pace, and publishes
+ * its new route a render after the change is made. A change still on its way
+ * is timed again by the new route, from the moment it was made, so the
+ * equipment and the conduit keep one clock.
  */
 export function useCarried<T>(value: T, along: Along | ((next: T, previous: T) => Along)): T {
   const routes = useContext(RoutesContext);
   const [shown, setShown] = useState(value);
   const timing = useRef({ routes, along, sent: value, last: 0 });
   const timers = useRef(new Set<number>());
+  const waiting = useRef<Waiting<T> | null>(null);
 
   useEffect(() => {
     timing.current.routes = routes;
@@ -231,17 +253,46 @@ export function useCarried<T>(value: T, along: Along | ((next: T, previous: T) =
     }
     const { keys, end } = typeof current.along === "function" ? current.along(value, current.sent) : current.along;
     current.sent = value;
-    const route = keys.map((key) => current.routes[key]).find((found) => found !== undefined);
-    const now = pageTime();
-    // Changes arrive in the order they were sent.
-    const at = Math.max(current.last, route && !reducedMotion() ? arrival(route, end, now) : now);
-    current.last = at;
-    const timer = window.setTimeout(() => {
-      timers.current.delete(timer);
-      setShown(value);
-    }, (at - now) * 1000);
-    timers.current.add(timer);
+    waiting.current = schedule({ value, keys, end, made: pageTime(), after: current.last }, current, timers.current,
+      waiting, setShown);
   }, [value]);
 
+  useEffect(() => {
+    const change = waiting.current;
+    const route = change === null ? undefined : routeOf(routes, change.keys);
+    if (change === null || route === undefined
+      || (change.route !== undefined && change.route.period === route.period && change.route.phase === route.phase)) {
+      return;
+    }
+    window.clearTimeout(change.timer);
+    timers.current.delete(change.timer);
+    waiting.current = schedule(change, timing.current, timers.current, waiting, setShown);
+  }, [routes]);
+
   return shown;
+}
+
+/** Times a change by its conduit's route as it stands, and sets it to arrive then. */
+function schedule<T>(
+  change: Omit<Waiting<T>, "timer" | "route">,
+  current: { routes: Routes; last: number },
+  timers: Set<number>,
+  waiting: { current: Waiting<T> | null },
+  show: (value: T) => void,
+): Waiting<T> {
+  const route = routeOf(current.routes, change.keys);
+  const now = pageTime();
+  // Changes arrive in the order they were made.
+  const at = Math.max(change.after,
+    route && !reducedMotion() ? arrival(route, change.end, change.made) : now);
+  current.last = at;
+  const timer = window.setTimeout(() => {
+    timers.delete(timer);
+    if (waiting.current?.timer === timer) {
+      waiting.current = null;
+    }
+    show(change.value);
+  }, Math.max(0, at - now) * 1000);
+  timers.add(timer);
+  return { ...change, route, timer };
 }
