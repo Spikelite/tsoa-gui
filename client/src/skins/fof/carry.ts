@@ -19,6 +19,13 @@ import { WAVE } from "./waves";
 // the hub's threads, the DC bus's relay and the equipment at either end,
 // changes as a change reaches it. With reduced motion no waves are drawn, so
 // a change is shown at once.
+//
+// A supply's drawing launches its conduit: its packets run down a row of
+// pips and set off into the conduit as each cycle closes. Taking up a change
+// to active, the drawing lights at the next cycle's start like any source,
+// but its first packet reaches the end of its row only a cycle later, so the
+// conduit's first active wave sets off then (the route's lead). Going idle,
+// the drawing and its conduit stop together.
 
 /** The page's clock, in seconds: the timeline every repeating animation in the skin is pinned to. */
 export function pageTime(): number {
@@ -43,11 +50,16 @@ export function pin(root: Element | null | undefined) {
   });
 }
 
-/** A conduit's waves: how long each takes, in seconds, its --fof-phase, and the conduit's length, in waves. */
+/**
+ * A conduit's waves: how long each takes, in seconds, its --fof-phase, the
+ * conduit's length, in waves, and how many cycles after its source takes up a
+ * change to active the first active wave sets off.
+ */
 export interface Route {
   period: number;
   phase: number;
   length: number;
+  lead?: number;
 }
 
 /** Each conduit's route, by `source-target`. */
@@ -72,9 +84,9 @@ export const steady = (active: boolean): Carried => ({ base: active, changes: []
 export const latest = (carried: Carried) => carried.changes.at(-1)?.active ?? carried.base;
 
 /** The cycle of the page's clock at which a change made now is taken up, and the slot that first carries it. */
-function departure(route: Route, now: number) {
+function departure(route: Route, now: number, active: boolean) {
   const launch = Math.floor(now / route.period) + 1;
-  return { launch, slot: Math.ceil(launch + route.phase) };
+  return { launch, slot: Math.ceil(launch + (active ? (route.lead ?? 0) : 0) + route.phase) };
 }
 
 /**
@@ -87,7 +99,7 @@ export function send(carried: Carried, active: boolean, route: Route, now: numbe
   if (active === latest(carried)) {
     return carried;
   }
-  const { launch, slot } = departure(route, now);
+  const { launch, slot } = departure(route, now, active);
   const last = carried.changes.at(-1);
   if (last !== undefined && last.slot >= slot) {
     return { ...carried, changes: carried.changes.slice(0, -1) };
@@ -187,9 +199,9 @@ export function ring(carried: Carried, route: Route): string {
 /** Which end of a conduit a part's equipment is at. */
 export type End = "source" | "target";
 
-/** When a change sent along a conduit now reaches the equipment at one of its ends. */
-export function arrival(route: Route, end: End, now: number): number {
-  const { launch, slot } = departure(route, now);
+/** When a change sent along a conduit now, to active or not, reaches the equipment at one of its ends. */
+export function arrival(route: Route, end: End, now: number, active = false): number {
+  const { launch, slot } = departure(route, now, active);
   return (end === "source" ? launch : slot - route.phase + route.length) * route.period;
 }
 
@@ -202,17 +214,39 @@ export interface Along {
   end: End;
 }
 
+/** A change to a part's equipment on its way, and how it was timed. */
+interface Waiting<T> {
+  value: T;
+  keys: string[];
+  end: End;
+  /** When on the page's clock the change was made. */
+  made: number;
+  /** When the change before it arrives: no change arrives ahead of an earlier one. */
+  after: number;
+  /** The route it was timed by, if its conduit had one. */
+  route?: Route;
+  timer: number;
+}
+
+const routeOf = (routes: Routes, keys: string[]) => keys.map((key) => routes[key]).find((found) => found !== undefined);
+
 /**
  * `value`, changed only when a change sent along its conduit now would reach
  * the equipment: at the conduit's source, as its next wave sets off, or at
  * its target, as the change runs off its end. Without such a conduit, or with
  * reduced motion, it changes at the next moment it can.
+ *
+ * A conduit going between idle and active also changes pace, and publishes
+ * its new route a render after the change is made. A change still on its way
+ * is timed again by the new route, from the moment it was made, so the
+ * equipment and the conduit keep one clock.
  */
 export function useCarried<T>(value: T, along: Along | ((next: T, previous: T) => Along)): T {
   const routes = useContext(RoutesContext);
   const [shown, setShown] = useState(value);
   const timing = useRef({ routes, along, sent: value, last: 0 });
   const timers = useRef(new Set<number>());
+  const waiting = useRef<Waiting<T> | null>(null);
 
   useEffect(() => {
     timing.current.routes = routes;
@@ -231,17 +265,46 @@ export function useCarried<T>(value: T, along: Along | ((next: T, previous: T) =
     }
     const { keys, end } = typeof current.along === "function" ? current.along(value, current.sent) : current.along;
     current.sent = value;
-    const route = keys.map((key) => current.routes[key]).find((found) => found !== undefined);
-    const now = pageTime();
-    // Changes arrive in the order they were sent.
-    const at = Math.max(current.last, route && !reducedMotion() ? arrival(route, end, now) : now);
-    current.last = at;
-    const timer = window.setTimeout(() => {
-      timers.current.delete(timer);
-      setShown(value);
-    }, (at - now) * 1000);
-    timers.current.add(timer);
+    waiting.current = schedule({ value, keys, end, made: pageTime(), after: current.last }, current, timers.current,
+      waiting, setShown);
   }, [value]);
 
+  useEffect(() => {
+    const change = waiting.current;
+    const route = change === null ? undefined : routeOf(routes, change.keys);
+    if (change === null || route === undefined
+      || (change.route !== undefined && change.route.period === route.period && change.route.phase === route.phase)) {
+      return;
+    }
+    window.clearTimeout(change.timer);
+    timers.current.delete(change.timer);
+    waiting.current = schedule(change, timing.current, timers.current, waiting, setShown);
+  }, [routes]);
+
   return shown;
+}
+
+/** Times a change by its conduit's route as it stands, and sets it to arrive then. */
+function schedule<T>(
+  change: Omit<Waiting<T>, "timer" | "route">,
+  current: { routes: Routes; last: number },
+  timers: Set<number>,
+  waiting: { current: Waiting<T> | null },
+  show: (value: T) => void,
+): Waiting<T> {
+  const route = routeOf(current.routes, change.keys);
+  const now = pageTime();
+  // Changes arrive in the order they were made.
+  const at = Math.max(change.after,
+    route && !reducedMotion() ? arrival(route, change.end, change.made, change.value === true) : now);
+  current.last = at;
+  const timer = window.setTimeout(() => {
+    timers.delete(timer);
+    if (waiting.current?.timer === timer) {
+      waiting.current = null;
+    }
+    show(change.value);
+  }, Math.max(0, at - now) * 1000);
+  timers.add(timer);
+  return { ...change, route, timer };
 }

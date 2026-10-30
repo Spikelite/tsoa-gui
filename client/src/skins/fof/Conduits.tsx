@@ -303,6 +303,8 @@ export function Conduits({ flows, inputs = {}, onHubPorts, onRoutes }: {
       period: settled[key] ?? steadyPeriod(undefined, flow.power_w),
       phase: Number(phase.toFixed(3)),
       length: path.length / wave,
+      // A drawing that launches its conduit sends its first packet a cycle after it lights.
+      ...(from.launch ? { lead: 1 } : {}),
     };
     // What the conduit runs on into takes up its state where it meets it:
     // out of the hub or the DC bus, as the conduit's source does, and into
