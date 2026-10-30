@@ -19,13 +19,6 @@ import { WAVE } from "./waves";
 // the hub's threads, the DC bus's relay and the equipment at either end,
 // changes as a change reaches it. With reduced motion no waves are drawn, so
 // a change is shown at once.
-//
-// A supply's drawing launches its conduit: its packets run down a row of
-// pips and set off into the conduit as each cycle closes. Taking up a change
-// to active, the drawing lights at the next cycle's start like any source,
-// but its first packet reaches the end of its row only a cycle later, so the
-// conduit's first active wave sets off then (the route's lead). Going idle,
-// the drawing and its conduit stop together.
 
 /** The page's clock, in seconds: the timeline every repeating animation in the skin is pinned to. */
 export function pageTime(): number {
@@ -50,16 +43,11 @@ export function pin(root: Element | null | undefined) {
   });
 }
 
-/**
- * A conduit's waves: how long each takes, in seconds, its --fof-phase, the
- * conduit's length, in waves, and how many cycles after its source takes up a
- * change to active the first active wave sets off.
- */
+/** A conduit's waves: how long each takes, in seconds, its --fof-phase, and the conduit's length, in waves. */
 export interface Route {
   period: number;
   phase: number;
   length: number;
-  lead?: number;
 }
 
 /** Each conduit's route, by `source-target`. */
@@ -84,9 +72,9 @@ export const steady = (active: boolean): Carried => ({ base: active, changes: []
 export const latest = (carried: Carried) => carried.changes.at(-1)?.active ?? carried.base;
 
 /** The cycle of the page's clock at which a change made now is taken up, and the slot that first carries it. */
-function departure(route: Route, now: number, active: boolean) {
+function departure(route: Route, now: number) {
   const launch = Math.floor(now / route.period) + 1;
-  return { launch, slot: Math.ceil(launch + (active ? (route.lead ?? 0) : 0) + route.phase) };
+  return { launch, slot: Math.ceil(launch + route.phase) };
 }
 
 /**
@@ -99,7 +87,7 @@ export function send(carried: Carried, active: boolean, route: Route, now: numbe
   if (active === latest(carried)) {
     return carried;
   }
-  const { launch, slot } = departure(route, now, active);
+  const { launch, slot } = departure(route, now);
   const last = carried.changes.at(-1);
   if (last !== undefined && last.slot >= slot) {
     return { ...carried, changes: carried.changes.slice(0, -1) };
@@ -199,9 +187,9 @@ export function ring(carried: Carried, route: Route): string {
 /** Which end of a conduit a part's equipment is at. */
 export type End = "source" | "target";
 
-/** When a change sent along a conduit now, to active or not, reaches the equipment at one of its ends. */
-export function arrival(route: Route, end: End, now: number, active = false): number {
-  const { launch, slot } = departure(route, now, active);
+/** When a change sent along a conduit now reaches the equipment at one of its ends. */
+export function arrival(route: Route, end: End, now: number): number {
+  const { launch, slot } = departure(route, now);
   return (end === "source" ? launch : slot - route.phase + route.length) * route.period;
 }
 
@@ -296,7 +284,7 @@ function schedule<T>(
   const now = pageTime();
   // Changes arrive in the order they were made.
   const at = Math.max(change.after,
-    route && !reducedMotion() ? arrival(route, change.end, change.made, change.value === true) : now);
+    route && !reducedMotion() ? arrival(route, change.end, change.made) : now);
   current.last = at;
   const timer = window.setTimeout(() => {
     timers.delete(timer);

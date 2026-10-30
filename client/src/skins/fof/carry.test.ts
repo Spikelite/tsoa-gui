@@ -28,25 +28,6 @@ describe("carrying a change along a conduit", () => {
     expect(stateAt(going, route, 1, 5.0)).toBe(true);
   });
 
-  it("starts a launched conduit a cycle after its source lights, and stops it with its source", () => {
-    const launched: Route = { ...route, lead: 1 };
-    const going = send(steady(false), true, launched, 1.0);
-    // The drawing lights as the next cycle starts, as any source does...
-    expect(sourceState(going, launched, 2.0)).toBe(true);
-    expect(arrival(launched, "source", 1.0, true)).toBe(2);
-    // ...and its first packet, leaving its row a cycle later, is the conduit's first active wave.
-    expect(going.changes).toEqual([{ slot: 3, launch: 1, active: true }]);
-    expect(stateAt(going, launched, 0, 4.9)).toBe(false);
-    expect(stateAt(going, launched, 0, 5.0)).toBe(true);
-    expect(arrival(launched, "target", 1.0, true)).toBe(11);
-    // Going idle, the drawing and the conduit stop together, as on any conduit.
-    const stopping = send(steady(true), false, launched, 1.0);
-    expect(stopping.changes).toEqual([{ slot: 2, launch: 1, active: false }]);
-    expect(arrival(launched, "target", 1.0, false)).toBe(9);
-    // Stopped again before its first packet left: nothing went along it.
-    expect(send(going, false, launched, 2.5)).toEqual(steady(false));
-  });
-
   it("has one state all along the conduit again once a change has run off its end", () => {
     const going = send(steady(true), false, route, 1.0);
     expect(arrived(going, route, 8.9)).toBe(going);
