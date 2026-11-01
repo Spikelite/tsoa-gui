@@ -26,7 +26,9 @@ export function Eased({ value, format }: { value: number | null; format: Format 
     }
     const start = performance.now();
     let frame = requestAnimationFrame(function step(now: number) {
-      const t = Math.min(1, (now - start) / DURATION_MS);
+      // A frame's timestamp can come from before the easing started, by seconds in
+      // a throttled window, and the curve run backwards flings far past both readings.
+      const t = Math.max(0, Math.min(1, (now - start) / DURATION_MS));
       const current = from + (value - from) * (1 - (1 - t) ** 3);
       shown.current = current;
       span.textContent = format(current);
