@@ -43,6 +43,8 @@ RECONNECT_AFTER_S = 5.0
 REPORT_POLL_S = 0.1
 
 Key = tuple[str, int, str]
+# The lowest and highest a value may be, where the device publishes them beside it.
+Bounds = tuple[float | None, float | None]
 
 # Values Venus uses on its services, as Victron documents them.
 AC_INPUT_KINDS = {1: "grid", 2: "generator", 3: "shore"}
@@ -89,15 +91,25 @@ class Readings:
 
     def __init__(self, clock: Callable[[], float] = time.monotonic) -> None:
         self.values: dict[Key, Any] = {}
+        self.bounds: dict[Key, Bounds] = {}
+        # How many times each value has been published, so a write can wait
+        # for the device to report on it afresh.
+        self.updates: dict[Key, int] = {}
         self.last_heard: float | None = None
         self._clock = clock
 
-    def update(self, key: Key, value: Any) -> None:
+    def update(self, key: Key, value: Any, bounds: Bounds = (None, None)) -> None:
         self.last_heard = self._clock()
+        self.updates[key] = self.updates.get(key, 0) + 1
         if value is None:
             self.values.pop(key, None)
+            self.bounds.pop(key, None)
         else:
             self.values[key] = value
+            self.bounds[key] = bounds
+
+    def bounds_of(self, service: str, instance: int | None, path: str) -> Bounds:
+        return (None, None) if instance is None else self.bounds.get((service, instance, path), (None, None))
 
     def heard_within(self, seconds: float) -> bool:
         return self.last_heard is not None and self._clock() - self.last_heard < seconds
@@ -149,29 +161,38 @@ class Device:
         except aiomqtt.MqttError as error:
             raise NotConnected from error
 
-    async def reports(self, key: Key, matches: Callable[[Any], bool], within: float) -> bool:
-        """Whether the device reports a value for key that matches, within so many seconds."""
+    async def reports(self, key: Key, after: int, within: float) -> bool:
+        """Whether the device publishes key again, past its first after updates, within so many seconds.
+
+        A device may not take a value exactly as written, raising one below
+        its own minimum for instance, so what it then reports is the result.
+        """
         loop = asyncio.get_running_loop()
         deadline = loop.time() + within
-        while not matches(self.readings.get(*key)):
+        while self.readings.updates.get(key, 0) <= after:
             if loop.time() >= deadline:
                 return False
             await asyncio.sleep(REPORT_POLL_S)
         return True
 
 
-def parse(topic: str, payload: bytes | str | None) -> tuple[Key, Any] | None:
-    """The key and value of one message, or None for a message that is not a reading."""
+def parse(topic: str, payload: bytes | str | None) -> tuple[Key, Any, Bounds] | None:
+    """The key, value and bounds of one message, or None for a message that is not a reading."""
     parts = topic.split("/", 4)
     if len(parts) != 5 or parts[0] != "N" or not parts[3].isdigit():
         return None
     key = (parts[2], int(parts[3]), parts[4])
     if not payload:
-        return key, None
+        return key, None, (None, None)
     try:
-        return key, json.loads(payload)["value"]
-    except (ValueError, KeyError, TypeError):
+        message = json.loads(payload)
+        return key, message["value"], (_bound(message.get("min")), _bound(message.get("max")))
+    except (ValueError, KeyError, TypeError, AttributeError):
         return None
+
+
+def _bound(value: object) -> float | None:
+    return float(value) if isinstance(value, int | float) and not isinstance(value, bool) else None
 
 
 def build(readings: Readings, live: bool) -> System:
@@ -218,7 +239,7 @@ def _input_of(r: Readings, kinds: tuple[str, ...]) -> Literal[1, 2] | None:
 ACTIVE_INPUTS: dict[object, Literal[1, 2]] = {0: 1, 1: 2}
 
 
-def _vebus(r: Readings) -> int | None:
+def vebus_instance(r: Readings) -> int | None:
     instance = r.get("system", 0, "VebusInstance")
     return instance if isinstance(instance, int) and not isinstance(instance, bool) else None
 
@@ -230,7 +251,7 @@ def _grid(r: Readings) -> Grid | None:
         return None
     source = AC_INPUT_KINDS.get(r.get("system", 0, "Ac/ActiveIn/Source"))
     connected = None if r.get("system", 0, "Ac/ActiveIn/Source") is None else source == (kind or "grid")
-    vebus = _vebus(r) if connected else None
+    vebus = vebus_instance(r) if connected else None
     return Grid(
         status="normal",
         kind="shore" if kind == "shore" else "grid",
@@ -240,7 +261,7 @@ def _grid(r: Readings) -> Grid | None:
         voltage_v=r.number("vebus", vebus, "Ac/ActiveIn/L1/V"),
         current_a=r.total("vebus", vebus, "Ac/ActiveIn/{}/I"),
         frequency_hz=r.number("vebus", vebus, "Ac/ActiveIn/L1/F"),
-        input_current_limit_a=r.number("vebus", _vebus(r), "Ac/ActiveIn/CurrentLimit"),
+        input_current_limit_a=r.number("vebus", vebus_instance(r), "Ac/ActiveIn/CurrentLimit"),
     )
 
 
@@ -269,7 +290,7 @@ def _generator(r: Readings) -> Generator | None:
 
 
 def _inverter_charger(r: Readings) -> InverterCharger | None:
-    instance = _vebus(r)
+    instance = vebus_instance(r)
     if instance is None:
         return None
     if r.get("vebus", instance, "Connected") == 0 or instance not in r.instances("vebus"):
@@ -596,7 +617,7 @@ def _ac_loads(r: Readings) -> AcLoads | None:
     if total is None and on_output is None and on_input is None and not circuits:
         return None
     # What the loads see comes from the inverter/charger's own output.
-    vebus = _vebus(r)
+    vebus = vebus_instance(r)
     return AcLoads(
         status="normal",
         power_w=total,

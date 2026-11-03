@@ -1,5 +1,8 @@
+import asyncio
 from collections import Counter
 
+from tsoa_gui import mock
+from tsoa_gui.feed import Feed
 from tsoa_gui.mock import CYCLE_S, snapshot
 
 
@@ -70,3 +73,24 @@ def test_an_offline_charger_reports_nothing():
     offline = [c for second in range(CYCLE_S) for c in snapshot(second).solar.chargers if c.status == "offline"]
     assert offline
     assert all(c.power_w is None and c.state is None for c in offline)
+
+
+def test_the_mock_device_takes_a_limit_raised_to_its_lowest_and_shows_it():
+    device = mock.device()
+    key = ("vebus", mock.VEBUS_INSTANCE, "Ac/In/1/CurrentLimit")
+    feed = Feed()
+
+    async def scenario():
+        updates = device.readings.updates[key]
+        await device.write(*key, 1.0)
+        assert await device.reports(key, after=updates, within=5)
+        task = asyncio.create_task(mock.run(feed, interval_s=0.01, device=device))
+        with feed.listen() as queue:
+            model = await asyncio.wait_for(queue.get(), 5)
+        task.cancel()
+        return model
+
+    model = asyncio.run(scenario())
+    assert device.readings.get(*key) == mock.LOWEST_LIMIT_A
+    assert device.readings.bounds_of(*key) == (None, mock.RELAY_RATING_A)
+    assert model.grid.input_current_limit_a == mock.LOWEST_LIMIT_A

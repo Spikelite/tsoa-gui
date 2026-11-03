@@ -95,6 +95,15 @@ UPGRADES = [
         reason TEXT
     );
     """,
+    # What the device reported after a change, which can differ from what
+    # was written, and the highest an admin lets a control be set to.
+    """
+    ALTER TABLE changes ADD COLUMN reported TEXT;
+    CREATE TABLE ceilings (
+        control TEXT PRIMARY KEY,
+        value REAL NOT NULL
+    );
+    """,
 ]
 
 
@@ -140,10 +149,12 @@ class Change:
     instance: int | None
     old: Any
     new: Any
-    # Confirmed once the device reported the new value, unconfirmed if it had
-    # not within the wait, refused if it was never sent.
+    # Confirmed once the device reported on the value after it was written,
+    # unconfirmed if it had not within the wait, refused if it was never sent.
     outcome: Outcome
     reason: str | None = None
+    # The value as the device last reported it, which it may have changed from new.
+    reported: Any = None
     id: int | None = None
 
 
@@ -450,21 +461,36 @@ class Accounts:
         """Adds change to the history, which keeps every one, and returns it with its id."""
         with self._lock, self._transaction():
             cursor = self._db.execute(
-                "INSERT INTO changes (at, account, control, instance, old, new, outcome, reason)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO changes (at, account, control, instance, old, new, outcome, reason, reported)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (change.at, change.account, change.control, change.instance, _json(change.old), _json(change.new),
-                 change.outcome, change.reason))
+                 change.outcome, change.reason, _json(change.reported)))
         return replace(change, id=cursor.lastrowid)
 
     def changes(self, before: int | None = None, limit: int = 100) -> list[Change]:
         """The changes made before the one whose id is before, or the latest ones, newest first."""
         with self._lock:
             rows = self._db.execute(
-                "SELECT id, at, account, control, instance, old, new, outcome, reason FROM changes"
+                "SELECT id, at, account, control, instance, old, new, outcome, reason, reported FROM changes"
                 " WHERE id < ? ORDER BY id DESC LIMIT ?",
                 (before if before is not None else 2**63 - 1, limit)).fetchall()
         return [Change(at=row[1], account=row[2], control=row[3], instance=row[4], old=_unjson(row[5]),
-                       new=_unjson(row[6]), outcome=row[7], reason=row[8], id=row[0]) for row in rows]
+                       new=_unjson(row[6]), outcome=row[7], reason=row[8], reported=_unjson(row[9]), id=row[0])
+                for row in rows]
+
+    def ceiling(self, control: str) -> float | None:
+        """The highest an admin lets control be set to, if one has been set."""
+        with self._lock:
+            row = self._db.execute("SELECT value FROM ceilings WHERE control = ?", (control,)).fetchone()
+        return None if row is None else row[0]
+
+    def set_ceiling(self, control: str, value: float | None) -> None:
+        with self._lock, self._transaction():
+            if value is None:
+                self._db.execute("DELETE FROM ceilings WHERE control = ?", (control,))
+            else:
+                self._db.execute("INSERT INTO ceilings (control, value) VALUES (?, ?)"
+                                 " ON CONFLICT (control) DO UPDATE SET value = excluded.value", (control, value))
 
     # Inside
 

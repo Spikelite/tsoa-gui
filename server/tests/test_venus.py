@@ -72,14 +72,27 @@ def readings(values=DEVICE) -> Readings:
 
 def test_parse_reads_a_value_and_its_removal():
     topic = f"N/{PORTAL}/system/0/Dc/Battery/Soc"
-    assert parse(topic, b'{"value": 64.5}') == (("system", 0, "Dc/Battery/Soc"), 64.5)
-    assert parse(topic, b"") == (("system", 0, "Dc/Battery/Soc"), None)
+    assert parse(topic, b'{"value": 64.5}') == (("system", 0, "Dc/Battery/Soc"), 64.5, (None, None))
+    assert parse(topic, b"") == (("system", 0, "Dc/Battery/Soc"), None, (None, None))
+
+
+def test_parse_reads_the_bounds_published_beside_a_value():
+    topic = f"N/{PORTAL}/vebus/276/Ac/In/1/CurrentLimit"
+    assert parse(topic, b'{"max": 60.0, "min": 0, "value": 16.0}')[1:] == (16.0, (0.0, 60.0))
+    assert parse(topic, b'{"max": 60.0, "value": 16.0}')[1:] == (16.0, (None, 60.0))
+    assert parse(topic, b'{"max": "high", "value": 16.0}')[1:] == (16.0, (None, None))
+    readings = Readings()
+    readings.update(*parse(topic, b'{"max": 60.0, "value": 16.0}'))
+    assert readings.bounds_of("vebus", 276, "Ac/In/1/CurrentLimit") == (None, 60.0)
+    readings.update(*parse(topic, b""))
+    assert readings.bounds_of("vebus", 276, "Ac/In/1/CurrentLimit") == (None, None)
 
 
 def test_parse_ignores_what_is_not_a_reading():
     assert parse(f"R/{PORTAL}/keepalive", b"") is None
     assert parse(f"N/{PORTAL}/system/x/Serial", b'{"value": 1}') is None
     assert parse(f"N/{PORTAL}/system/0/Serial", b"not json") is None
+    assert parse(f"N/{PORTAL}/system/0/Serial", b"[1]") is None
 
 
 def test_build_reads_the_whole_installation():
@@ -431,17 +444,20 @@ def test_a_device_writes_only_while_the_broker_is_followed():
     assert not device.connected
 
 
-def test_a_device_tells_whether_it_reported_a_value_in_time():
+def test_a_device_tells_whether_it_reported_on_a_value_again_in_time():
     device = venus.Device()
     key = ("vebus", 276, "Ac/In/1/CurrentLimit")
+    device.readings.update(key, 16.0)
 
     async def scenario():
+        updates = device.readings.updates[key]
+        # Reported as it stands, which is not reporting again.
+        missed = await device.reports(key, after=updates, within=0.2)
         asyncio.get_running_loop().call_later(0.05, device.readings.update, key, 16.0)
-        reported = await device.reports(key, lambda value: value == 16.0, within=2)
-        missed = await device.reports(key, lambda value: value == 20.0, within=0.2)
-        return reported, missed
+        reported = await device.reports(key, after=updates, within=2)
+        return missed, reported
 
-    assert asyncio.run(scenario()) == (True, False)
+    assert asyncio.run(scenario()) == (False, True)
 
 
 def test_a_broker_outage_is_logged_once(monkeypatch, caplog):
