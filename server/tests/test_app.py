@@ -35,6 +35,7 @@ def test_serves_the_client_at_its_own_pages_addresses(tmp_path: Path):
         response = client.get(page)
         assert response.status_code == 200, page
         assert "<title>placeholder</title>" in response.text
+        assert client.head(page).status_code == 200, page
     assert client.get("/elsewhere").status_code == 404
 
 

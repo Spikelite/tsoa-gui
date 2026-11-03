@@ -111,7 +111,7 @@ def create_app(client_dir: Path | None = None, feed: Feed | None = None, jobs: S
         index = client_dir / "index.html"
         # Pages the client draws at addresses of their own, outside the readings.
         for page in CLIENT_PAGES:
-            app.add_api_route(page, lambda: FileResponse(index), include_in_schema=False)
+            app.add_api_route(page, lambda: FileResponse(index), methods=["GET", "HEAD"], include_in_schema=False)
         app.mount("/", StaticFiles(directory=client_dir, html=True), name="client")
 
     return app

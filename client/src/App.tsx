@@ -47,7 +47,7 @@ export function App({ store, reloading }: { store?: SystemStore; reloading?: Rel
           <>
             <Clock />
             {/* Shown only once signed in: nothing here invites a kiosk's viewer to sign in. */}
-            {signedIn !== null && <a className="signed-in" href="/account">{signedIn.name}</a>}
+            {signedIn !== null && <a className="signed-in" href="/account" title="Your account">{signedIn.name}</a>}
             <label className="skin-menu">
               Skin
               <select value={skin.id} onChange={(event) => choose(event.target.value)}>

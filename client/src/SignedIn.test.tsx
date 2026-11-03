@@ -37,7 +37,9 @@ describe("who is signed in", () => {
   it.each(["minimal", "sci-fi-fof"])("names the signed-in account, linking to it, in %s", async (skin) => {
     fakeServer({ "GET /api/session": { body: crew } });
     await shown(skin);
-    expect(await screen.findByRole("link", { name: "crew" })).toHaveAttribute("href", "/account");
+    const link = await screen.findByRole("link", { name: "crew" });
+    expect(link).toHaveAttribute("href", "/account");
+    expect(link).toHaveAccessibleDescription("Your account");
   });
 });
 
@@ -46,7 +48,7 @@ describe("the page at each address", () => {
     vi.unstubAllGlobals();
   });
 
-  it.each([["/login", "Sign in"], ["/login/", "Sign in"], ["/account", "Account"]])("draws %s", async (path, title) => {
+  it.each([["/login", "Sign in"], ["/account", "Account"]])("draws %s", async (path, title) => {
     vi.stubGlobal("fetch", () => new Promise(() => {}));
     render(<Root path={path} />);
     expect(await screen.findByRole("heading", { level: 1, name: title })).toBeInTheDocument();

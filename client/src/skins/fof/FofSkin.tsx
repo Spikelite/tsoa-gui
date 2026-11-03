@@ -166,7 +166,7 @@ export function FofSkin({ model, connected = true, busy = false }: { model: Syst
           <span className="fof-quiet">{LINK_SENTENCES[state]}</span>
         </span>
         {signedIn !== null && (
-          <a className="fof-segment fof-account-segment" href="/account">{signedIn.name}</a>
+          <a className="fof-segment fof-account-segment" href="/account" title="Your account">{signedIn.name}</a>
         )}
         <SkinSegment />
         <span className="fof-cap fof-cap-right" aria-hidden="true" />

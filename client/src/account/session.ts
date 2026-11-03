@@ -37,6 +37,11 @@ export const waitingWords = (unreachable: boolean) =>
 /** Where to go once signed in: the page that sent someone here, if it is one of this server's. */
 export function nextAddress(search: string): string {
   const next = new URLSearchParams(search).get("next");
-  // "//host" and "/\host" would leave for another site.
-  return next !== null && /^\/(?![/\\])/.test(next) ? next : "/";
+  if (next === null || !next.startsWith("/")) {
+    return "/";
+  }
+  // Resolved as the browser will, since it reads "/\host" and a "/" with tabs
+  // or newlines before the next "/" as another site.
+  const address = new URL(next, window.location.origin);
+  return address.origin === window.location.origin ? address.pathname + address.search + address.hash : "/";
 }

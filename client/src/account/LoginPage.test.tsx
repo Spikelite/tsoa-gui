@@ -83,8 +83,10 @@ describe("where sign-in goes next", () => {
   it("goes only to a page of this server's", () => {
     expect(nextAddress("?next=/account")).toBe("/account");
     expect(nextAddress("?next=/%3Fskin%3Dfof")).toBe("/?skin=fof");
-    for (const away of ["https://example.com/", "//example.com/", "/\\example.com/", "account", ""]) {
-      expect(nextAddress(`?next=${encodeURIComponent(away)}`)).toBe("/");
+    const away = ["https://example.com/", "//example.com/", "/\\example.com/", "/\t/example.com/", "/\n/example.com/",
+      "/\r\n/example.com/", "/\t\t/example.com/", "account", ""];
+    for (const address of away) {
+      expect(nextAddress(`?next=${encodeURIComponent(address)}`)).toBe("/");
     }
     expect(nextAddress("")).toBe("/");
   });

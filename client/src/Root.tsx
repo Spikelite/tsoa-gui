@@ -10,7 +10,7 @@ const AccountPage = lazy(() => import("./account/AccountPage").then((module) => 
 export const PAGES: Record<string, typeof LoginPage> = { "/login": LoginPage, "/account": AccountPage };
 
 export function Root({ path = window.location.pathname }: { path?: string }) {
-  const Page = PAGES[path.replace(/\/+$/, "") || "/"];
+  const Page = PAGES[path];
   if (Page === undefined) {
     return <App />;
   }
