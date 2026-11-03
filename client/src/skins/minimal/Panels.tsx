@@ -1,5 +1,6 @@
 import { useId, type MouseEvent, type ReactNode } from "react";
 
+import { ReadingValue } from "../../controls/ReadingValue";
 import type {
   AcLoads, Alarm, Battery, DcLoads, Generator, Grid, InverterCharger, PartName, Solar, Status, System,
 } from "../../model/system";
@@ -78,7 +79,7 @@ export function ReadingList({ readings }: { readings: Reading[] }) {
           <div key={keys[index]} className="reading">
             <dt>{reading.label}</dt>
             <dd>
-              <Eased value={reading.value} format={reading.format} />
+              <ReadingValue reading={reading} />
             </dd>
           </div>
         );

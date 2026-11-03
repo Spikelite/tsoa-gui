@@ -186,6 +186,24 @@ function energyEnd(end: EnergyEnd, model: System): string {
     : end === "battery" ? "Battery" : "Loads";
 }
 
+/** The name of the server's control for an AC input's current limit. */
+export const inputLimit = (input: 1 | 2) => `input-${input}-current-limit`;
+
+/**
+ * The inverter/charger's controls: each AC input's current limit the device
+ * has, among the controls the signed-in account may use, named by what is
+ * wired to it.
+ */
+export function controlsGroup(controls: { name: string; value: number }[], model: System): DetailGroup | null {
+  const readings = ([1, 2] as const).flatMap((input): Reading[] => {
+    const control = controls.find((candidate) => candidate.name === inputLimit(input));
+    return control === undefined ? [] : [
+      { label: `${inputName(input, model)} limit`, value: control.value, format: f.amps, control: control.name },
+    ];
+  });
+  return readings.length > 0 ? { title: "Controls", readings } : null;
+}
+
 export function inverterGroups(inverter: InverterCharger, model: System): DetailGroup[] {
   const inUse = inverter.active_input;
   const load = inverter.ac_out_power_w !== null && inverter.rated_power_w
@@ -210,7 +228,10 @@ export function inverterGroups(inverter: InverterCharger, model: System): Detail
         ...worded("In use", inUse ? [inputName(inUse, model)] : []),
         ...worded("Connected", yesNo(inverter.input_connected)),
         { label: "Power", value: inverter.ac_in_power_w, format: f.power },
-        { label: "Current limit", value: inverter.input_current_limit_a, format: f.amps },
+        {
+          label: "Current limit", value: inverter.input_current_limit_a, format: f.amps,
+          control: inUse ? inputLimit(inUse) : undefined,
+        },
         ...phaseReadings(inverter.input_phases),
       ],
     },
@@ -308,7 +329,7 @@ function supplyGroups(part: "grid" | "generator", model: System): DetailGroup[] 
       title: "At the inverter",
       readings: inUse ? [
         { label: "Power", value: inverter.ac_in_power_w, format: f.power },
-        { label: "Current limit", value: inverter.input_current_limit_a, format: f.amps },
+        { label: "Current limit", value: inverter.input_current_limit_a, format: f.amps, control: inputLimit(input) },
         ...phaseReadings(inverter.input_phases),
       ] : [],
     },
@@ -332,7 +353,10 @@ export function gridGroups(grid: Grid, model: System): DetailGroup[] {
       readings: [
         ...worded("Connected", yesNo(grid.connected)),
         ...worded("Wired to", grid.ac_input === null ? [] : [`AC input ${grid.ac_input}`]),
-        { label: "Input limit", value: grid.input_current_limit_a, format: f.amps },
+        {
+          label: "Input limit", value: grid.input_current_limit_a, format: f.amps,
+          control: grid.ac_input === null ? undefined : inputLimit(grid.ac_input),
+        },
       ],
     },
     ...supplyGroups("grid", model),

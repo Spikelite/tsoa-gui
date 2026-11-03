@@ -1,5 +1,6 @@
 import { useId, type CSSProperties, type MouseEvent } from "react";
 
+import { ReadingValue } from "../../controls/ReadingValue";
 import type { Battery } from "../../model/system";
 import { batteryState } from "../describe";
 import { Eased } from "../Eased";
@@ -140,7 +141,7 @@ export function Rows({ readings }: { readings: Reading[] }) {
       <div key={keys[index]} className="fof-row">
         <dt>{reading.label}</dt>
         <dd>
-          <Eased value={reading.value} format={reading.format} />
+          <ReadingValue reading={reading} />
         </dd>
       </div>
     );

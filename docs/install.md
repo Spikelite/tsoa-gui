@@ -123,11 +123,17 @@ Enter it with a name and a password for yourself. That first account is the admi
 
 A browser stays signed in for up to thirty days, or a week if it is not used. Restarting tsoa-gui, which a reboot or an update does, signs everyone out.
 
-If no admin can sign in any more, start over, on the device: this removes every account, and tsoa-gui writes a new setup code.
+If no admin can sign in any more, start over, on the device: this removes every account, the record of changes and the breaker sizes, and tsoa-gui writes a new setup code.
 
     svc -d /service/tsoa-gui
     rm /data/tsoa-gui/var/accounts.db*
     svc -u /service/tsoa-gui
+
+### AC input current limit
+
+Signed in as an operator or admin, the input limit on the grid and inverter pages, and each AC input's limit in the Controls group on the inverter page, open a panel to change it. A change shows as pending until the inverter/charger reports it, and the panel says so where it set a different value, as it does when asked for less than its own lowest.
+
+The inverter/charger allows a limit up to its transfer relay's rating, which is usually far more than the breaker its input is plugged into. So an admin sets each input's breaker size in the same panel, and nobody can set a limit above it. Until an admin has, only an admin can raise a limit, and an operator can only lower it. A limit cannot be changed while a remote panel overrides it.
 
 ### Time to empty
 

@@ -1,6 +1,7 @@
 import { Suspense, useState } from "react";
 
 import { SignedInContext, useSession } from "./account/session";
+import { ControlsContext, useControlsFor } from "./controls/controls";
 import { Clock } from "./Clock";
 import type { SystemState, SystemStore } from "./model/store";
 import type { System } from "./model/system";
@@ -20,7 +21,9 @@ function browserStorage(): Storage | null {
 
 export function App({ store, reloading }: { store?: SystemStore; reloading?: Reloading }) {
   const state = useSystem(store);
-  const signedIn = useSession().session?.account ?? null;
+  const { session } = useSession();
+  const signedIn = session?.account ?? null;
+  const controls = useControlsFor(session);
   const { model, connected, busy } = state;
   const [skinId, setSkinId] = useState(() => chosenSkin(window.location.search, browserStorage()));
   const skin = SKINS.find((candidate) => candidate.id === skinId) ?? SKINS[0]!;
@@ -68,9 +71,11 @@ export function App({ store, reloading }: { store?: SystemStore; reloading?: Rel
           <SkinBoundary reloading={reloading}>
             <SkinChoiceContext.Provider value={choice}>
               <SignedInContext.Provider value={signedIn}>
-                <Suspense fallback={<p className="waiting">Loading the skin.</p>}>
-                  <Skin model={model} connected={connected} busy={busy} />
-                </Suspense>
+                <ControlsContext.Provider value={controls}>
+                  <Suspense fallback={<p className="waiting">Loading the skin.</p>}>
+                    <Skin model={model} connected={connected} busy={busy} />
+                  </Suspense>
+                </ControlsContext.Provider>
               </SignedInContext.Provider>
             </SkinChoiceContext.Provider>
           </SkinBoundary>

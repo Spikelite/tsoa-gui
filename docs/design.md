@@ -137,7 +137,9 @@ A session ends after a week unused, after thirty days in any case, and whenever 
 
 The device's own login grants full control, so roles are enforced by a server between the browser and the device. It holds the device connection, signs users in, and checks every change against the user's role.
 
-Every change goes through one route on the server. It refuses a value the device reports it will not take, outside its range or while it cannot be changed, rather than clamping it. It then writes the value to the device and waits up to ten seconds for the device to report it back, so the page can show the change as pending until it is confirmed or not. Every change a signed-in user asks for is recorded with who asked, the old and new values and how it ended, and the record is kept for good; administrators can read it.
+Every change goes through one route on the server. It refuses a value the device reports it will not take, outside its range or while it cannot be changed, rather than clamping it. It then writes the value to the device and waits up to ten seconds for the device to report it again, so the page can show the change as pending until it is confirmed or not. What the device reports is the result: a device may take a value other than the one written, as an inverter/charger raises an input current limit below its own lowest. Every change a signed-in user asks for is recorded with who asked, the old and new values and how it ended, and the record is kept for good; administrators can read it.
+
+The highest input current limit an inverter/charger reports is its transfer relay's rating, not what its input is plugged into, so an administrator sets each input's breaker size as its ceiling. Until one has, only an administrator can raise the limit.
 
 ## Data
 

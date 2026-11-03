@@ -1,0 +1,78 @@
+/* A setting that can be changed looks like its reading with an underline,
+   and opens its panel under the row. Colors come from the skin through
+   --control-accent, so the panel suits whichever skin draws it. */
+.control-value {
+  padding: 0;
+  border: 0;
+  border-bottom: 1px dashed currentColor;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.control-value[aria-expanded="true"] { border-bottom-style: solid; }
+
+.control-panel {
+  --control-accent: var(--status-normal);
+  flex-basis: 100%;
+  display: grid;
+  gap: 0.6em;
+  margin: 0.4em 0 0.6em;
+  padding: 0.75em;
+  border: 1px solid var(--control-accent);
+  border-radius: 0.4em;
+  text-align: left;
+  font-size: 0.95em;
+}
+
+.control-panel h4 { margin: 0; font-size: 1em; }
+.control-panel p { margin: 0; }
+
+.control-panel button,
+.control-panel input {
+  min-height: 2.4em;
+  padding: 0.3em 0.7em;
+  border: 1px solid var(--control-accent);
+  border-radius: 0.3em;
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+
+.control-panel button:disabled,
+.control-panel input:disabled { opacity: 0.5; }
+
+.control-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em;
+}
+
+.control-presets button[aria-pressed="true"] {
+  background: var(--control-accent);
+  color: #000;
+}
+
+.control-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.4em;
+}
+
+.control-form label {
+  display: grid;
+  gap: 0.2em;
+}
+
+.control-form input { width: 7em; }
+.control-ceiling { padding-top: 0.6em; border-top: 1px solid var(--panel-border); }
+.control-ceiling .control-note { flex-basis: 100%; }
+.control-note { opacity: 0.8; }
+.control-status:empty { display: none; }
+.control-failed { color: var(--status-fault); }
+.control-close { justify-self: start; }
+
+/* An open panel takes the row's whole width, under its label. */
+dd:has(> .control-panel) { flex-basis: 100%; }
