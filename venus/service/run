@@ -15,5 +15,7 @@ exec python3 -m tsoa_gui \
     --client "$release/app/client" \
     --certfile "$root/tls/cert.pem" --keyfile "$root/tls/key.pem" \
     --tested-versions "$release/tested.json" \
+    --data-dir "$root/var" \
     ${CUT_OFF_SOC:+--cut-off-soc "$CUT_OFF_SOC"} \
+    ${TRUSTED_PROXY:+--trusted-proxy "$TRUSTED_PROXY"} \
     ${RUN_AS:+--run-as "$RUN_AS"}

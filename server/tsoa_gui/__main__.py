@@ -4,8 +4,12 @@ import os
 import sys
 import time
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from . import versions
+
+if TYPE_CHECKING:
+    import uvicorn
 
 BUILT_CLIENT = Path(__file__).resolve().parents[2] / "client" / "dist"
 
@@ -62,6 +66,12 @@ def main(argv: list[str] | None = None) -> None:
                         help="(default: %(default)s)")
     parser.add_argument("--tested-versions", type=Path, metavar="FILE",
                         help="on a Python or pydantic other than the ones FILE names, serve only a page that says so")
+    parser.add_argument("--data-dir", type=Path, metavar="DIR",
+                        help="where to keep the accounts and the first account's setup code (default: in memory, "
+                             "with the code in the log)")
+    parser.add_argument("--trusted-proxy", action="append", metavar="ADDRESS",
+                        help="a reverse proxy in front, whose X-Forwarded-For gives each browser's own address; "
+                             "may be given more than once (default: only 127.0.0.1)")
     parser.add_argument("--run-as", type=account, metavar="UID:GID",
                         help="once the TLS key is read, switch to this user and group ID (needs root)")
     args = parser.parse_args(argv)
@@ -78,6 +88,7 @@ def main(argv: list[str] | None = None) -> None:
     import uvicorn
 
     from . import mock, venus
+    from .accounts import Accounts
     from .app import create_app
     from .feed import Feed
     from .time_left import TimeLeftEstimator
@@ -88,19 +99,11 @@ def main(argv: list[str] | None = None) -> None:
         jobs = [lambda feed: venus.run(feed, args.mqtt_host, args.mqtt_port)]
     # The app's event streams end once the server, made below, starts to stop.
     server: uvicorn.Server | None = None
+    accounts = Accounts(args.data_dir / "accounts.db", args.data_dir / "setup-code") if args.data_dir else Accounts()
     app = create_app(args.client, feed=Feed(prepare=TimeLeftEstimator(args.cut_off_soc).apply), jobs=jobs,
-                     stopping=lambda: server is not None and server.should_exit, version=release_version(args))
-    # No access log: on the device every line is a write to its storage.
-    config = uvicorn.Config(
-        app,
-        host=args.host,
-        port=args.port,
-        ssl_certfile=args.certfile,
-        ssl_keyfile=args.keyfile,
-        log_level=args.log_level,
-        access_log=False,
-        timeout_graceful_shutdown=SHUTDOWN_TIMEOUT_S,
-    )
+                     stopping=lambda: server is not None and server.should_exit, version=release_version(args),
+                     accounts=accounts)
+    config = server_config(app, args)
     config.load()  # reads the TLS key, which only root can
     drop_privileges(args.run_as)
     server = uvicorn.Server(config)
@@ -110,6 +113,25 @@ def main(argv: list[str] | None = None) -> None:
         pass
     if not server.started:
         sys.exit(3)  # as uvicorn.run does when the server cannot start
+
+
+def server_config(app: Any, args: argparse.Namespace) -> "uvicorn.Config":
+    import uvicorn
+
+    # No access log: on the device every line is a write to its storage.
+    return uvicorn.Config(
+        app,
+        host=args.host,
+        port=args.port,
+        ssl_certfile=args.certfile,
+        ssl_keyfile=args.keyfile,
+        log_level=args.log_level,
+        access_log=False,
+        timeout_graceful_shutdown=SHUTDOWN_TIMEOUT_S,
+        # Only a proxy named here may say which address a request came from;
+        # sign-in limits wrong passwords by that address.
+        forwarded_allow_ips=",".join(args.trusted_proxy) if args.trusted_proxy else None,
+    )
 
 
 def release_version(args: argparse.Namespace) -> str | None:

@@ -131,7 +131,9 @@ A small screen keeps the motion but drops the cells' glow, the part that costs t
 
 Viewing is read-only and needs no sign-in for now: anyone who can reach the server sees the readings, and a fixed display just opens the page. Nobody can change anything without signing in.
 
-The interface will also control the system, starting with inverter mode, AC input current limit and charge current. What a signed-in user may do depends on their role: read-only viewers, operators with day-to-day controls, and administrators with everything including users and settings. The first account made on a new installation is its administrator. More roles may follow.
+The interface will also control the system, starting with inverter mode, AC input current limit and charge current. What a signed-in user may do depends on their role: read-only viewers, operators with day-to-day controls, and administrators with everything including users and settings. The first account made on a new installation is its administrator, and making it takes a one-time setup code that the server writes to a file on the device, so that only someone who can reach the device's files can claim a new installation. After that, administrators make the accounts; nobody signs themselves up. More roles may follow.
+
+A session ends after a week unused, after thirty days in any case, and whenever the server restarts, which on the device means a reboot or an update. Sessions are kept in memory, so using one never writes to the device's storage, and their lifetimes do not depend on the device's clock, which may not have been set.
 
 The device's own login grants full control, so roles are enforced by a server between the browser and the device. It holds the device connection, signs users in, and checks every change against the user's role.
 
