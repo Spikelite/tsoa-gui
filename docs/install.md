@@ -109,6 +109,26 @@ A kiosk screen, with nobody to use the page's menus, takes its choices from the 
 
 Without `?skin=`, each browser remembers the last skin chosen on it.
 
+### Signing in
+
+Viewing needs no sign-in. Signing in is for the controls and for managing accounts, at its own address, which nothing on the readings' pages links to, so a kiosk never shows it:
+
+    https://192.0.2.10:8088/login
+
+The first time, tsoa-gui has no accounts yet, and the page asks for a setup code, to show that you can reach the device. Read it on the device:
+
+    ssh root@192.0.2.10 cat /data/tsoa-gui/var/setup-code
+
+Enter it with a name and a password for yourself. That first account is the admin, and goes on to `https://192.0.2.10:8088/account`, where an admin adds an account for anyone else, choosing its role: a viewer sees the readings, an operator also uses the controls, and an admin also manages the accounts and settings. Nobody can sign themselves up. Give each person their password; they can change it on the same page once signed in, and an admin can set a new one for anyone who forgets theirs.
+
+A browser stays signed in for up to thirty days, or a week if it is not used. Restarting tsoa-gui, which a reboot or an update does, signs everyone out.
+
+If no admin can sign in any more, start over, on the device: this removes every account, and tsoa-gui writes a new setup code.
+
+    svc -d /service/tsoa-gui
+    rm /data/tsoa-gui/var/accounts.db*
+    svc -u /service/tsoa-gui
+
 ### Time to empty
 
 The battery's time to empty runs to the state of charge at which the system cuts its AC loads to protect the battery. On a system with ESS, that is ESS's minimum state of charge, or BatteryLife's limit while BatteryLife is on, read from the device. Otherwise it is 10%; to change it, set `CUT_OFF_SOC=` to the percentage, such as `CUT_OFF_SOC=20`, in `/data/tsoa-gui/etc/tsoa-gui.conf` and restart tsoa-gui with `svc -t /service/tsoa-gui`.

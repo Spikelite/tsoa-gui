@@ -28,6 +28,17 @@ def test_serves_the_built_client_without_hiding_the_api(tmp_path: Path):
     assert client.get("/api/health").json() == {"status": "ok"}
 
 
+def test_serves_the_client_at_its_own_pages_addresses(tmp_path: Path):
+    (tmp_path / "index.html").write_text("<!doctype html><title>placeholder</title>", encoding="utf-8")
+    client = TestClient(create_app(tmp_path))
+    for page in ("/login", "/account"):
+        response = client.get(page)
+        assert response.status_code == 200, page
+        assert "<title>placeholder</title>" in response.text
+        assert client.head(page).status_code == 200, page
+    assert client.get("/elsewhere").status_code == 404
+
+
 def test_no_built_client_means_no_page():
     assert TestClient(create_app()).get("/").status_code == 404
 

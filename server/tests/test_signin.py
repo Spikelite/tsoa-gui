@@ -8,7 +8,8 @@ from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 
 from tsoa_gui.__main__ import server_config
-from tsoa_gui.accounts import FAILURES_PER_NAME, Accounts, Role
+from tsoa_gui import accounts as accounts_module
+from tsoa_gui.accounts import FAILURES_PER_NAME, HASHES_AT_ONCE, Accounts, Role
 from tsoa_gui.app import create_app
 from tsoa_gui.signin import COOKIE, CSRF_HEADER
 
@@ -118,6 +119,23 @@ def test_a_refused_change_to_an_account_changes_nothing(client: TestClient, acco
     assert response.status_code == 400
     assert accounts.find("crew").role == Role.VIEWER
     assert accounts.check("crew", PASSWORD, "192.0.2.10").name == "crew"
+
+
+def test_a_change_turned_away_while_hashing_is_busy_changes_nothing(
+        client: TestClient, accounts: Accounts, monkeypatch: pytest.MonkeyPatch):
+    accounts.create("owner", PASSWORD, Role.ADMIN)
+    accounts.create("crew", PASSWORD, Role.VIEWER)
+    csrf = signed_in(client, "owner")
+    monkeypatch.setattr(accounts_module, "HASH_WAIT_S", 0.05)
+    held = [accounts_module._hashing.acquire() for _ in range(HASHES_AT_ONCE)]
+    try:
+        response = client.patch("/api/accounts/crew", json={"role": "operator", "password": "battery staple"},
+                                headers={CSRF_HEADER: csrf})
+    finally:
+        for _ in held:
+            accounts_module._hashing.release()
+    assert response.status_code == 429
+    assert accounts.find("crew").role == Role.VIEWER
 
 
 def test_changing_your_own_password_needs_the_current_one(client: TestClient, accounts: Accounts):

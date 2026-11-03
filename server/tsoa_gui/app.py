@@ -11,6 +11,7 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.sse import EventSourceResponse, ServerSentEvent
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import signin
@@ -28,6 +29,9 @@ Job = Callable[[Feed], Awaitable[None]]
 # long each time it stops again within RAN_WELL_S, up to RAN_WELL_S.
 RESTART_AFTER_S = 5.0
 RAN_WELL_S = 300.0
+
+# Kept clear of the device console's top-level names; see docs/design.md.
+CLIENT_PAGES = ("/login", "/account")
 
 
 def create_app(client_dir: Path | None = None, feed: Feed | None = None, jobs: Sequence[Job] = (),
@@ -104,6 +108,10 @@ def create_app(client_dir: Path | None = None, feed: Feed | None = None, jobs: S
 
     # Mounted last: a mount at the root would otherwise answer for /api too.
     if client_dir is not None and (client_dir / "index.html").is_file():
+        index = client_dir / "index.html"
+        # Pages the client draws at addresses of their own, outside the readings.
+        for page in CLIENT_PAGES:
+            app.add_api_route(page, lambda: FileResponse(index), methods=["GET", "HEAD"], include_in_schema=False)
         app.mount("/", StaticFiles(directory=client_dir, html=True), name="client")
 
     return app
