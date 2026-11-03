@@ -312,19 +312,29 @@ class Accounts:
         return None if row is None else Account(row[0], row[1], Role(row[2]))
 
     def set_role(self, account: Account, role: Role) -> Account:
-        with self._lock, self._transaction():
-            if account.role == Role.ADMIN and role != Role.ADMIN:
-                self._keep_an_admin(account)
-            self._db.execute("UPDATE accounts SET role = ? WHERE id = ?", (role.value, account.id))
-        return Account(account.id, account.name, role)
+        return self.change(account, role=role)
 
     def set_password(self, account: Account, password: str, keep: str | None = None) -> None:
         """Sets account's password and ends its sessions, all but the one whose token is keep."""
-        check_new_password(password)
-        hashed = hash_password(password)
+        self.change(account, password=password, keep=keep)
+
+    def change(self, account: Account, role: Role | None = None, password: str | None = None,
+               keep: str | None = None) -> Account:
+        """Changes account's role, its password or both, making either change only if both can be made."""
+        # Hashing can be turned away when it is busy, so it is done before anything is changed.
+        hashed = None
+        if password is not None:
+            check_new_password(password)
+            hashed = hash_password(password)
         with self._lock, self._transaction():
-            self._db.execute("UPDATE accounts SET password = ? WHERE id = ?", (hashed, account.id))
-            self._end_sessions(account.id, keep=None if keep is None else _token_key(keep))
+            if role is not None:
+                if account.role == Role.ADMIN and role != Role.ADMIN:
+                    self._keep_an_admin(account)
+                self._db.execute("UPDATE accounts SET role = ? WHERE id = ?", (role.value, account.id))
+            if hashed is not None:
+                self._db.execute("UPDATE accounts SET password = ? WHERE id = ?", (hashed, account.id))
+                self._end_sessions(account.id, keep=None if keep is None else _token_key(keep))
+        return Account(account.id, account.name, account.role if role is None else role)
 
     def remove(self, account: Account) -> None:
         with self._lock, self._transaction():
