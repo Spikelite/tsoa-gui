@@ -3,9 +3,10 @@
 Venus publishes every value of every service on its MQTT broker as
 N/<portal ID>/<service>/<instance>/<path>, each payload a JSON object
 {"value": ...}, and an empty payload when a value goes away. It does so only
-while a client sends it a keepalive on R/<portal ID>/keepalive. This module
-reads: the keepalive is the only thing it publishes, and it never writes to
-W/, which would change settings on the device.
+while a client sends it a keepalive on R/<portal ID>/keepalive. Publishing
+{"value": ...} on W/<portal ID>/<service>/<instance>/<path> changes a value on
+the device. Besides the keepalive, this module publishes only what a Device's
+write is asked to, which the controls do once they have checked the change.
 
 The model is built from the system summary service where it can be, so one
 build works on any installation without setup, with detail from the
@@ -18,7 +19,7 @@ import logging
 import re
 import time
 import traceback
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from typing import Any, Literal
 
 import aiomqtt
@@ -38,6 +39,8 @@ KEEPALIVE_EVERY_S = 30.0
 PUBLISH_EVERY_S = 1.0
 STALE_AFTER_S = 10.0
 RECONNECT_AFTER_S = 5.0
+# How often a write looks for the device to report its new value.
+REPORT_POLL_S = 0.1
 
 Key = tuple[str, int, str]
 
@@ -114,6 +117,47 @@ class Readings:
 
     def instances(self, service: str) -> list[int]:
         return sorted({instance for (s, instance, _) in self.values if s == service})
+
+
+class NotConnected(Exception):
+    """The device's broker cannot be reached, so nothing can be changed on the device."""
+
+
+class Device:
+    """The device as the server reaches it: the values it has published, and a way to change one."""
+
+    def __init__(self, readings: Readings | None = None) -> None:
+        self.readings = readings if readings is not None else Readings()
+        self._send: Callable[[str, str], Awaitable[None]] | None = None
+
+    def attach(self, send: Callable[[str, str], Awaitable[None]]) -> None:
+        """Sends each write as send(<service>/<instance>/<path>, payload) until detached."""
+        self._send = send
+
+    def detach(self) -> None:
+        self._send = None
+
+    @property
+    def connected(self) -> bool:
+        return self._send is not None
+
+    async def write(self, service: str, instance: int, path: str, value: Any) -> None:
+        if self._send is None:
+            raise NotConnected
+        try:
+            await self._send(f"{service}/{instance}/{path}", json.dumps({"value": value}))
+        except aiomqtt.MqttError as error:
+            raise NotConnected from error
+
+    async def reports(self, key: Key, matches: Callable[[Any], bool], within: float) -> bool:
+        """Whether the device reports a value for key that matches, within so many seconds."""
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + within
+        while not matches(self.readings.get(*key)):
+            if loop.time() >= deadline:
+                return False
+            await asyncio.sleep(REPORT_POLL_S)
+        return True
 
 
 def parse(topic: str, payload: bytes | str | None) -> tuple[Key, Any] | None:
@@ -573,9 +617,9 @@ def _dc_loads(r: Readings) -> DcLoads | None:
     return DcLoads(status="normal", power_w=power, measured_by="meter" if metered else "calculation")
 
 
-async def run(feed: Feed, host: str = "127.0.0.1", port: int = 1883) -> None:
-    """Keep the feed current from the device's broker, reconnecting whenever it is lost."""
-    readings = Readings()
+async def run(feed: Feed, host: str = "127.0.0.1", port: int = 1883, device: Device | None = None) -> None:
+    """Keep the feed and device current from the device's broker, reconnecting whenever it is lost."""
+    device = device if device is not None else Device()
     # An outage is logged when it starts and when it ends, not at every
     # retry: on a device each log line is a write to its storage.
     lost = False
@@ -586,7 +630,7 @@ async def run(feed: Feed, host: str = "127.0.0.1", port: int = 1883) -> None:
                 if lost:
                     log.warning("reached the device's MQTT broker again")
                     lost = False
-                await _follow(client, feed, readings)
+                await _follow(client, feed, device)
         except aiomqtt.MqttError as error:
             feed.waiting = "broker_unreachable"
             if not lost:
@@ -596,15 +640,22 @@ async def run(feed: Feed, host: str = "127.0.0.1", port: int = 1883) -> None:
         await asyncio.sleep(RECONNECT_AFTER_S)
 
 
-async def _follow(client: Any, feed: Feed, readings: Readings) -> None:
+async def _follow(client: Any, feed: Feed, device: Device) -> None:
     portal = await _portal_id(client)
     await client.subscribe(f"N/{portal}/#")
+    readings = device.readings
     tasks = [asyncio.create_task(_keep_alive(client, portal)), asyncio.create_task(_publish(feed, readings))]
+
+    async def send(where: str, payload: str) -> None:
+        await client.publish(f"W/{portal}/{where}", payload=payload)
+
+    device.attach(send)
     try:
         async for message in client.messages:
             if (reading := parse(str(message.topic), message.payload)) is not None:
                 readings.update(*reading)
     finally:
+        device.detach()
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)

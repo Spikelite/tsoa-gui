@@ -93,16 +93,17 @@ def main(argv: list[str] | None = None) -> None:
     from .feed import Feed
     from .time_left import TimeLeftEstimator
 
+    device = venus.Device()
     if args.mock:
         jobs = [mock.run]
     else:
-        jobs = [lambda feed: venus.run(feed, args.mqtt_host, args.mqtt_port)]
+        jobs = [lambda feed: venus.run(feed, args.mqtt_host, args.mqtt_port, device)]
     # The app's event streams end once the server, made below, starts to stop.
     server: uvicorn.Server | None = None
     accounts = Accounts(args.data_dir / "accounts.db", args.data_dir / "setup-code") if args.data_dir else Accounts()
     app = create_app(args.client, feed=Feed(prepare=TimeLeftEstimator(args.cut_off_soc).apply), jobs=jobs,
                      stopping=lambda: server is not None and server.should_exit, version=release_version(args),
-                     accounts=accounts)
+                     accounts=accounts, device=device)
     config = server_config(app, args)
     config.load()  # reads the TLS key, which only root can
     drop_privileges(args.run_as)
