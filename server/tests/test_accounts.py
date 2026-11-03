@@ -1,11 +1,14 @@
 import stat
 import sys
+import threading
+import time
 from pathlib import Path
 
 import pytest
 
 from tsoa_gui.accounts import (
-    FAILURE_WINDOW_S, FAILURES_PER_ADDRESS, FAILURES_PER_NAME, IDLE_S, LIFETIME_S, AccountError, Accounts, Conflict,
+    FAILURE_WINDOW_S, FAILURES_PER_ADDRESS, FAILURES_PER_NAME, HASHES_AT_ONCE, IDLE_S, LIFETIME_S, AccountError,
+    Accounts, Conflict,
     Role, TooManyAttempts, WrongPassword, check_password, hash_password,
 )
 
@@ -37,6 +40,26 @@ def test_a_password_checks_against_its_own_hash_only():
     assert not check_password("wrong horse", stored)
     assert hash_password(PASSWORD) != stored  # salted
     assert not check_password(PASSWORD, "not a hash")
+
+
+def test_only_a_few_passwords_are_hashed_at_once(monkeypatch: pytest.MonkeyPatch):
+    running = []
+    most = []
+
+    def slow_scrypt(*_: object, **__: object) -> bytes:
+        running.append(1)
+        most.append(len(running))
+        time.sleep(0.05)
+        running.pop()
+        return bytes(32)
+
+    monkeypatch.setattr("tsoa_gui.accounts.hashlib.scrypt", slow_scrypt)
+    threads = [threading.Thread(target=hash_password, args=(PASSWORD,)) for _ in range(8)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert max(most) == HASHES_AT_ONCE
 
 
 def test_the_first_account_needs_the_setup_code_and_is_an_admin(tmp_path: Path):

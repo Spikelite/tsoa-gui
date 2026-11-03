@@ -36,6 +36,12 @@ SCRYPT_N = 2**14
 SCRYPT_R = 8
 SCRYPT_P = 1
 
+# A hash takes about half a second on a device. Sign-ins run on a pool of
+# threads, so without a cap a burst of them would hash side by side, each
+# taking its 16 MiB, and slow every one; past the cap they wait their turn.
+HASHES_AT_ONCE = 2
+_hashing = threading.BoundedSemaphore(HASHES_AT_ONCE)
+
 NAME_MAX = 64
 PASSWORD_MIN = 8
 # Long enough for any passphrase, short enough that hashing one costs nothing extra.
@@ -117,8 +123,9 @@ def check_password(password: str, stored: str) -> bool:
 
 def _scrypt(password: str, salt: bytes, n: int, r: int, p: int) -> bytes:
     # OpenSSL refuses more than 32 MiB unless told otherwise; this allows what the cost needs.
-    return hashlib.scrypt(password.encode("utf-8"), salt=salt, n=n, r=r, p=p, dklen=32,
-                          maxmem=128 * r * (n + p + 2) + 1024 * 1024)
+    with _hashing:
+        return hashlib.scrypt(password.encode("utf-8"), salt=salt, n=n, r=r, p=p, dklen=32,
+                              maxmem=128 * r * (n + p + 2) + 1024 * 1024)
 
 
 # Checked when a name has no account, so a wrong name takes as long as a wrong password.
