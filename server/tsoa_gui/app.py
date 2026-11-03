@@ -2,6 +2,7 @@
 import asyncio
 import hashlib
 import logging
+import sqlite3
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
 from contextlib import asynccontextmanager
@@ -12,6 +13,8 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.sse import EventSourceResponse, ServerSentEvent
 from fastapi.staticfiles import StaticFiles
 
+from . import signin
+from .accounts import Accounts
 from .events import StreamLimit, busy_event, model_events
 from .feed import Feed
 from .headers import SecurityHeaders
@@ -29,14 +32,16 @@ RAN_WELL_S = 300.0
 
 def create_app(client_dir: Path | None = None, feed: Feed | None = None, jobs: Sequence[Job] = (),
                stopping: Callable[[], bool] = lambda: False, streams: StreamLimit | None = None,
-               version: str | None = None) -> FastAPI:
+               version: str | None = None, accounts: Accounts | None = None) -> FastAPI:
     """The app, serving the model from feed, which the jobs keep current while it runs.
 
     Its event streams end once stopping() is true, which the server running it
     sets as it starts to shut down, and no more are open at once than streams allows.
-    version is the release's, and None on a development run.
+    version is the release's, and None on a development run. Without
+    accounts, they are kept in memory and gone when the app stops.
     """
     feed = feed if feed is not None else Feed()
+    accounts = accounts if accounts is not None else Accounts()
     streams = streams if streams is not None else StreamLimit()
     # A page reloads when either changes. A development run has no version,
     # but a rebuilt client changes its fingerprint.
@@ -45,12 +50,14 @@ def create_app(client_dir: Path | None = None, feed: Feed | None = None, jobs: S
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         tasks = [asyncio.create_task(_keep_running(job, feed)) for job in jobs]
+        _announce_setup(accounts)
         try:
             yield
         finally:
             for task in tasks:
                 task.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)
+            accounts.close()
 
     # The interactive API docs load their scripts from a CDN, which a device
     # on a LAN should not depend on, so they are off.
@@ -93,11 +100,29 @@ def create_app(client_dir: Path | None = None, feed: Feed | None = None, jobs: S
         async for event in model_events(feed, stopping, release):
             yield event
 
+    app.include_router(signin.router(accounts))
+
     # Mounted last: a mount at the root would otherwise answer for /api too.
     if client_dir is not None and (client_dir / "index.html").is_file():
         app.mount("/", StaticFiles(directory=client_dir, html=True), name="client")
 
     return app
+
+
+def _announce_setup(accounts: Accounts) -> None:
+    """Says where to find the code that makes the first account, while there is none."""
+    try:
+        code = accounts.setup_code()
+    except (OSError, sqlite3.Error):
+        # Viewing needs no account, so the readings are served all the same.
+        log.exception("the accounts cannot be opened, so nobody can sign in")
+        return
+    if code is None:
+        return
+    if accounts.setup_file is not None:
+        log.warning("there is no account yet: the code to make the first one is in %s", accounts.setup_file)
+    else:
+        log.warning("there is no account yet: the code to make the first one is %s", code)
 
 
 def _fingerprint(client_dir: Path | None) -> str | None:

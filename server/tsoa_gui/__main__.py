@@ -62,6 +62,9 @@ def main(argv: list[str] | None = None) -> None:
                         help="(default: %(default)s)")
     parser.add_argument("--tested-versions", type=Path, metavar="FILE",
                         help="on a Python or pydantic other than the ones FILE names, serve only a page that says so")
+    parser.add_argument("--data-dir", type=Path, metavar="DIR",
+                        help="where to keep the accounts and the first account's setup code (default: in memory, "
+                             "with the code in the log)")
     parser.add_argument("--run-as", type=account, metavar="UID:GID",
                         help="once the TLS key is read, switch to this user and group ID (needs root)")
     args = parser.parse_args(argv)
@@ -78,6 +81,7 @@ def main(argv: list[str] | None = None) -> None:
     import uvicorn
 
     from . import mock, venus
+    from .accounts import Accounts
     from .app import create_app
     from .feed import Feed
     from .time_left import TimeLeftEstimator
@@ -88,8 +92,10 @@ def main(argv: list[str] | None = None) -> None:
         jobs = [lambda feed: venus.run(feed, args.mqtt_host, args.mqtt_port)]
     # The app's event streams end once the server, made below, starts to stop.
     server: uvicorn.Server | None = None
+    accounts = Accounts(args.data_dir / "accounts.db", args.data_dir / "setup-code") if args.data_dir else Accounts()
     app = create_app(args.client, feed=Feed(prepare=TimeLeftEstimator(args.cut_off_soc).apply), jobs=jobs,
-                     stopping=lambda: server is not None and server.should_exit, version=release_version(args))
+                     stopping=lambda: server is not None and server.should_exit, version=release_version(args),
+                     accounts=accounts)
     # No access log: on the device every line is a write to its storage.
     config = uvicorn.Config(
         app,
