@@ -1,5 +1,6 @@
 import { Suspense, useState } from "react";
 
+import { SignedInContext, useSession } from "./account/session";
 import { Clock } from "./Clock";
 import type { SystemState, SystemStore } from "./model/store";
 import type { System } from "./model/system";
@@ -19,6 +20,7 @@ function browserStorage(): Storage | null {
 
 export function App({ store, reloading }: { store?: SystemStore; reloading?: Reloading }) {
   const state = useSystem(store);
+  const signedIn = useSession().session?.account ?? null;
   const { model, connected, busy } = state;
   const [skinId, setSkinId] = useState(() => chosenSkin(window.location.search, browserStorage()));
   const skin = SKINS.find((candidate) => candidate.id === skinId) ?? SKINS[0]!;
@@ -44,6 +46,8 @@ export function App({ store, reloading }: { store?: SystemStore; reloading?: Rel
         {!skin.framed && (
           <>
             <Clock />
+            {/* Shown only once signed in: nothing here invites a kiosk's viewer to sign in. */}
+            {signedIn !== null && <a className="signed-in" href="/account">{signedIn.name}</a>}
             <label className="skin-menu">
               Skin
               <select value={skin.id} onChange={(event) => choose(event.target.value)}>
@@ -63,9 +67,11 @@ export function App({ store, reloading }: { store?: SystemStore; reloading?: Rel
         ) : (
           <SkinBoundary reloading={reloading}>
             <SkinChoiceContext.Provider value={choice}>
-              <Suspense fallback={<p className="waiting">Loading the skin.</p>}>
-                <Skin model={model} connected={connected} busy={busy} />
-              </Suspense>
+              <SignedInContext.Provider value={signedIn}>
+                <Suspense fallback={<p className="waiting">Loading the skin.</p>}>
+                  <Skin model={model} connected={connected} busy={busy} />
+                </Suspense>
+              </SignedInContext.Provider>
             </SkinChoiceContext.Provider>
           </SkinBoundary>
         )}

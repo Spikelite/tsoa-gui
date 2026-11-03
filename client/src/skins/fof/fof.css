@@ -140,6 +140,16 @@
 
 .fof-clock-segment { background: var(--fof-sand); }
 
+/* The signed-in account, shown only once someone has signed in. */
+.fof-account-segment {
+  max-width: 10em;
+  overflow: hidden;
+  background: var(--fof-sand);
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .fof-clock-segment .clock {
   margin: 0;
   color: inherit;

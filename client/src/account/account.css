@@ -1,0 +1,137 @@
+/* The sign-in and account pages: plain, and the same in every skin. */
+.account-header {
+  padding: 0.75rem clamp(0.75rem, 2vw, 2rem);
+}
+
+.account-home {
+  color: var(--text-muted);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.account-main {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 1rem clamp(1rem, 4vw, 2rem) 3rem;
+}
+
+.account-main h1 {
+  margin: 0.5rem 0 1rem;
+  font-size: 1.5rem;
+}
+
+.account-main h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+}
+
+.account-main h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.account-main a {
+  color: var(--status-normal);
+}
+
+.account-note,
+.account-hint {
+  color: var(--text-muted);
+}
+
+.account-hint {
+  font-size: 0.85rem;
+}
+
+.account-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--panel-border);
+}
+
+/* A role's longer description in its menu must not widen a form past a phone's screen. */
+.account-form,
+.account-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.9rem;
+}
+
+.account-field {
+  gap: 0.3rem;
+}
+
+.account-main input,
+.account-main select,
+.account-main button {
+  min-height: 2.5rem;
+  padding: 0.4rem 0.6rem;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  font: inherit;
+}
+
+.account-main select {
+  max-width: 100%;
+}
+
+.account-main button {
+  justify-self: start;
+  padding: 0.4rem 1rem;
+  cursor: pointer;
+}
+
+.account-main button[type="submit"] {
+  border-color: var(--status-normal);
+}
+
+.account-main button:disabled {
+  color: var(--text-muted);
+  border-color: var(--panel-border);
+  cursor: default;
+}
+
+.account-problem {
+  margin: 0;
+  color: var(--status-fault);
+}
+
+.account-done {
+  margin: 0;
+  color: var(--status-good);
+}
+
+.account-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.account-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.account-name {
+  flex: 1 1 8rem;
+  overflow-wrap: anywhere;
+}
+
+.account-reset {
+  flex-basis: 100%;
+}
+
+.account-quiet {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

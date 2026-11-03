@@ -1,5 +1,6 @@
 import { useCallback, useId, useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 
+import { useSignedIn } from "../../account/session";
 import { Clock } from "../../Clock";
 import type { PartName, Status, System } from "../../model/system";
 import { generatorState, gridState, inverterState, partTitle, solarState } from "../describe";
@@ -121,6 +122,7 @@ function Readout(props: {
 // and SVG, with no images.
 export function FofSkin({ model, connected = true, busy = false }: { model: System; connected?: boolean; busy?: boolean }) {
   const root = useRef<HTMLDivElement>(null);
+  const signedIn = useSignedIn();
   // Where the conduits meet the hub, which they work out once laid out and
   // the hub needs to carry them on into its windings.
   const [hub, setHub] = useState<HubPorts>();
@@ -163,6 +165,9 @@ export function FofSkin({ model, connected = true, busy = false }: { model: Syst
           <span aria-hidden="true">{LINK_WORDS[state]}</span>
           <span className="fof-quiet">{LINK_SENTENCES[state]}</span>
         </span>
+        {signedIn !== null && (
+          <a className="fof-segment fof-account-segment" href="/account">{signedIn.name}</a>
+        )}
         <SkinSegment />
         <span className="fof-cap fof-cap-right" aria-hidden="true" />
       </div>
