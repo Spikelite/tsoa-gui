@@ -1,8 +1,13 @@
+import argparse
+import asyncio
 import logging
 
+import httpx
 import pytest
+from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 
+from tsoa_gui.__main__ import server_config
 from tsoa_gui.accounts import FAILURES_PER_NAME, Accounts, Role
 from tsoa_gui.app import create_app
 from tsoa_gui.signin import COOKIE, CSRF_HEADER
@@ -104,6 +109,17 @@ def test_only_an_admin_keeps_the_accounts(client: TestClient, accounts: Accounts
     assert client.delete("/api/accounts/guest", headers={CSRF_HEADER: csrf}).status_code == 404
 
 
+def test_a_refused_change_to_an_account_changes_nothing(client: TestClient, accounts: Accounts):
+    accounts.create("owner", PASSWORD, Role.ADMIN)
+    accounts.create("crew", PASSWORD, Role.VIEWER)
+    csrf = signed_in(client, "owner")
+    response = client.patch("/api/accounts/crew", json={"role": "operator", "password": "short"},
+                            headers={CSRF_HEADER: csrf})
+    assert response.status_code == 400
+    assert accounts.find("crew").role == Role.VIEWER
+    assert accounts.check("crew", PASSWORD, "192.0.2.10").name == "crew"
+
+
 def test_changing_your_own_password_needs_the_current_one(client: TestClient, accounts: Accounts):
     accounts.create("owner", PASSWORD, Role.OPERATOR)
     csrf = signed_in(client, "owner")
@@ -114,3 +130,29 @@ def test_changing_your_own_password_needs_the_current_one(client: TestClient, ac
     # The session that changed it stays signed in.
     assert client.get("/api/session").json()["account"] == {"name": "owner", "role": "operator"}
     assert accounts.check("owner", "battery staple", "192.0.2.10").name == "owner"
+
+
+def test_takes_a_browser_s_address_only_from_a_trusted_proxy():
+    probe = FastAPI()
+
+    @probe.get("/address")
+    def address(request: Request) -> str:
+        return request.client.host if request.client else ""
+
+    def seen(trusted: list[str] | None, client: str) -> str:
+        args = argparse.Namespace(host="127.0.0.1", port=0, certfile=None, keyfile=None, log_level="warning",
+                                  trusted_proxy=trusted)
+        config = server_config(probe, args)
+        config.load()
+        transport = httpx.ASGITransport(app=config.loaded_app, client=(client, 40000))
+
+        async def get() -> str:
+            async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as http:
+                response = await http.get("/address", headers={"X-Forwarded-For": "192.0.2.50"})
+                return response.json()
+
+        return asyncio.run(get())
+
+    assert seen(["192.0.2.1"], "192.0.2.1") == "192.0.2.50"
+    assert seen(["192.0.2.1"], "192.0.2.9") == "192.0.2.9"
+    assert seen(None, "192.0.2.1") == "192.0.2.1"

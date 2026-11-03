@@ -93,7 +93,7 @@ tsoa-gui serves its page over HTTPS with a certificate it made for itself when i
 
 Firefox and Safari remember the choice; Chrome and Edge ask again after a while.
 
-A kiosk, with nobody there to click through the warning, should trust the device's certificate instead. It is in `/data/tsoa-gui/tls/cert.pem` on the device; copy it to the kiosk with `scp root@192.0.2.10:/data/tsoa-gui/tls/cert.pem .` and add it to the kiosk's trusted certificates, as its operating system or browser describes. Then the page opens with no warning. A reverse proxy with a trusted certificate of its own, in front of the device, also works.
+A kiosk, with nobody there to click through the warning, should trust the device's certificate instead. It is in `/data/tsoa-gui/tls/cert.pem` on the device; copy it to the kiosk with `scp root@192.0.2.10:/data/tsoa-gui/tls/cert.pem .` and add it to the kiosk's trusted certificates, as its operating system or browser describes. Then the page opens with no warning. A reverse proxy with a trusted certificate of its own, in front of the device, also works. Name the proxy in `/data/tsoa-gui/etc/tsoa-gui.conf` with its own address, such as `TRUSTED_PROXY=192.0.2.20`, and restart tsoa-gui with `svc -t /service/tsoa-gui`. Then tsoa-gui sees each browser's address instead of the proxy's: sign-in limits wrong passwords by address, so without it one person's mistakes would lock everyone out of signing in for a while.
 
 The certificate names the device's addresses at the time of installing. If the address changes, a browser or kiosk that trusted it warns again; make a new one by deleting `/data/tsoa-gui/tls` and running the installer again, then trust the new one.
 

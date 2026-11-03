@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 from .accounts import (
     LIFETIME_S, Account, AccountError, Accounts, Conflict, Role, Session, TooManyAttempts, WrongPassword,
+    check_new_password,
 )
 
 # A name of tsoa-gui's own, since behind a proxy it can share an origin with the device's console.
@@ -138,7 +139,9 @@ def router(accounts: Accounts) -> APIRouter:
     def change_account(name: str, form: AccountChange, _: Admin) -> AccountOut:
         account = found(name)
         with refusals():
-            # The role first: it is the change that can be refused for leaving no admin.
+            # Both are checked before either is made, so a refused change leaves the account as it was.
+            if form.password is not None:
+                check_new_password(form.password)
             if form.role is not None:
                 account = accounts.set_role(account, form.role)
             if form.password is not None:

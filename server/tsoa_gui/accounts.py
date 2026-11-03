@@ -41,6 +41,10 @@ SCRYPT_P = 1
 # taking its 16 MiB, and slow every one; past the cap they wait their turn.
 HASHES_AT_ONCE = 2
 _hashing = threading.BoundedSemaphore(HASHES_AT_ONCE)
+# The pool's threads also serve the readings and the page, so a sign-in waits
+# only this long for a turn before it is turned away, and told when to try again.
+HASH_WAIT_S = 1.0
+BUSY_RETRY_S = 5.0
 
 NAME_MAX = 64
 PASSWORD_MIN = 8
@@ -123,9 +127,13 @@ def check_password(password: str, stored: str) -> bool:
 
 def _scrypt(password: str, salt: bytes, n: int, r: int, p: int) -> bytes:
     # OpenSSL refuses more than 32 MiB unless told otherwise; this allows what the cost needs.
-    with _hashing:
+    if not _hashing.acquire(timeout=HASH_WAIT_S):
+        raise TooManyAttempts(BUSY_RETRY_S)
+    try:
         return hashlib.scrypt(password.encode("utf-8"), salt=salt, n=n, r=r, p=p, dklen=32,
                               maxmem=128 * r * (n + p + 2) + 1024 * 1024)
+    finally:
+        _hashing.release()
 
 
 # Checked when a name has no account, so a wrong name takes as long as a wrong password.
@@ -134,6 +142,10 @@ _NOBODY = hash_password(secrets.token_hex(16))
 
 def new_setup_code() -> str:
     return "".join(secrets.choice(CODE_ALPHABET) for _ in range(CODE_LENGTH))
+
+
+def _is_code(text: str) -> bool:
+    return len(text) == CODE_LENGTH and all(character in CODE_ALPHABET for character in text)
 
 
 def _code_key(code: str) -> str:
@@ -232,13 +244,25 @@ class Accounts:
             if self._count() > 0:
                 return None
             if self._code is None:
-                if self.setup_file is not None and self.setup_file.is_file():
-                    self._code = self.setup_file.read_text(encoding="utf-8").strip()
+                kept = self._read_code()
+                if kept is not None:
+                    self._code = kept
                 else:
                     self._code = new_setup_code()
                     if self.setup_file is not None:
                         self._write_private(self.setup_file, self._code + "\n")
             return self._code
+
+    def _read_code(self) -> str | None:
+        # Only a whole code counts: a file left empty or cut short, as a power
+        # cut can leave it, would otherwise let anyone in with what it holds.
+        if self.setup_file is None or not self.setup_file.is_file():
+            return None
+        try:
+            text = self.setup_file.read_text(encoding="utf-8").strip()
+        except (OSError, UnicodeDecodeError):
+            return None
+        return text if _is_code(text) else None
 
     def create_first(self, code: str, name: str, password: str, address: str) -> Account:
         """Creates the first account, as an admin, if code is the setup code."""
@@ -262,7 +286,7 @@ class Accounts:
 
     def create(self, name: str, password: str, role: Role, first: bool = False) -> Account:
         name = _clean_name(name)
-        _check_password(password)
+        check_new_password(password)
         hashed = hash_password(password)
         with self._lock, self._transaction():
             if first and self._count() > 0:
@@ -296,7 +320,7 @@ class Accounts:
 
     def set_password(self, account: Account, password: str, keep: str | None = None) -> None:
         """Sets account's password and ends its sessions, all but the one whose token is keep."""
-        _check_password(password)
+        check_new_password(password)
         hashed = hash_password(password)
         with self._lock, self._transaction():
             self._db.execute("UPDATE accounts SET password = ? WHERE id = ?", (hashed, account.id))
@@ -398,6 +422,8 @@ class Accounts:
         path.unlink(missing_ok=True)
         with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w", encoding="utf-8") as file:
             file.write(text)
+            file.flush()
+            os.fsync(file.fileno())
 
 
 class _Transaction:
@@ -425,10 +451,13 @@ def _clean_name(name: str) -> str:
         raise AccountError(f"An account's name can be at most {NAME_MAX} characters.")
     if any(not character.isprintable() for character in name):
         raise AccountError("An account's name can only have characters that print.")
+    # A name is one part of an account's address, /api/accounts/<name>.
+    if "/" in name or name in (".", ".."):
+        raise AccountError("An account's name cannot have a slash in it, or be . or ..")
     return name
 
 
-def _check_password(password: str) -> None:
+def check_new_password(password: str) -> None:
     if len(password) < PASSWORD_MIN:
         raise AccountError(f"A password needs at least {PASSWORD_MIN} characters.")
     if len(password) > PASSWORD_MAX:
