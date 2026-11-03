@@ -41,7 +41,8 @@ export function nextAddress(search: string): string {
     return "/";
   }
   // Resolved as the browser will, since it reads "/\host" and a "/" with tabs
-  // or newlines before the next "/" as another site.
+  // or newlines before the next "/" as another site, and kept whole: a path of
+  // its own, such as "//host" from "/..//host", would read as one too.
   const address = new URL(next, window.location.origin);
-  return address.origin === window.location.origin ? address.pathname + address.search + address.hash : "/";
+  return address.origin === window.location.origin ? address.href : "/";
 }

@@ -25,7 +25,7 @@ describe("the sign-in page", () => {
     type(screen.getByLabelText("Password"), "correct horse");
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
 
-    await waitFor(() => expect(go).toHaveBeenCalledWith("/?part=battery"));
+    await waitFor(() => expect(go).toHaveBeenCalledWith(`${window.location.origin}/?part=battery`));
     expect(sent.at(-1)).toMatchObject({ method: "POST", path: "/api/session",
       body: { name: "owner", password: "correct horse" } });
     window.history.replaceState(null, "", "/");
@@ -81,12 +81,14 @@ describe("the sign-in page", () => {
 
 describe("where sign-in goes next", () => {
   it("goes only to a page of this server's", () => {
-    expect(nextAddress("?next=/account")).toBe("/account");
-    expect(nextAddress("?next=/%3Fskin%3Dfof")).toBe("/?skin=fof");
+    const here = window.location.origin;
+    expect(nextAddress("?next=/account")).toBe(`${here}/account`);
+    expect(nextAddress("?next=/%3Fskin%3Dfof")).toBe(`${here}/?skin=fof`);
     const away = ["https://example.com/", "//example.com/", "/\\example.com/", "/\t/example.com/", "/\n/example.com/",
-      "/\r\n/example.com/", "/\t\t/example.com/", "account", ""];
+      "/\r\n/example.com/", "/\t\t/example.com/", "/..//example.com/", "/./\t/example.com/", "account", ""];
     for (const address of away) {
-      expect(nextAddress(`?next=${encodeURIComponent(address)}`)).toBe("/");
+      // Read as the browser reads an address it is sent to.
+      expect(new URL(nextAddress(`?next=${encodeURIComponent(address)}`), here).origin).toBe(here);
     }
     expect(nextAddress("")).toBe("/");
   });
