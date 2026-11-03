@@ -137,6 +137,8 @@ A session ends after a week unused, after thirty days in any case, and whenever 
 
 The device's own login grants full control, so roles are enforced by a server between the browser and the device. It holds the device connection, signs users in, and checks every change against the user's role.
 
+Every change goes through one route on the server. It refuses a value the device reports it will not take, outside its range or while it cannot be changed, rather than clamping it. It then writes the value to the device and waits up to ten seconds for the device to report it back, so the page can show the change as pending until it is confirmed or not. Every change a signed-in user asks for is recorded with who asked, the old and new values and how it ended, and the record is kept for good; administrators can read it.
+
 ## Data
 
 Readings come from Venus OS's MQTT feed, the one the device's own console uses. The model is built from the system summary service where it can be, so one build works across installations without per-device setup.

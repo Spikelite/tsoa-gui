@@ -14,12 +14,14 @@ from fastapi.sse import EventSourceResponse, ServerSentEvent
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import signin
+from . import controls, signin
 from .accounts import Accounts
+from .controls import CONTROLS, Control
 from .events import StreamLimit, busy_event, model_events
 from .feed import Feed
 from .headers import SecurityHeaders
 from .model import System
+from .venus import Device
 
 log = logging.getLogger(__name__)
 
@@ -36,16 +38,19 @@ CLIENT_PAGES = ("/login", "/account")
 
 def create_app(client_dir: Path | None = None, feed: Feed | None = None, jobs: Sequence[Job] = (),
                stopping: Callable[[], bool] = lambda: False, streams: StreamLimit | None = None,
-               version: str | None = None, accounts: Accounts | None = None) -> FastAPI:
+               version: str | None = None, accounts: Accounts | None = None, device: Device | None = None,
+               controls_offered: Sequence[Control] = CONTROLS) -> FastAPI:
     """The app, serving the model from feed, which the jobs keep current while it runs.
 
     Its event streams end once stopping() is true, which the server running it
     sets as it starts to shut down, and no more are open at once than streams allows.
     version is the release's, and None on a development run. Without
-    accounts, they are kept in memory and gone when the app stops.
+    accounts, they are kept in memory and gone when the app stops. Changes are
+    written to device, which a job keeps connected; without one, nothing can be changed.
     """
     feed = feed if feed is not None else Feed()
     accounts = accounts if accounts is not None else Accounts()
+    device = device if device is not None else Device()
     streams = streams if streams is not None else StreamLimit()
     # A page reloads when either changes. A development run has no version,
     # but a rebuilt client changes its fingerprint.
@@ -105,6 +110,7 @@ def create_app(client_dir: Path | None = None, feed: Feed | None = None, jobs: S
             yield event
 
     app.include_router(signin.router(accounts))
+    app.include_router(controls.router(accounts, device, controls_offered))
 
     # Mounted last: a mount at the root would otherwise answer for /api too.
     if client_dir is not None and (client_dir / "index.html").is_file():

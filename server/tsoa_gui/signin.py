@@ -68,22 +68,8 @@ def router(accounts: Accounts) -> APIRouter:
     def signed_in(request: Request) -> tuple[Session, Account] | None:
         return accounts.session(request.cookies.get(COOKIE))
 
-    def needs(role: Role) -> Callable[..., tuple[Session, Account]]:
-        def check(request: Request,
-                  current: Annotated[tuple[Session, Account] | None, Depends(signed_in)]) -> tuple[Session, Account]:
-            if current is None:
-                raise HTTPException(status_code=401, detail="Sign in first.")
-            session, account = current
-            sent = request.headers.get(CSRF_HEADER, "").encode()
-            if request.method not in SAFE_METHODS and not hmac.compare_digest(sent, session.csrf.encode()):
-                raise HTTPException(status_code=403, detail="This change did not come from this server's page.")
-            if not account.may(role):
-                raise HTTPException(status_code=403, detail="Your account cannot do this.")
-            return current
-        return check
-
-    Viewer = Annotated[tuple[Session, Account], Depends(needs(Role.VIEWER))]
-    Admin = Annotated[tuple[Session, Account], Depends(needs(Role.ADMIN))]
+    Viewer = Annotated[tuple[Session, Account], Depends(requires(accounts, Role.VIEWER))]
+    Admin = Annotated[tuple[Session, Account], Depends(requires(accounts, Role.ADMIN))]
 
     def state(session: Session | None, account: Account | None) -> SessionState:
         return SessionState(account=None if account is None else AccountOut(name=account.name, role=account.role),
@@ -153,6 +139,23 @@ def router(accounts: Accounts) -> APIRouter:
         return account
 
     return api
+
+
+def requires(accounts: Accounts, role: Role) -> Callable[..., tuple[Session, Account]]:
+    """A dependency giving the request's session and account: signed in, with the session's CSRF token on
+    every change, and an account that may act as role."""
+    def check(request: Request) -> tuple[Session, Account]:
+        current = accounts.session(request.cookies.get(COOKIE))
+        if current is None:
+            raise HTTPException(status_code=401, detail="Sign in first.")
+        session, account = current
+        sent = request.headers.get(CSRF_HEADER, "").encode()
+        if request.method not in SAFE_METHODS and not hmac.compare_digest(sent, session.csrf.encode()):
+            raise HTTPException(status_code=403, detail="This change did not come from this server's page.")
+        if not account.may(role):
+            raise HTTPException(status_code=403, detail="Your account cannot do this.")
+        return current
+    return check
 
 
 def address(request: Request) -> str:

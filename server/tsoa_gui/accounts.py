@@ -8,6 +8,7 @@ device may have no real-time clock and its wall clock jumps when it is set.
 """
 import hashlib
 import hmac
+import json
 import os
 import secrets
 import sqlite3
@@ -15,9 +16,10 @@ import threading
 import time
 from collections import defaultdict, deque
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
 from pathlib import Path
+from typing import Any, Literal
 
 
 class Role(StrEnum):
@@ -75,6 +77,25 @@ CREATE TABLE accounts (
     password TEXT NOT NULL
 );
 """
+# Each version of the database after the first, and what it adds. A change
+# names its account rather than pointing at it, so it outlasts the account.
+# Its time is the wall clock's, which may not have been set when it was made,
+# so the order the changes were made in is that of their ids.
+UPGRADES = [
+    """
+    CREATE TABLE changes (
+        id INTEGER PRIMARY KEY,
+        at REAL NOT NULL,
+        account TEXT NOT NULL,
+        control TEXT NOT NULL,
+        instance INTEGER,
+        old TEXT,
+        new TEXT NOT NULL,
+        outcome TEXT NOT NULL,
+        reason TEXT
+    );
+    """,
+]
 
 
 class AccountError(ValueError):
@@ -105,6 +126,25 @@ class Session:
     csrf: str
     started: float
     seen: float
+
+
+Outcome = Literal["confirmed", "unconfirmed", "refused"]
+
+
+@dataclass(frozen=True)
+class Change:
+    """A change an account asked a control to make on the device, and what came of it."""
+    at: float
+    account: str
+    control: str
+    instance: int | None
+    old: Any
+    new: Any
+    # Confirmed once the device reported the new value, unconfirmed if it had
+    # not within the wait, refused if it was never sent.
+    outcome: Outcome
+    reason: str | None = None
+    id: int | None = None
 
 
 def hash_password(password: str) -> str:
@@ -221,8 +261,12 @@ class Accounts:
             # keeps the database whole and every committed change in it.
             db.execute("PRAGMA journal_mode=WAL")
             db.execute("PRAGMA synchronous=FULL")
-            if db.execute("PRAGMA user_version").fetchone()[0] == 0:
+            version = db.execute("PRAGMA user_version").fetchone()[0]
+            if version == 0:
                 db.executescript(f"BEGIN; {SCHEMA} PRAGMA user_version = 1; COMMIT;")
+                version = 1
+            for number, upgrade in enumerate(UPGRADES[version - 1:], start=version + 1):
+                db.executescript(f"BEGIN; {upgrade} PRAGMA user_version = {number}; COMMIT;")
             self._connection = db
         return self._connection
 
@@ -400,6 +444,28 @@ class Accounts:
         with self._lock:
             self._sessions.pop(_token_key(token), None)
 
+    # Changes made on the device
+
+    def record_change(self, change: Change) -> Change:
+        """Adds change to the history, which keeps every one, and returns it with its id."""
+        with self._lock, self._transaction():
+            cursor = self._db.execute(
+                "INSERT INTO changes (at, account, control, instance, old, new, outcome, reason)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (change.at, change.account, change.control, change.instance, _json(change.old), _json(change.new),
+                 change.outcome, change.reason))
+        return replace(change, id=cursor.lastrowid)
+
+    def changes(self, before: int | None = None, limit: int = 100) -> list[Change]:
+        """The changes made before the one whose id is before, or the latest ones, newest first."""
+        with self._lock:
+            rows = self._db.execute(
+                "SELECT id, at, account, control, instance, old, new, outcome, reason FROM changes"
+                " WHERE id < ? ORDER BY id DESC LIMIT ?",
+                (before if before is not None else 2**63 - 1, limit)).fetchall()
+        return [Change(at=row[1], account=row[2], control=row[3], instance=row[4], old=_unjson(row[5]),
+                       new=_unjson(row[6]), outcome=row[7], reason=row[8], id=row[0]) for row in rows]
+
     # Inside
 
     def _count(self) -> int:
@@ -445,6 +511,14 @@ class _Transaction:
 
     def __exit__(self, kind: object, *_: object) -> None:
         self.db.execute("COMMIT" if kind is None else "ROLLBACK")
+
+
+def _json(value: Any) -> str | None:
+    return None if value is None else json.dumps(value)
+
+
+def _unjson(text: str | None) -> Any:
+    return None if text is None else json.loads(text)
 
 
 def _token_key(token: str) -> str:

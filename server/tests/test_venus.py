@@ -1,6 +1,8 @@
 import asyncio
 import json
 
+import pytest
+
 from tsoa_gui import venus
 from tsoa_gui.feed import Feed
 from tsoa_gui.venus import Readings, build, parse
@@ -391,7 +393,7 @@ def test_following_the_broker_finds_the_portal_keeps_alive_and_publishes():
         messages += [FakeMessage(f"N/{PORTAL}/{s}/{i}/{p}", v) for (s, i, p), v in DEVICE.items()]
         client = FakeClient(messages)
         feed = Feed()
-        follow = asyncio.create_task(venus._follow(client, feed, Readings()))
+        follow = asyncio.create_task(venus._follow(client, feed, venus.Device()))
         with feed.listen() as queue:
             model = await asyncio.wait_for(queue.get(), 5)
         client._queue.put_nowait(None)
@@ -408,6 +410,38 @@ def test_following_the_broker_finds_the_portal_keeps_alive_and_publishes():
     assert client.published[0] == (f"R/{PORTAL}/keepalive", None)
     assert all(topic == f"R/{PORTAL}/keepalive" for topic, _ in client.published)
     assert model.live and model.battery.soc_percent == 64.5
+
+
+def test_a_device_writes_only_while_the_broker_is_followed():
+    async def scenario():
+        client = FakeClient([FakeMessage(f"N/{PORTAL}/system/0/Serial", PORTAL)])
+        device = venus.Device()
+        with pytest.raises(venus.NotConnected):
+            await device.write("vebus", 276, "Ac/In/1/CurrentLimit", 16.0)
+        follow = asyncio.create_task(venus._follow(client, Feed(), device))
+        while not device.connected:
+            await asyncio.sleep(0.01)
+        await device.write("vebus", 276, "Ac/In/1/CurrentLimit", 16.0)
+        client._queue.put_nowait(None)
+        await asyncio.wait_for(follow, 5)
+        return client, device
+
+    client, device = asyncio.run(scenario())
+    assert (f"W/{PORTAL}/vebus/276/Ac/In/1/CurrentLimit", '{"value": 16.0}') in client.published
+    assert not device.connected
+
+
+def test_a_device_tells_whether_it_reported_a_value_in_time():
+    device = venus.Device()
+    key = ("vebus", 276, "Ac/In/1/CurrentLimit")
+
+    async def scenario():
+        asyncio.get_running_loop().call_later(0.05, device.readings.update, key, 16.0)
+        reported = await device.reports(key, lambda value: value == 16.0, within=2)
+        missed = await device.reports(key, lambda value: value == 20.0, within=0.2)
+        return reported, missed
+
+    assert asyncio.run(scenario()) == (True, False)
 
 
 def test_a_broker_outage_is_logged_once(monkeypatch, caplog):
