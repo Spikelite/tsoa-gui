@@ -200,7 +200,7 @@ def router(accounts: Accounts, device: Device, controls: Sequence[Control] = CON
         return await record("confirmed" if reported else "unconfirmed")
 
     @api.put("/controls/{name}/ceiling")
-    def set_ceiling(name: str, form: NewCeiling, _: Admin) -> ControlState:
+    def set_ceiling(name: str, form: NewCeiling, current: Admin) -> ControlState:
         control = found(name)
         if not control.ceiling:
             raise HTTPException(status_code=404, detail=f"{name} has no ceiling to set.")
@@ -210,6 +210,9 @@ def router(accounts: Accounts, device: Device, controls: Sequence[Control] = CON
         if form.value is not None and before.high is not None and form.value > before.high:
             raise HTTPException(status_code=400, detail=f"The device accepts at most {before.high:g}.")
         accounts.set_ceiling(control.name, form.value)
+        # In the record beside the changes it allows or refuses, at its own address.
+        accounts.record_change(Change(at=time.time(), account=current[1].name, control=f"{control.name}/ceiling",
+                                      instance=None, old=before.ceiling, new=form.value, outcome="confirmed"))
         return before.model_copy(update={"ceiling": form.value})
 
     @api.get("/changes")

@@ -463,8 +463,8 @@ class Accounts:
             cursor = self._db.execute(
                 "INSERT INTO changes (at, account, control, instance, old, new, outcome, reason, reported)"
                 " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (change.at, change.account, change.control, change.instance, _json(change.old), _json(change.new),
-                 change.outcome, change.reason, _json(change.reported)))
+                (change.at, change.account, change.control, change.instance, _json(change.old),
+                 json.dumps(change.new), change.outcome, change.reason, _json(change.reported)))
         return replace(change, id=cursor.lastrowid)
 
     def changes(self, before: int | None = None, limit: int = 100) -> list[Change]:

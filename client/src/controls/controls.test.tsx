@@ -98,6 +98,18 @@ describe.each(["minimal", "sci-fi-fof"])("the input limit control in %s", (skin)
     expect(within(panel).getByRole("status")).toHaveTextContent("The device set 4.2 A rather than 3.0 A.");
   });
 
+  it("sends a value typed to a tenth exactly as typed", async () => {
+    const sent = fakeServer({ "GET /api/session": { body: session("operator") },
+      "GET /api/controls": { body: [limit()] },
+      "POST /api/controls/input-1-current-limit": { body: { outcome: "confirmed", new: 15.1, reported: 15.1 } } });
+    await inverterPage(skin);
+    const panel = await open();
+    fireEvent.change(within(panel).getByLabelText("Amps"), { target: { value: "15.1" } });
+    fireEvent.click(within(panel).getByRole("button", { name: "Set" }));
+    expect(await within(panel).findByText("Set to 15.1 A.")).toBeInTheDocument();
+    expect(sent.find((request) => request.method === "POST")?.body).toEqual({ value: 15.1 });
+  });
+
   it("says when the device has not confirmed a change", async () => {
     fakeServer({ "GET /api/session": { body: session("operator") }, "GET /api/controls": { body: [limit()] },
       "POST /api/controls/input-1-current-limit": { body: { outcome: "unconfirmed", new: 10, reported: 16 } } });

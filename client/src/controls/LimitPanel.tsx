@@ -11,7 +11,8 @@ type Status =
   | { kind: "done"; text: string; failed?: boolean };
 
 const amps = f.amps;
-const tenths = (value: number) => Math.round(value / STEP_A) * STEP_A;
+// Divided rather than multiplied by a step, so that 0.3 is 0.3 and not a hair above it.
+const tenths = (value: number) => Math.round(value / STEP_A) / Math.round(1 / STEP_A);
 
 // A current limit's panel: the presets and a finer setting, the change shown
 // as pending until the device reports on it, and for an admin the breaker

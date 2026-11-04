@@ -208,6 +208,10 @@ def test_nobody_sets_the_limit_above_the_ceiling_an_admin_set(accounts: Accounts
     owner = signed_in(client, "owner")
     assert set_ceiling(client, owner, None).json()["ceiling"] is None
     assert accounts.ceiling("input-1-current-limit") is None
+    # Setting and removing it are in the record, beside the changes they allow or refuse.
+    ceilings = [(change.account, change.old, change.new) for change in accounts.changes()
+                if change.control == "input-1-current-limit/ceiling"]
+    assert ceilings == [("owner", 30.0, None), ("owner", None, 30.0)]
 
 
 def test_a_signed_in_account_sees_the_controls_the_device_has(accounts: Accounts):
