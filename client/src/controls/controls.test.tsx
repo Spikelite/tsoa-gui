@@ -90,7 +90,8 @@ describe.each(["minimal", "sci-fi-fof"])("the input limit control in %s", (skin)
     fireEvent.click(within(panel).getByRole("button", { name: "Set" }));
     expect(within(panel).getByRole("status")).toHaveTextContent("Setting 3.0 A.");
     expect(within(panel).getByRole("button", { name: "Set" })).toBeDisabled();
-    expect(sent.at(-1)).toMatchObject({ path: "/api/controls/input-1-current-limit", body: { value: 3 } });
+    expect(sent.find((request) => request.method === "POST"))
+      .toMatchObject({ path: "/api/controls/input-1-current-limit", body: { value: 3 } });
     await act(async () => {
       answer(new Response(JSON.stringify({ outcome: "confirmed", new: 3, reported: 4.2 })));
     });
@@ -135,7 +136,7 @@ describe.each(["minimal", "sci-fi-fof"])("the input limit control in %s", (skin)
     fireEvent.change(within(panel).getByLabelText("Breaker size"), { target: { value: "30" } });
     fireEvent.click(within(panel).getByRole("button", { name: "Save" }));
     expect(await within(panel).findByText("Breaker size 30.0 A.")).toBeInTheDocument();
-    expect(sent.at(-2)).toMatchObject({ method: "PUT", body: { value: 30 }, csrf: "token" });
+    expect(sent.find((request) => request.method === "PUT")).toMatchObject({ method: "PUT", body: { value: 30 }, csrf: "token" });
   });
 });
 
