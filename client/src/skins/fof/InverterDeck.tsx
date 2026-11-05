@@ -6,6 +6,7 @@ import { Eased } from "../Eased";
 import * as f from "../format";
 import { Deck } from "./Deck";
 import { InverterCore } from "./InverterCore";
+import { FRONT_PANEL } from "./sections";
 
 const LED_WORDS = { on: "on", off: "off", blinking: "blinking" };
 
@@ -18,7 +19,7 @@ export function InverterDeck({ inverter, model }: { inverter: InverterCharger; m
   return (
     <Deck part="inverter_charger" title="Inverter" status={inverter.status} state={inverterState(inverter)}
       className="fof-deck-sided" controls={controls?.readings} groups={inverterGroups(inverter, model)}
-      checks={inverter.checks}
+      checks={inverter.checks} drawnWith={FRONT_PANEL}
       aside={
         <p className="fof-deck-figure fof-deck-head-figure">
           <Eased value={inverter.ac_out_power_w} format={f.power} />

@@ -7,12 +7,11 @@ import { Eased } from "../Eased";
 import { keysFor } from "../keys";
 import type { Measured } from "../readings";
 import { Rows } from "./Core";
+import { CHECKS, clearWords, CONTROLS, sectionTone } from "./sections";
+import { SectionContext } from "./smallPanel";
 import { StatusWords } from "./StatusPill";
 
 const CHECK_STATUS = { ok: "good", warning: "warning", alarm: "fault" } as const;
-
-/** A section's color says what it holds, whatever else is on the page. Any other is the part's own, in sand. */
-const SECTION_TONES: Partial<Record<string, string>> = { History: "lavender", Energy: "lavender", Device: "teal" };
 
 export const SectionHead = ({ title, tone }: { title: ReactNode; tone: string }) => (
   <h3 className={`fof-deck-tag fof-tone-${tone}`}>
@@ -33,17 +32,9 @@ function ControlKey({ reading }: { reading: Measured }) {
   );
 }
 
-/** The bar over the checks that are clear, which says all of them are if nothing is raised. */
-function clearWords(count: number, anyRaised: boolean): string {
-  if (anyRaised) {
-    return `${count} more clear`;
-  }
-  return count === 1 ? "1 check clear" : `All ${count} checks clear`;
-}
-
 // What a part watches. A list of every condition reads as that many alarms, so
 // only what is raised takes color, and the rest fold away behind one bar.
-function Checks({ checks }: { checks: AlarmCheck[] }) {
+function Checks({ checks, open }: { checks: AlarmCheck[]; open: boolean }) {
   const raised = checks.filter((check) => check.level !== "ok");
   const clear = checks.filter((check) => check.level === "ok");
   return (
@@ -59,7 +50,7 @@ function Checks({ checks }: { checks: AlarmCheck[] }) {
         </ul>
       )}
       {clear.length > 0 && (
-        <details className="fof-deck-clear">
+        <details className="fof-deck-clear" open={open}>
           <summary>
             <span className="fof-deck-clear-words">{clearWords(clear.length, raised.length > 0)}</span>
             <span className="fof-deck-clear-fill" aria-hidden="true" />
@@ -93,13 +84,20 @@ export function Deck(props: {
   children?: ReactNode;
   /** What the account may change here, as keys ahead of the part's readings. */
   controls?: Measured[];
+  /** Where a page shows one section at a time, the section the drawing goes with; with none, it is left out. */
+  drawnWith?: string;
 }) {
   const heading = useId();
   const offline = props.status === "offline";
   const checks = alarmingFirst(props.checks);
-  const keys = keysFor(props.groups.map((group) => group.title));
+  const only = useContext(SectionContext);
+  const shows = (title: string) => only === null || only === title;
+  const groups = props.groups.filter((group) => shows(group.title));
+  const controls = shows(CONTROLS) ? props.controls : undefined;
+  const keys = keysFor(groups.map((group) => group.title));
+  const look = only === null ? props.className : "fof-deck-one";
   return (
-    <section className={`fof-deck status-${props.status}${props.className ? ` ${props.className}` : ""}`}
+    <section className={`fof-deck status-${props.status}${look ? ` ${look}` : ""}`}
       data-part={props.part} aria-labelledby={heading}>
       <div className="fof-deck-head">
         <h2 className="fof-label-block">
@@ -110,21 +108,24 @@ export function Deck(props: {
         {!offline && props.aside}
       </div>
 
-      {!offline && props.children}
+      {!offline && only !== null && only === props.drawnWith && groups.length === 0 && (
+        <SectionHead title={only} tone={sectionTone(only)} />
+      )}
+      {!offline && (only === null || only === props.drawnWith) && props.children}
 
-      {!offline && (
-        <div className="fof-deck-groups" style={{ "--groups": props.groups.length + (props.controls ? 1 : 0) } as CSSProperties}>
-          {props.controls && (
-            <section className="fof-deck-group" aria-label="Controls">
-              <SectionHead title="Controls" tone="sand" />
+      {!offline && (groups.length > 0 || controls) && (
+        <div className="fof-deck-groups" style={{ "--groups": groups.length + (controls ? 1 : 0) } as CSSProperties}>
+          {controls && (
+            <section className="fof-deck-group" aria-label={CONTROLS}>
+              <SectionHead title={CONTROLS} tone="sand" />
               <div className="fof-deck-controls">
-                {props.controls.map((reading) => <ControlKey key={reading.label} reading={reading} />)}
+                {controls.map((reading) => <ControlKey key={reading.label} reading={reading} />)}
               </div>
             </section>
           )}
-          {props.groups.map((group, index) => (
+          {groups.map((group, index) => (
             <section key={keys[index]} className="fof-deck-group" aria-label={group.title}>
-              <SectionHead title={group.title} tone={SECTION_TONES[group.title] ?? "sand"} />
+              <SectionHead title={group.title} tone={sectionTone(group.title)} />
               <dl className="fof-rows">
                 <Rows readings={group.readings} />
               </dl>
@@ -133,7 +134,7 @@ export function Deck(props: {
         </div>
       )}
 
-      {!offline && checks.length > 0 && <Checks checks={checks} />}
+      {!offline && checks.length > 0 && shows(CHECKS) && <Checks checks={checks} open={only !== null} />}
     </section>
   );
 }

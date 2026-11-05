@@ -270,6 +270,10 @@ test("Sci-Fi FOF's limit screen fits inside the frame, with keys a finger can hi
   for (const [width, height] of [[800, 480], [1024, 600], [1024, 768], [1366, 768], [1920, 1080], [3840, 2160]]) {
     await page.setViewportSize({ width: width!, height: height! });
     await page.goto("/?skin=sci-fi-fof&part=inverter_charger");
+    // A small panel shows one section at a time.
+    if (height! < 610) {
+      await page.getByRole("button", { name: "Controls", exact: true }).click();
+    }
     const key = page.locator(".fof-deck-control").first();
     // Measured by layout, since the page is still zooming in.
     expect(await key.evaluate((element) => (element as HTMLElement).offsetHeight), `${width} x ${height}`)
@@ -321,7 +325,7 @@ test("Sci-Fi FOF's pill on a reading that can be changed stands taller than its 
 test("Sci-Fi FOF's part pages fit inside the frame with every reading known", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name === "phone", "Sci-Fi FOF's layout for a phone held upright is not done yet");
   await heldStream(page, [system, 0]);
-  for (const [width, height] of [[960, 540], [1024, 600], [1093, 614], [1366, 768], [1707, 960], [1920, 1080], [2560, 1440], [3840, 2160]]) {
+  for (const [width, height] of [[1093, 614], [1366, 768], [1707, 960], [1920, 1080], [2560, 1440], [3840, 2160]]) {
     await page.setViewportSize({ width: width!, height: height! });
     for (const part of ["battery", "inverter_charger", "ac_loads", "dc_loads", "grid", "solar"]) {
       await page.goto(`/?skin=sci-fi-fof&part=${part}`);
@@ -382,4 +386,80 @@ test("Sci-Fi FOF says so on the page of a part that is not reporting", async ({ 
   await expect(page.locator(".fof-deck-head").getByText("Not reporting")).toBeVisible();
   // Measured by layout, since the page is still zooming in; hidden, the head is a pixel wide.
   expect(await page.locator(".fof-deck-head").evaluate((head) => (head as HTMLElement).offsetWidth)).toBeGreaterThan(100);
+});
+
+test("Sci-Fi FOF drops the cells' glow on every small panel, and keeps it on a larger screen", async ({ page }) => {
+  await heldStream(page, [system, 0]);
+  for (const [width, height, glow] of [[800, 480, false], [960, 540, false], [1024, 600, false], [800, 700, false], [1093, 614, true], [1920, 1080, true]]) {
+    await page.setViewportSize({ width: width as number, height: height as number });
+    await page.goto("/?skin=sci-fi-fof");
+    const shadow = await page.locator(".fof-cell-lit").first().evaluate((cell) => getComputedStyle(cell).boxShadow);
+    expect(shadow !== "none", `${width} x ${height}`).toBe(glow);
+  }
+});
+
+test("Sci-Fi FOF changes shape on a small panel, so that nothing scrolls and every target takes a finger", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "Sci-Fi FOF's layout for a phone held upright is not done yet");
+  await heldStream(page, [system, 0]);
+  await page.route("**/api/session", (route) => route.fulfill({
+    json: { account: { name: "owner", role: "admin" }, setup_needed: false, csrf: "token" },
+  }));
+  await page.route("**/api/controls", (route) => route.fulfill({
+    json: [{ name: "input-1-current-limit", value: 16, adjustable: true, low: 0, high: 100, ceiling: 30 }],
+  }));
+  const measure = () => page.evaluate(() => {
+    const well = document.querySelector(".fof-well")!;
+    // A part on the diagram opens from anywhere on it, so its name is not the
+    // target, and a value in a row reaches past what it draws.
+    const targets = [...document.querySelectorAll<HTMLElement>(".fof-side a, .fof-side button, .fof-elbow-top, .fof-deck-control")];
+    // The bottom bar's keys reach past what they draw, so what counts is what a finger lands on.
+    const reach = (key: HTMLElement) => {
+      const { left, width, bottom } = key.getBoundingClientRect();
+      let height = 0;
+      while (key.contains(document.elementFromPoint(left + width / 2, bottom - height - 0.5))) {
+        height += 1;
+      }
+      return height;
+    };
+    const keys = [...document.querySelectorAll<HTMLElement>(".fof-account-segment, .fof-select-button")];
+    return {
+      over: well.scrollHeight - well.clientHeight,
+      across: well.scrollWidth - well.clientWidth,
+      small: [...targets.filter((target) => target.offsetHeight < 44), ...keys.filter((key) => reach(key) < 44)]
+        .map((target) => target.textContent),
+    };
+  });
+  for (const [width, height] of [[800, 480], [960, 540], [1024, 600], [863, 360], [667, 375]]) {
+    await page.setViewportSize({ width: width!, height: height! });
+    await page.goto("/?skin=sci-fi-fof");
+    await expect(page.locator(".fof-diagram")).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    expect(await measure(), `the overview at ${width} x ${height}`).toEqual({ over: 0, across: 0, small: [] });
+
+    await page.locator(".fof-select-button").click();
+    const options = page.getByRole("option");
+    await expect(options.last()).toHaveCSS("opacity", "1");
+    const hits = await options.evaluateAll((all) => all.map((option) => {
+      const { left, width: across, top, bottom } = option.getBoundingClientRect();
+      const lands = (y: number) => option.contains(document.elementFromPoint(left + across / 2, y));
+      return { height: Math.round(bottom - top), whole: lands(top + 1) && lands(bottom - 1) };
+    }));
+    for (const hit of hits) {
+      expect(hit.height, `an option at ${width} x ${height}`).toBeGreaterThanOrEqual(44);
+      expect(hit.whole, `an option at ${width} x ${height}`).toBe(true);
+    }
+    await page.keyboard.press("Escape");
+
+    for (const part of ["battery", "inverter_charger", "ac_loads", "dc_loads", "grid", "solar"]) {
+      await page.goto(`/?skin=sci-fi-fof&part=${part}`);
+      const sections = page.getByRole("navigation", { name: "Sections" }).getByRole("button");
+      await expect(sections.first()).toBeVisible();
+      for (const section of await sections.all()) {
+        await section.click();
+        await expect(section).toHaveAttribute("aria-pressed", "true");
+        expect(await measure(), `${await section.textContent()} of ${part} at ${width} x ${height}`)
+          .toEqual({ over: 0, across: 0, small: [] });
+      }
+    }
+  }
 });

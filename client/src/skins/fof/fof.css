@@ -1543,7 +1543,7 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 }
 
 /* Phones and upright screens: two columns, as in the main view. */
-@media (orientation: portrait), (max-width: 760px) {
+@media (orientation: portrait) {
   .fof-diagram {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-areas:
@@ -1620,7 +1620,7 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 
 /* A small panel keeps the motion but drops the cells' glow, the part that
    costs the most to draw. */
-@media (max-width: 760px), (max-height: 520px) {
+@media (max-width: 760px), (orientation: landscape) and (max-height: 610px), (orientation: landscape) and (max-width: 900px) {
   .fof-cell-lit { box-shadow: none; }
 }
 
@@ -1832,7 +1832,7 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
    say, and the sections sit in a fixed grid of up to four columns, in rows
    larger than the overview's, to use the room there is. A page of few sections
    keeps them to a width a row can be read across. */
-@media (orientation: landscape) and (min-width: 761px) {
+@media (orientation: landscape) {
   .fof-deck:not(.status-offline) .fof-deck-head {
     position: absolute;
     width: 1px;
@@ -2175,3 +2175,81 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 .fof-row .control-value:hover { filter: brightness(1.12); }
 .fof-row .control-value:active { filter: brightness(0.78); }
 .fof-row .control-value:focus-visible { outline: 2px solid var(--fof-ink); outline-offset: 2px; }
+
+/* A small panel: rather than shrink, the console changes shape. Text stays
+   large enough to read from arm's length, the sidebar's blocks carry the
+   figures the diagram has no room for, the diagram keeps only its art and
+   names, and a part's page shows one section at a time, chosen from the
+   sidebar, so that nothing has to scroll. useSmallPanel asks the same question. */
+@media (orientation: landscape) and (max-height: 610px), (orientation: landscape) and (max-width: 900px) {
+  .fof {
+    --fof-side: 9em;
+    --fof-joint: 1.1em;
+    --fof-bar: 2.8em;
+    --fof-foot: 1.9em;
+    --fof-bend: 1em;
+    --fof-round: 2.6em;
+    grid-template-rows: var(--fof-bar) 0.9em minmax(0, 1fr) 0.9em var(--fof-foot);
+    font-size: clamp(0.8125rem, min(1.625vw, 2.7vh), 1.25rem);
+  }
+
+  .fof-well { padding: 0.5em 0.9em 0.3em; }
+
+  /* Sections can outnumber the room there is, so the sidebar scrolls, in
+     blocks of a height that leaves part of the next one showing. */
+  .fof-side { overflow-y: auto; grid-auto-rows: minmax(46px, 1fr); scrollbar-width: none; }
+  .fof-side > a, .fof-side > button { justify-content: center; padding: 0 0.6em; font-size: 1em; }
+  .fof-side b { font-size: 1.65em; line-height: 1; }
+
+  .fof-label { padding: 0 0.6em 0 0.3em; font-size: 1.7em; }
+  .fof-clock-segment .clock, .fof-link > span:first-child { font-size: 1.3em; }
+  .fof:not(.fof-paged) .fof-vital { display: none; }
+  .fof-vital { flex-direction: row; align-items: center; gap: 0.5em; padding: 0 0.7em; }
+  .fof-vital b { font-size: 1.6em; }
+
+  /* The bottom bar is thin, and its keys reach up past it, over the well, to a
+     finger's size. The account's name is cut off along its length only, since
+     clipping it all round would take the reach with it. The well keeps what it
+     stacks to itself, or a part on the diagram would come out over the keys. */
+  .fof-well { isolation: isolate; }
+  .fof-bottom { position: relative; z-index: 1; }
+  .fof-bottom .fof-segment { font-size: 1em; }
+  .fof-account-segment { overflow: clip visible; }
+  .fof-account-segment,
+  .fof-select-button { position: relative; }
+  .fof-account-segment::after,
+  .fof-select-button::after { content: ""; position: absolute; inset: calc(1.9em - 44px) 0 0; }
+  .fof-select .fof-select-option { min-height: 44px; padding: 0 0.9em; }
+
+  .fof-diagram { font-size: 0.85em; }
+  .fof-diagram .fof-label-block { font-size: 1.18em; }
+  .fof-diagram .fof-rows,
+  .fof-diagram .fof-state-line,
+  .fof-diagram .fof-headline,
+  .fof-diagram .fof-core-figure { display: none; }
+
+  .fof-deck-one { display: flex; flex-direction: column; gap: 0.8em; }
+  .fof-deck-one .fof-deck-groups { order: -1; width: 100%; columns: auto; margin: 0; }
+  .fof-deck-one .fof-deck-group { margin-bottom: 0; }
+  .fof-deck-one .fof-rows { display: block; columns: 2; column-gap: 2.6em; max-width: none; margin-top: 0.3em; font-size: min(1.6em, 2.6vw, 4.4vh); }
+  .fof-deck-one .fof-row { margin-bottom: 0.3em; font-size: 1em; break-inside: avoid; }
+  .fof-deck-one .fof-row .control-value::after { inset: calc(50% - 22px) -0.3em; }
+  .fof-deck-one .fof-deck-clear ul { gap: 0.5em 1.6em; font-size: 1.3em; }
+  .fof-deck-one .fof-deck-raised { font-size: 1.3em; }
+
+  /* The front panel: the hub and its lights side by side, as large as they will go. */
+  .fof-deck-one .fof-deck-unit { flex-wrap: nowrap; justify-content: space-evenly; gap: 1em; }
+  .fof-deck-one .fof-deck-hub { display: grid; flex: none; place-content: center; height: 17em; width: 17em; }
+  .fof-deck-one .fof-deck-hub .fof-ring-unit { width: 26em; }
+  .fof-deck-one .fof-deck-leds { flex: 1; font-size: 1.3em; }
+}
+
+/* A phone held sideways is shorter still, and the diagram follows its height. */
+@media (orientation: landscape) and (max-height: 420px) {
+  .fof-diagram { font-size: 2.15vh; }
+  .fof-diagram .fof-label-block { font-size: max(1.18em, 0.7rem); }
+  .fof-readout-schematic > .fof-unit { width: min(100%, 40vh); }
+  .fof-deck-one .fof-deck-hub { width: 12em; height: 12em; }
+  .fof-deck-one .fof-deck-hub .fof-ring-unit { width: 19em; }
+  .fof-deck-one .fof-deck-leds { font-size: 1.1em; }
+}

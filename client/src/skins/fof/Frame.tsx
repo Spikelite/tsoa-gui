@@ -11,7 +11,9 @@ import { LINK_SENTENCES, LINK_WORDS, type Link } from "../link";
 import { closePart, openPart, partAddress } from "../partView";
 import { isWorded, timeLeftReadings } from "../readings";
 import { STATUS_LABELS } from "../status";
+import type { PageSections } from "./sections";
 import { SkinSegment } from "./SkinSegment";
+import { useSmallPanel } from "./smallPanel";
 
 /** The sidebar, in the order power runs through the system. */
 const SIDEBAR: PartName[] = ["grid", "generator", "solar", "inverter_charger", "battery", "ac_loads", "dc_loads"];
@@ -121,23 +123,39 @@ function partVitals(part: PartName, model: System): Vital[] {
   ];
 }
 
+/** What a small panel shows on a part's block, in place of the readings it has no room for on the diagram. */
+function sideFigure(part: PartName, model: System): { value: number | null; format: f.Format } {
+  if (part === "battery") {
+    return { value: model.battery?.soc_percent ?? null, format: f.percent };
+  }
+  if (part === "inverter_charger") {
+    return { value: model.inverter_charger?.ac_out_power_w ?? null, format: f.power };
+  }
+  return partDetail(part, model)?.headline ?? { value: null, format: f.power };
+}
+
 // The console's frame, which stays put on every screen while what is inside it
 // changes: one elbow turning a sidebar into a thick top bar, and another
 // turning it into a thin bottom bar. The top bar's segments say what the
 // screen is, how the system is doing, the time and how current the readings
 // are, and an alarm takes them over so that it reads from across a room. The
 // sidebar is the way round the system, each block saying what its part has
-// raised, and the elbow above it the way back to the whole of it. What a
-// kiosk's viewer rarely needs goes along the bottom.
-export function Frame({ model, part = null, state = "live", job }: {
+// raised, and the elbow above it the way back to the whole of it. On a small
+// panel each block carries its part's figure too, and on a part's page the
+// sidebar is the way round its sections. What a kiosk's viewer rarely needs
+// goes along the bottom.
+export function Frame({ model, part = null, state = "live", job, sections }: {
   /** With none yet, the frame stands empty, waiting for the first readings. */
   model: System | null;
   part?: PartName | null;
   state?: Link;
   /** A job that has taken over the frame: its title, the sidebar it needs, and the way out of it. */
   job?: { title: string; side: ReactNode; onCancel: () => void };
+  /** On a screen that shows one section of a part's page at a time, those sections. */
+  sections?: PageSections | null;
 }) {
   const signedIn = useSignedIn();
+  const small = useSmallPanel();
   const parts = model ? raised(model) : [];
   const alert = model ? alertFor(state, parts, model) : null;
   const open = (event: MouseEvent<HTMLAnchorElement>, name: PartName) => {
@@ -191,15 +209,22 @@ export function Frame({ model, part = null, state = "live", job }: {
         )}
       </div>
 
-      <nav className="fof-side" aria-label={job ? job.title : "Parts"}>
+      <nav className="fof-side" aria-label={job ? job.title : sections ? "Sections" : "Parts"}>
         {job?.side}
         {model === null && SIDEBAR.map((name) => <span key={name} data-side={name} />)}
-        {model && !job && SIDEBAR.filter((name) => model[name] !== null).map((name) => {
+        {!job && sections?.all.map(({ title, label, tone, raised: worst }) => (
+          <button key={title} type="button" className={worst ? `fof-side-raised status-${worst}` : `fof-tone-${tone}`}
+            aria-pressed={title === sections.shown} onClick={() => sections.choose(title)}>
+            {label}
+          </button>
+        ))}
+        {model && !job && !sections && SIDEBAR.filter((name) => model[name] !== null).map((name) => {
           const own = parts.find((entry) => entry.part === name);
+          const figure = sideFigure(name, model);
           return (
             <a key={name} href={partAddress(name)} data-side={name} className={own && `fof-side-raised status-${own.status}`}
               aria-current={name === part ? "page" : undefined} onClick={(event) => open(event, name)}>
-              {own && <em>{own.word}</em>}
+              {own ? <em>{own.word}</em> : small && <b><Eased value={figure.value} format={figure.format} /></b>}
               {partTitle(name, model)}
             </a>
           );
