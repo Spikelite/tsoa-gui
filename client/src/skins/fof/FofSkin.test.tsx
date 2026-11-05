@@ -140,7 +140,10 @@ describe("FofSkin", () => {
   });
 
   it("carries the figures that say how the system is doing on the top bar", () => {
-    const charging = { ...system, battery: { ...system.battery!, soc_percent: 70, power_w: 300 } };
+    const charging = {
+      ...system, inverter_charger: { ...system.inverter_charger!, status: "normal" as const, alarms: [] },
+      battery: { ...system.battery!, soc_percent: 70, power_w: 300 },
+    };
     const { rerender } = render(<FofSkin model={charging} />);
     const vitals = () => [...document.querySelectorAll(".fof-vital")].map((vital) => vital.textContent);
     expect(vitals()).toEqual(["70%Battery, Charging", "300 WInto the battery", "310 WSolar", "900 WLoads"]);
@@ -151,6 +154,45 @@ describe("FofSkin", () => {
     // Only what the system has, and what it knows.
     rerender(<FofSkin model={{ ...charging, solar: null, battery: { ...charging.battery, power_w: null } }} />);
     expect(vitals()).toEqual(["70%Battery, Charging", "900 WLoads"]);
+  });
+
+  it("lets the worst alarm take over the top bar, with each part's block saying its own", () => {
+    const fault = {
+      ...system,
+      inverter_charger: { ...system.inverter_charger!, status: "fault" as const, alarms: [{ name: "Overload", level: "alarm" as const }] },
+      battery: { ...system.battery!, status: "attention" as const },
+    };
+    render(<FofSkin model={fault} />);
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveClass("status-fault");
+    expect(alert).toHaveTextContent("Inverter FaultOverload");
+    expect(document.querySelector(".fof-vital")).toBeNull();
+
+    const parts = within(screen.getByRole("navigation", { name: "Parts" }));
+    expect(parts.getByRole("link", { name: /Inverter/ })).toHaveTextContent("OverloadInverter");
+    expect(parts.getByRole("link", { name: /Inverter/ })).toHaveClass("status-fault");
+    // A raised check is the battery's word for what is wrong.
+    expect(parts.getByRole("link", { name: /Battery/ })).toHaveTextContent("Cell imbalanceBattery");
+    expect(parts.getByRole("link", { name: /Battery/ })).toHaveClass("status-attention");
+    expect(parts.getByRole("link", { name: "Solar" })).not.toHaveClass("fof-side-raised");
+    // Said on the frame and the name, so not again among the readings.
+    expect(within(screen.getByRole("region", { name: /Inverter/ })).queryByText("Overload")).toBeNull();
+  });
+
+  it("stops and dims everything inside the frame while the readings are not live", () => {
+    const { container, rerender } = render(<FofSkin model={{ ...system, live: false }} />);
+    expect(screen.getByRole("alert")).toHaveTextContent("StaleNot hearing from the device");
+    expect(container.querySelector(".fof")).toHaveClass("fof-frozen-stale");
+
+    rerender(<FofSkin model={system} connected={false} />);
+    expect(screen.getByRole("alert")).toHaveClass("status-fault");
+    expect(screen.getByRole("alert")).toHaveTextContent("OfflineLost the server");
+    expect(container.querySelector(".fof")).toHaveClass("fof-frozen-lost");
+
+    const calm = { ...system, inverter_charger: { ...system.inverter_charger!, status: "normal" as const, alarms: [] } };
+    rerender(<FofSkin model={calm} />);
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(container.querySelector(".fof")).not.toHaveClass("fof-frozen");
   });
 
   it("quiets the figure of a part doing nothing", () => {

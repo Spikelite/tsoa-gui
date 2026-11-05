@@ -130,7 +130,7 @@ describe("a part's own page", () => {
     const parts = within(screen.getByRole("navigation", { name: "Parts" }));
     // The sidebar has the parts this system has, and it has no generator.
     expect(parts.getAllByRole("link").map((link) => link.textContent)).toEqual([
-      "Shore power", "Solar", "Inverter", "Battery", "AC loads", "DC loads",
+      "Shore power", "Solar", "High temperatureInverter", "Battery", "AC loads", "DC loads",
     ]);
     expect(screen.queryByRole("button", { name: "Overview" })).toBeNull();
 

@@ -1,8 +1,27 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import { withIdleLinks } from "../src/skins/fof/links";
 import { throughHub } from "../src/skins/fof/throughHub";
 import { system } from "../src/test/system";
+
+/**
+ * A stream that stays open, sending each model after the delay beside it. An
+ * answered route ends the stream, which the page rightly shows as offline.
+ */
+async function heldStream(page: Page, ...models: [unknown, number][]) {
+  await page.addInitScript((sent) => {
+    class HeldOpen extends EventTarget {
+      constructor() {
+        super();
+        for (const [data, delay] of sent) {
+          setTimeout(() => this.dispatchEvent(new MessageEvent("model", { data })), delay);
+        }
+      }
+      close() {}
+    }
+    Object.assign(window, { EventSource: HeldOpen });
+  }, models.map(([model, delay]): [string, number] => [JSON.stringify(model), delay]));
+}
 
 test("the page draws the system and fits the screen", async ({ page }) => {
   // The preview server has no API, so the event stream is answered here with
@@ -66,16 +85,9 @@ test("the battery opens its own page inside Sci-Fi FOF's frame, and the page fit
 });
 
 test("a Sci-Fi FOF conduit going idle carries the change along it with its waves", async ({ page }) => {
-  // Solar producing, then, when the page reconnects, not.
+  // Solar producing, then not.
   const idle = { ...system, flows: system.flows.filter((flow) => flow.source !== "solar") };
-  let answered = 0;
-  await page.route("**/api/system/events", (route) =>
-    route.fulfill({
-      status: 200,
-      headers: { "content-type": "text/event-stream", "cache-control": "no-cache" },
-      body: `retry: ${answered === 0 ? 1500 : 60000}\nevent: model\ndata: ${JSON.stringify(answered++ === 0 ? system : idle)}\n\n`,
-    }),
-  );
+  await heldStream(page, [system, 0], [idle, 1500]);
   await page.goto("/?skin=sci-fi-fof");
   const solar = page.locator("[data-flow='solar-dc_bus']");
   await expect(solar).not.toHaveClass(/fof-conduit-idle|fof-conduit-carrying/);
@@ -218,4 +230,16 @@ test("Sci-Fi FOF's frame holds the whole overview on screens of any size, with i
   const list = await page.getByRole("listbox", { name: "Skin" }).boundingBox();
   expect(list!.y).toBeGreaterThanOrEqual(0);
   expect(list!.y + list!.height).toBeLessThanOrEqual(768);
+});
+
+test("Sci-Fi FOF stops and dims what its frame holds while the readings are not live", async ({ page }) => {
+  await heldStream(page, [system, 0], [{ ...system, live: false }, 1000]);
+  await page.goto("/?skin=sci-fi-fof");
+  const well = page.locator(".fof-well");
+  await expect(page.locator(".fof-conduit").first()).toBeAttached();
+  expect(await well.evaluate((element) => element.getAnimations({ subtree: true }).length)).toBeGreaterThan(0);
+
+  await expect(page.getByRole("alert")).toContainText("Stale");
+  expect(await well.evaluate((element) => element.getAnimations({ subtree: true }).length)).toBe(0);
+  expect(await well.evaluate((element) => getComputedStyle(element).filter)).not.toBe("none");
 });
