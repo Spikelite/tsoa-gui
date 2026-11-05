@@ -308,6 +308,10 @@ test("Sci-Fi FOF's part pages fit inside the frame with every reading known", as
         const reach = await page.evaluate(() => document.querySelector(".fof-deck-leds")!.getBoundingClientRect().right
           - document.querySelector(".fof-deck-groups")!.getBoundingClientRect().left);
         expect(reach, `the lights at ${width} x ${height}`).toBeLessThanOrEqual(0);
+      } else {
+        const clear = await page.evaluate(() => document.querySelector(".fof-deck-checks")!.getBoundingClientRect().top
+          - Math.max(...[...document.querySelectorAll(".fof-deck-groups > *")].map((section) => section.getBoundingClientRect().bottom)));
+        expect(clear, `the checks at ${width} x ${height}`).toBeGreaterThan(0);
       }
     }
   }
