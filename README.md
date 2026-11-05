@@ -20,7 +20,7 @@ The minimal skin is the default: plain panels, the readings in rows, and dotted 
 
 ![The minimal skin on a desktop screen](docs/images/minimal-flow.gif)
 
-Both skins show the same readings. Choose one from the menu at the top of the page, and each browser remembers its choice.
+Both skins show the same readings. Choose one from the menu on the page, and each browser remembers its choice.
 
 ### A page for every part
 
@@ -32,9 +32,9 @@ Click a part to open a page with everything the device reports about it. The bat
 
 ### Phones and kiosk screens
 
-Sci-Fi FOF scales to fit the whole system on a landscape screen, from a small touch panel to a TV. The minimal skin works on a landscape screen too, scrolling where it is short, and on a phone held upright. A screen mounted on the wall can open straight onto a skin or a part's page from its address, with nobody to click. Each skin also shows the time of day, so a wall display doubles as a clock.
+Sci-Fi FOF fits the whole system on a landscape screen, from a small touch panel, where a part's page shows one section at a time, to a TV. On a phone held upright it lists the parts instead of drawing them. The minimal skin works on a landscape screen too, scrolling where it is short, and on a phone held upright. A screen mounted on the wall can open straight onto a skin or a part's page from its address, with nobody to click. Each skin also shows the time of day, so a wall display doubles as a clock.
 
-<img src="docs/images/overview-minimal-phone.png" alt="The minimal skin on a phone" width="250">
+<img src="docs/images/overview-fof-phone.png" alt="Sci-Fi FOF on a phone, listing each part with its state and its figure" width="250"> <img src="docs/images/overview-minimal-phone.png" alt="The minimal skin on a phone" width="250">
 
 ## Requirements
 
