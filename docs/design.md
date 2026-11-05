@@ -83,7 +83,7 @@ The second skin, Sci-Fi FOF (Form Over Function), draws the same diagram as an e
 
 #### The frame
 
-The console sits in a frame. Its top bar carries the time, a segment that reads Live, Stale or Offline, and the skin choice, which drops down as a list of segments; on a part's page it also carries the way back to the overview. The bottom bar carries the application's name. The console scales with the screen's height as well as its width, so the whole of it fits on anything from a small touch panel to a TV. Its type is Antonio, a condensed face that ships with the skin, so every screen draws the same thing with or without internet, and only this skin loads it.
+The console sits in a frame that stays put on every screen while what is inside it changes. One elbow turns a sidebar into a thick top bar, whose segments carry the title, the vital signs, the time and a segment that reads Live, Stale or Offline. The sidebar has a block for each part, in the color of its name, that goes straight to that part's page from anywhere, and the elbow above it is the way back to the overview. A second elbow turns the sidebar into a thin bottom bar, with the application's name, the account and the skin choice, which rises as a list of segments. On a phone held upright the sidebar goes and the elbows become short caps on the two bars. The console scales with the screen's height as well as its width, so screens of one shape draw the same thing at any size, from a small touch panel to a TV. Its type is Antonio, a condensed face that ships with the skin, so every screen draws the same thing with or without internet, and only this skin loads it.
 
 #### Parts and conduits
 

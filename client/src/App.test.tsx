@@ -126,7 +126,7 @@ describe("App", () => {
     expect(screen.queryByRole("combobox", { name: "Skin" })).not.toBeInTheDocument();
     expect(screen.getAllByLabelText("Time of day")).toHaveLength(1);
     expect(screen.getAllByRole("heading", { level: 1, name: "tsoa-gui" })).toHaveLength(1);
-    expect(screen.getByRole("heading", { level: 1 }).closest(".fof-bottom")).not.toBeNull();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveClass("fof-elbow-foot");
 
     // From the keyboard: open, move to the other skin, pick it.
     expect(choice).toHaveAttribute("aria-expanded", "false");

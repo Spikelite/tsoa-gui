@@ -48,7 +48,12 @@ export function partAddress(part: PartName): string {
 export function openPart(part: PartName, from?: Element | null) {
   const box = from?.getBoundingClientRect();
   origin = box ? { x: (box.left + box.width / 2) / window.innerWidth, y: (box.top + box.height / 2) / window.innerHeight } : null;
-  window.history.pushState({ [CHANGE]: true }, "", addressWith(part));
+  // From one part's page to another's is the same step away from the overview.
+  if (current() === null) {
+    window.history.pushState({ [CHANGE]: true }, "", addressWith(part));
+  } else {
+    window.history.replaceState(window.history.state, "", addressWith(part));
+  }
   window.dispatchEvent(new Event(CHANGE));
 }
 

@@ -2,8 +2,8 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent
 
 import { useSkinChoice } from "../skinChoice";
 
-// The skin choice as a segment of the frame's top bar. Chosen, the segment
-// extends down as a bar to the skin showing, which joins it like an elbow,
+// The skin choice as a segment of the frame's bottom bar. Chosen, the segment
+// extends up as a bar to the skin showing, which joins it like an elbow,
 // with the other skins beside it as free-standing rounded buttons, each
 // sliding in after the one above; picking one shows it and folds the list
 // away again. It works as a list box from the keyboard: the arrow keys move
@@ -17,14 +17,14 @@ export function SkinSegment() {
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const options = useRef<(HTMLLIElement | null)[]>([]);
-  // How far the bar reaches: down to the bottom of the skin showing.
+  // How far the bar reaches: up to the top of the skin showing.
   const [reach, setReach] = useState(0);
   const currentIndex = choice ? choice.skins.findIndex((skin) => skin.id === choice.current) : -1;
 
   useLayoutEffect(() => {
     const showing = options.current[currentIndex];
     if (showing) {
-      setReach(showing.offsetTop + showing.offsetHeight);
+      setReach(showing.parentElement!.offsetHeight - showing.offsetTop);
     }
   }, [currentIndex, open]);
 
