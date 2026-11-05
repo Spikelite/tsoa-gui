@@ -66,7 +66,7 @@ def test_the_archive_holds_the_release_with_nothing_of_who_built_it(tmp_path: Pa
     with tarfile.open(path) as tar:
         members = {m.name: m for m in tar.getmembers()}
     top = "tsoa-gui-1.0.0"
-    for name in ("VERSION", "tested.json", "LICENSE", "app/client/index.html", "app/tsoa_gui/__main__.py",
+    for name in ("VERSION", "tested.json", "LICENSE", "OFL-Antonio.txt", "app/client/index.html", "app/tsoa_gui/__main__.py",
                  "install.sh", "rollback.sh", "boot.sh", "uninstall.sh", "service/run", "service/log/run",
                  "precompile.py"):
         assert f"{top}/{name}" in members, name

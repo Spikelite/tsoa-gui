@@ -1,3 +1,12 @@
+/* The skin brings its own typeface, since few screens have a condensed one
+   and a LAN may have no internet to fetch one from. */
+@font-face {
+  font-family: Antonio;
+  src: url("./fonts/antonio-latin-wght-normal.woff2") format("woff2");
+  font-weight: 100 700;
+  font-display: swap;
+}
+
 /* Sci-Fi FOF: the main view's layout as an engineering console, in rounded
    bars on black. The frame's colors are decoration only and stay clear of
    the status colors, which appear only with their icons and words. */
@@ -28,8 +37,10 @@
   color: var(--fof-ink);
   /* Text and every measure scale with the screen: larger on a TV, readable on a phone. */
   font-size: clamp(0.9rem, 0.45vw + 0.55rem, 1.45rem);
-  font-family: "Arial Narrow", "Roboto Condensed", "Helvetica Neue", Arial, sans-serif;
-  font-stretch: condensed;
+  font-family: Antonio, "Arial Narrow", "Roboto Condensed", "Helvetica Neue", Arial, sans-serif;
+  /* Set, because Antonio's own line height is tall enough to push a full
+     screen of readings off a small one. */
+  line-height: 1.1;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -372,7 +383,10 @@
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 0 0.75em;
-  font-size: 0.9em;
+  /* Condensed capitals can stand taller in the same height, with no
+     descenders to need the room between rows. */
+  font-size: 1em;
+  line-height: 0.96;
 }
 
 .fof-row dt {

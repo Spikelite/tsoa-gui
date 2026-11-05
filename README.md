@@ -86,6 +86,6 @@ Bug reports and feature requests are welcome as issues. [CONTRIBUTING.md](CONTRI
 
 ## License
 
-tsoa-gui is free for personal and other noncommercial use under the [PolyForm Noncommercial License 1.0.0](LICENSE). Commercial use needs a separate license from the copyright holder, Spikelite.
+tsoa-gui is free for personal and other noncommercial use under the [PolyForm Noncommercial License 1.0.0](LICENSE). Commercial use needs a separate license from the copyright holder, Spikelite. The Antonio font that ships with Sci-Fi FOF is under the [SIL Open Font License 1.1](client/src/skins/fof/fonts/OFL.txt).
 
 tsoa-gui is not affiliated with or endorsed by Victron Energy.
