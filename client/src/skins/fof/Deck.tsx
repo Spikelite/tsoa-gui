@@ -1,8 +1,11 @@
-import { useId, type CSSProperties, type ReactNode } from "react";
+import { useContext, useId, type CSSProperties, type ReactNode } from "react";
 
+import { OpenControlContext } from "../../controls/controls";
 import type { AlarmCheck, PartName, Status } from "../../model/system";
 import { alarmingFirst, type DetailGroup } from "../details";
+import { Eased } from "../Eased";
 import { keysFor } from "../keys";
+import type { Measured } from "../readings";
 import { Rows } from "./Core";
 import { StatusWords } from "./StatusPill";
 
@@ -17,6 +20,18 @@ const SectionHead = ({ title, tone }: { title: string; tone: string }) => (
     <i aria-hidden="true" />
   </h3>
 );
+
+/** A setting the account may change, as a key big enough to press. */
+function ControlKey({ reading }: { reading: Measured }) {
+  const open = useContext(OpenControlContext);
+  return (
+    <button type="button" className="fof-key fof-tone-sand fof-deck-control" title={`Change the ${reading.label}`}
+      onClick={() => open?.(reading)}>
+      <span>{reading.label}</span>
+      <b><Eased value={reading.value} format={reading.format} /></b>
+    </button>
+  );
+}
 
 /** The bar over the checks that are clear, which says all of them are if nothing is raised. */
 function clearWords(count: number, anyRaised: boolean): string {
@@ -76,6 +91,8 @@ export function Deck(props: {
   checks: AlarmCheck[];
   /** The part drawn large, between its name and its readings. */
   children?: ReactNode;
+  /** What the account may change here, as keys ahead of the part's readings. */
+  controls?: Measured[];
 }) {
   const heading = useId();
   const offline = props.status === "offline";
@@ -96,7 +113,15 @@ export function Deck(props: {
       {!offline && props.children}
 
       {!offline && (
-        <div className="fof-deck-groups" style={{ "--groups": props.groups.length } as CSSProperties}>
+        <div className="fof-deck-groups" style={{ "--groups": props.groups.length + (props.controls ? 1 : 0) } as CSSProperties}>
+          {props.controls && (
+            <section className="fof-deck-group" aria-label="Controls">
+              <SectionHead title="Controls" tone="sand" />
+              <div className="fof-deck-controls">
+                {props.controls.map((reading) => <ControlKey key={reading.label} reading={reading} />)}
+              </div>
+            </section>
+          )}
           {props.groups.map((group, index) => (
             <section key={keys[index]} className="fof-deck-group" aria-label={group.title}>
               <SectionHead title={group.title} tone={SECTION_TONES[group.title] ?? "sand"} />
@@ -105,9 +130,10 @@ export function Deck(props: {
               </dl>
             </section>
           ))}
-          {checks.length > 0 && <Checks checks={checks} />}
         </div>
       )}
+
+      {!offline && checks.length > 0 && <Checks checks={checks} />}
     </section>
   );
 }

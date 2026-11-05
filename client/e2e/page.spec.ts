@@ -270,7 +270,12 @@ test("Sci-Fi FOF's limit screen fits inside the frame, with keys a finger can hi
   for (const [width, height] of [[800, 480], [1024, 600], [1024, 768], [1366, 768], [1920, 1080], [3840, 2160]]) {
     await page.setViewportSize({ width: width!, height: height! });
     await page.goto("/?skin=sci-fi-fof&part=inverter_charger");
-    await page.locator(".control-value").first().click();
+    const key = page.locator(".fof-deck-control").first();
+    // Measured by layout, since the page is still zooming in.
+    expect(await key.evaluate((element) => (element as HTMLElement).offsetHeight), `${width} x ${height}`)
+      .toBeGreaterThanOrEqual(44);
+    await key.focus();
+    await page.keyboard.press("Enter");
     await expect(page.getByRole("group", { name: "Breaker sizes" })).toBeVisible();
     const measured = await page.evaluate(() => {
       const well = document.querySelector(".fof-well")!;
@@ -299,6 +304,15 @@ test("Sci-Fi FOF's part pages fit inside the frame with every reading known", as
       await page.evaluate(() => document.fonts.ready);
       const over = await page.locator(".fof-well").evaluate((well) => well.scrollHeight - well.clientHeight);
       expect(over, `${part} at ${width} x ${height}`).toBe(0);
+      if (part === "inverter_charger") {
+        const reach = await page.evaluate(() => document.querySelector(".fof-deck-leds")!.getBoundingClientRect().right
+          - document.querySelector(".fof-deck-groups")!.getBoundingClientRect().left);
+        expect(reach, `the lights at ${width} x ${height}`).toBeLessThanOrEqual(0);
+      } else {
+        const clear = await page.evaluate(() => document.querySelector(".fof-deck-checks")!.getBoundingClientRect().top
+          - Math.max(...[...document.querySelectorAll(".fof-deck-groups > *")].map((section) => section.getBoundingClientRect().bottom)));
+        expect(clear, `the checks at ${width} x ${height}`).toBeGreaterThan(0);
+      }
     }
   }
 });

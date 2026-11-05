@@ -27,7 +27,7 @@ The inverter/charger, the battery, solar and the DC loads all meet at one DC bus
 A part opens into a page of its own with everything the device reports about it, in every skin and with the same readings in each.
 
 - The battery's page starts with every cell it reports, each with its voltage, its difference from the others and whether it is being balanced. Then come its charge, power, cells, temperatures, limits, history and device details, and every condition it watches with where each stands.
-- The inverter/charger's page starts with its front panel's lights, beside its hub in Sci-Fi FOF. Then come its output and input phase by phase, its battery side and the battery limits it follows, its conditions and settings, the energy it has moved along each route between the supplies, the battery and the loads, its device details and every condition it watches.
+- The inverter/charger's page starts with its front panel's lights, in a column with its hub in Sci-Fi FOF. Then come its output and input phase by phase, its battery side and the battery limits it follows, its conditions and settings, the energy it has moved along each route between the supplies, the battery and the loads, its device details and every condition it watches.
 - The grid or shore supply and the generator show what reaches the inverter/charger from their input and the energy carried from it.
 - Solar shows each charger's panel and battery sides, its best power today and its harvest.
 - The AC loads show what feeds them, the energy delivered to them, and each circuit an energy meter of its own measures, with its power, voltage, current, power factor and the energy it has used; the DC loads show their current at the battery's voltage.
