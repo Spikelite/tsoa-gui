@@ -140,3 +140,28 @@ test("Sci-Fi FOF writes labels and words in capitals and leaves units as they ar
   await expect(row("battery", "Voltage").locator("dd")).toHaveText("UNKNOWN", shown);
   await expect(row("inverter_charger", "Mode").locator("dd")).toHaveText("ON", shown);
 });
+
+test("Sci-Fi FOF brings its own font from tsoa-gui, and no other skin loads it", async ({ page }) => {
+  await page.route("**/api/system/events", (route) =>
+    route.fulfill({
+      status: 200,
+      headers: { "content-type": "text/event-stream", "cache-control": "no-cache" },
+      body: `retry: 60000\nevent: model\ndata: ${JSON.stringify(system)}\n\n`,
+    }),
+  );
+  const fonts: string[] = [];
+  page.on("request", (request) => {
+    if (request.resourceType() === "font") {
+      fonts.push(request.url());
+    }
+  });
+  await page.goto("/");
+  await expect(page.getByRole("region", { name: "Battery" })).toBeVisible();
+  expect(fonts).toEqual([]);
+
+  await page.goto("/?skin=sci-fi-fof");
+  await expect.poll(() => page.evaluate(() =>
+    [...document.fonts].filter((face) => face.status === "loaded").map((face) => face.family))).toEqual(["Antonio"]);
+  expect(fonts).toHaveLength(1);
+  expect(new URL(fonts[0]!).origin).toBe(new URL(page.url()).origin);
+});

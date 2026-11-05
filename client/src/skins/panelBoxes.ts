@@ -113,7 +113,12 @@ export function usePanelMeasure(svg: RefObject<SVGSVGElement | null>, flows: Flo
     const observer = new ResizeObserver(measure);
     observer.observe(root);
     root.querySelectorAll("[data-part]").forEach((panel) => observer.observe(panel));
-    return () => observer.disconnect();
+    // A font arriving can move what a panel marks without resizing the panel.
+    document.fonts.addEventListener("loadingdone", measure);
+    return () => {
+      observer.disconnect();
+      document.fonts.removeEventListener("loadingdone", measure);
+    };
   }, [svg, layoutKey, revision]);
 
   return measured;

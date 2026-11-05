@@ -102,6 +102,8 @@ def stage(directory: Path, version: str, client: Path = REPO / "client" / "dist"
         (directory / script).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(VENUS / script, directory / script)
     shutil.copyfile(REPO / "LICENSE", directory / "LICENSE")
+    # Its license requires the font to carry it wherever the font goes.
+    shutil.copyfile(REPO / "client" / "src" / "skins" / "fof" / "fonts" / "OFL.txt", directory / "OFL-Antonio.txt")
     (directory / "VERSION").write_text(version + "\n", encoding="utf-8", newline="\n")
     (directory / "tested.json").write_text(json.dumps(tested_versions(), indent=2) + "\n",
                                            encoding="utf-8", newline="\n")

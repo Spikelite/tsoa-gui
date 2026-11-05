@@ -20,7 +20,7 @@ For anything larger than a small fix, open an issue first, so that the approach 
 - Add or update tests for what you change. Test data is invented; where an address or hostname is needed, use 192.0.2.0/24 and example.com.
 - Every skin has to work on a landscape screen, from a small touch panel to a TV, as well as on a phone.
 - Artwork is original. Do not add logos, sounds or names taken from films, games or other products.
-- A new dependency needs a permissive license such as MIT, BSD, ISC, Apache-2.0 or PSF-2.0; copyleft licenses such as GPL and AGPL cannot be used. The server runs on the Venus OS device with the Python and pydantic that Venus ships, so its dependencies have to be pure Python.
+- A new dependency needs a permissive license such as MIT, BSD, ISC, Apache-2.0 or PSF-2.0; copyleft licenses such as GPL and AGPL cannot be used. A font that ships with a skin may be under the SIL Open Font License, with its license file beside it. The server runs on the Venus OS device with the Python and pydantic that Venus ships, so its dependencies have to be pure Python.
 
 ## How changes are reviewed
 
