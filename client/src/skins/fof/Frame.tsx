@@ -93,6 +93,10 @@ function alertFor(state: Link, parts: Raised[], model: System): Alert | null {
 /** The figures for a part's own page, whose name the bar's title then gives. */
 function partVitals(part: PartName, model: System): Vital[] {
   const { battery, inverter_charger: inverter } = model;
+  // Its last figures are not what it is doing now.
+  if (model[part]?.status === "offline") {
+    return [];
+  }
   if (part === "battery" && battery !== null) {
     const left = timeLeftReadings(battery)[0];
     return [

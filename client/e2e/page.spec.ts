@@ -334,3 +334,13 @@ test("Sci-Fi FOF's top bar keeps a unit's case, and sets a word in capitals", as
   await expect(page.locator(".fof-vital", { hasText: "State" })).toBeVisible();
   expect(await case_(/State/)).toBe("uppercase");
 });
+
+test("Sci-Fi FOF says so on the page of a part that is not reporting", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "Sci-Fi FOF's layout for a phone held upright is not done yet");
+  await heldStream(page, [{ ...system, solar: { ...system.solar!, status: "offline" } }, 0]);
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto("/?skin=sci-fi-fof&part=solar");
+  await expect(page.locator(".fof-deck-head").getByText("Not reporting")).toBeVisible();
+  // Measured by layout, since the page is still zooming in; hidden, the head is a pixel wide.
+  expect(await page.locator(".fof-deck-head").evaluate((head) => (head as HTMLElement).offsetWidth)).toBeGreaterThan(100);
+});

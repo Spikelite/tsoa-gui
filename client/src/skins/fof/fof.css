@@ -1776,11 +1776,12 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 }
 
 /* On a landscape screen the frame's top bar names the page, so its own heading
-   is left to a screen reader, and the sections sit in a fixed grid of up to
-   four columns, in rows larger than the overview's, to use the room there is.
-   A page of few sections keeps them to a width a row can be read across. */
+   is left to a screen reader, unless it is all a part not reporting has to
+   say, and the sections sit in a fixed grid of up to four columns, in rows
+   larger than the overview's, to use the room there is. A page of few sections
+   keeps them to a width a row can be read across. */
 @media (orientation: landscape) and (min-width: 761px) {
-  .fof-deck-head {
+  .fof-deck:not(.status-offline) .fof-deck-head {
     position: absolute;
     width: 1px;
     height: 1px;

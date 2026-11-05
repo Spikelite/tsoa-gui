@@ -216,6 +216,13 @@ describe("FofSkin", () => {
     window.history.replaceState(null, "", "/");
   });
 
+  it("leaves a part that is not reporting off the top bar", () => {
+    window.history.replaceState(null, "", "/?part=battery");
+    render(<FofSkin model={{ ...system, battery: { ...system.battery!, status: "offline", alarms: [] } }} />);
+    expect(document.querySelectorAll(".fof-vital-part")).toHaveLength(0);
+    window.history.replaceState(null, "", "/");
+  });
+
   it("colors a section by what it holds, not by where it falls on the page", () => {
     window.history.replaceState(null, "", "/?part=battery");
     render(<FofSkin model={system} />);
