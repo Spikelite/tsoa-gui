@@ -206,6 +206,29 @@ test("Sci-Fi FOF colors a name by what the part is, and a status only when it ne
   await expect(page.locator("[data-part='grid'] .fof-label-block .fof-status-words")).toHaveCount(0);
 });
 
+test("Sci-Fi FOF keeps each reading beside the hub on one line, clear of the next part", async ({ page }) => {
+  await heldStream(page, [{ ...system, inverter_charger: { ...system.inverter_charger!, ac_inputs: 2 } }, 0]);
+  for (const [width, height] of [[1093, 614], [1280, 800], [1366, 768], [1600, 900], [1707, 960], [1920, 1080], [2560, 1440], [3840, 2160]]) {
+    await page.setViewportSize({ width: width!, height: height! });
+    await page.goto("/?skin=sci-fi-fof");
+    await expect(page.locator(".fof-hub-readings")).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    const measured = await page.evaluate(() => {
+      const rows = [...document.querySelectorAll<HTMLElement>(".fof-hub-readings .fof-row")];
+      const readings = document.querySelector(".fof-hub-readings")!.getBoundingClientRect();
+      const name = document.querySelector("[data-part='ac_loads'] .fof-label-block")!.getBoundingClientRect();
+      return {
+        words: rows.some((row) => row.textContent!.includes("Input in use")),
+        wrapped: rows.filter((row) => row.offsetHeight > 1.5 * parseFloat(getComputedStyle(row).lineHeight)).map((row) => row.textContent),
+        clear: readings.bottom < name.top || readings.right < name.left,
+      };
+    });
+    expect(measured.words, `${width} x ${height}`).toBe(true);
+    expect(measured.wrapped, `${width} x ${height}`).toEqual([]);
+    expect(measured.clear, `${width} x ${height}`).toBe(true);
+  }
+});
+
 test("Sci-Fi FOF's frame holds the whole overview on screens of any size, with its menu inside the screen", async ({ page }) => {
   await page.route("**/api/system/events", (route) =>
     route.fulfill({
