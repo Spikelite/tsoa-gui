@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { conduitPath, flowPoints } from "./panelBoxes";
+import { conduitPath, flowPoints, lanes } from "./panelBoxes";
 
 function middleOf(points: string) {
   const [x, y] = points.split(" ")[1]!.split(",").map(Number);
@@ -80,6 +80,14 @@ describe("conduitPath", () => {
     const { d, angle } = conduitPath({ x: 300, y: 100, halfWidth: 50, halfHeight: 20 }, left, 28);
     expect(d).toBe("M250,100 L178,100 Q150,100 150,72 L150,28 Q150,0 122,0 L50,0");
     expect(angle).toBe(270);
+  });
+
+  it("turns in its lane when it has one, with its marker there too", () => {
+    const { d, middle, length } = conduitPath(left, { x: 300, y: 100, halfWidth: 50, halfHeight: 20 }, 28, 20);
+    expect(d).toBe("M50,0 L142,0 Q170,0 170,28 L170,72 Q170,100 198,100 L250,100");
+    expect(middle).toEqual({ x: 170, y: 50 });
+    // A lane moves the upright run and leaves the length alone, which the waves are timed by.
+    expect(length).toBeCloseTo(conduitPath(left, { x: 300, y: 100, halfWidth: 50, halfHeight: 20 }, 28).length);
   });
 
   it("runs down the gap between rows when one panel is above the other", () => {
@@ -198,5 +206,86 @@ describe("conduitPath", () => {
     const { d } = conduitPath(row, hub, 28);
     expect(d.startsWith("M160,88 ")).toBe(true);
     expect(d.endsWith(" L500,100")).toBe(true);
+  });
+});
+
+describe("lanes", () => {
+  const RADIUS = 28;
+  const APART = 40;
+
+  /** A conduit across the gap from x 100 to x 100 plus `gap`, coming in and going out at these levels. */
+  const across = (left: number, right: number, gap = 200) => ({
+    from: { x: 50, y: left, halfWidth: 50, halfHeight: 10 },
+    to: { x: 150 + gap, y: right, halfWidth: 50, halfHeight: 10 },
+  });
+  const lanesFor = (...routes: ReturnType<typeof across>[]) => lanes(routes, RADIUS, APART);
+
+  it("leaves a conduit on its own in the middle of its gap", () => {
+    expect(lanesFor(across(0, 100))).toEqual([0]);
+  });
+
+  it("leaves conduits whose upright runs stay apart in the middle", () => {
+    expect(lanesFor(across(0, 100), across(200, 300))).toEqual([0, 0]);
+  });
+
+  it("gives a lane each to conduits whose upright runs come within a lane of each other", () => {
+    expect(lanesFor(across(0, 100), across(130, 230))).not.toEqual([0, 0]);
+  });
+
+  it("puts the lower of two conduits running down on the left, so that neither crosses the other", () => {
+    // The lower comes in below the other's way in, and goes out below its way out.
+    expect(lanesFor(across(0, 200), across(100, 300))).toEqual([20, -20]);
+  });
+
+  it("puts the higher of two conduits running up on the left, so that neither crosses the other", () => {
+    expect(lanesFor(across(200, 0), across(300, 100))).toEqual([-20, 20]);
+  });
+
+  it("orders a chain of conduits, even where the two at its ends never meet", () => {
+    // Each must go left of the one before, and the first and last have nothing to say to each other.
+    expect(lanesFor(across(0, 100), across(60, 300), across(260, 500))).toEqual([40, 0, -40]);
+  });
+
+  it("gives the same lanes whichever way the power runs", () => {
+    const flipped = ({ from, to }: ReturnType<typeof across>) => ({ from: to, to: from });
+    expect(lanesFor(flipped(across(0, 200)), across(100, 300))).toEqual([20, -20]);
+    expect(lanesFor(flipped(across(0, 200)), flipped(across(100, 300)))).toEqual([20, -20]);
+  });
+
+  it("gives the same lanes in whatever order the conduits come, as they do when one goes idle", () => {
+    const [a, b, c] = [across(0, 100), across(60, 300), across(260, 500)];
+    expect(lanesFor(c, a, b)).toEqual([-40, 40, 0]);
+    expect(lanesFor(b, c, a)).toEqual([0, -40, 40]);
+    // Two that cross either way round keep to the order of their levels.
+    expect(lanesFor(across(0, 400), across(100, 300))).toEqual([-20, 20]);
+    expect(lanesFor(across(100, 300), across(0, 400))).toEqual([20, -20]);
+  });
+
+  it("shares out a gap too narrow for its lanes, keeping every conduit inside it", () => {
+    expect(lanesFor(across(0, 200, 60), across(100, 300, 60))).toEqual([15, -15]);
+  });
+
+  it("sets lanes a full lane apart where the conduits' gaps differ a little", () => {
+    const { from, to } = across(100, 300);
+    const wider = { from, to: { ...to, x: to.x + 20 } };
+    const shifts = lanesFor(across(0, 200), wider);
+    // Their gaps' middles are x 200 and x 210, and the lanes center on what lies between them.
+    expect(200 + shifts[0]!).toBe(225);
+    expect(210 + shifts[1]!).toBe(185);
+  });
+
+  it("leaves out a conduit with no upright run, since nothing can lie along it", () => {
+    expect(lanesFor(across(0, 200), across(100, 100))).toEqual([0, 0]);
+    // Levels so nearly equal are drawn straight too.
+    const nearly = { from: { ...across(0, 0).from, hub: true }, to: { ...across(0, 0).to, y: 1, hub: true } };
+    expect(lanesFor(across(-100, 100), nearly)).toEqual([0, 0]);
+  });
+
+  it("leaves out conduits running down a column, and any in another gap", () => {
+    const top = { x: 0, y: 0, halfWidth: 100, halfHeight: 40 };
+    const bottom = { x: 150, y: 300, halfWidth: 100, halfHeight: 40 };
+    expect(lanes([{ from: top, to: bottom }, { from: top, to: bottom }], RADIUS, APART)).toEqual([0, 0]);
+    const further = { from: { ...across(0, 200).from, x: 650 }, to: { ...across(0, 200).to, x: 950 } };
+    expect(lanesFor(across(0, 200), further)).toEqual([0, 0]);
   });
 });

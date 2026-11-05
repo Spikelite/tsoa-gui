@@ -3,7 +3,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties
 import type { Flow, PartName } from "../../model/system";
 import { flowSpeed } from "../minimal/flowSpeed";
 import { reducedMotion } from "../motion";
-import { approach, conduitPath, usePanelMeasure, type Box } from "../panelBoxes";
+import { approach, conduitPath, lanes, usePanelMeasure, type Box } from "../panelBoxes";
 import {
   arrived, latest, nextChange, pageTime, pin, ring, ringSize, send, sourceState, stateAt, steady, type Carried,
   type Route, type Routes,
@@ -106,6 +106,15 @@ function record(previous: Lines, entries: Entry[], now: number, reduced: boolean
 
 /** A conduit's width at everyday power, in em, the measure of the smallest bend worth drawing. */
 const WAVE_WIDTH = 1.4;
+
+/** The radius of a conduit's elbows, in pixels. */
+const ELBOW_RADIUS = 36;
+
+/**
+ * How far apart conduits sharing a gap run, in em: fof.css's widest conduit and
+ * a clear gap, so that no change of power brings them together.
+ */
+const LANE = 2.4;
 
 /**
  * How far to move the hub so that the first conduit launched toward it that
@@ -280,12 +289,13 @@ export function Conduits({ flows, inputs = {}, onHubPorts, onRoutes }: {
   const wave = WAVE * em;
   const ports: HubPort[] = [];
   const entries: Entry[] = [];
-  const drawn = shown.map((flow) => {
+  const routes = shown.flatMap((flow) => {
     const from = boxes[flow.source];
     const to = target(flow);
-    if (from === undefined || to === undefined) {
-      return null;
-    }
+    return from && to ? [{ flow, from, to }] : [];
+  });
+  const shifts = lanes(routes, ELBOW_RADIUS, LANE * em);
+  const drawn = routes.map(({ flow, from, to }, index) => {
     const key = `${flow.source}-${flow.target}`;
     const line = lineOf(flow);
     // A conduit turning round sets off from empty.
@@ -294,7 +304,7 @@ export function Conduits({ flows, inputs = {}, onHubPorts, onRoutes }: {
     // that only its color moves.
     const speed = line !== undefined && (line.carried.changes.length > 0 || latest(line.carried) !== flow.power_w > 0)
       ? line.speed : flowSpeed(flow.power_w);
-    const path = conduitPath(from, to, 36);
+    const path = conduitPath(from, to, ELBOW_RADIUS, shifts[index]);
     // How far into its cycle a crest is at the far end when the cycle
     // starts, or for a conduit launched from its source, at its start,
     // which with each crest centered in its wave is always half a cycle.
@@ -360,7 +370,7 @@ export function Conduits({ flows, inputs = {}, onHubPorts, onRoutes }: {
 
   // The DC bus's conduits, where they meet its relay, and when their crests pass it.
   const relay: RelayLink[] = bus ? drawn.flatMap((entry) => {
-    if (entry === null || entry.relayIdle === undefined) {
+    if (entry.relayIdle === undefined) {
       return [];
     }
     const { flow, from, path, speed } = entry;
@@ -400,9 +410,6 @@ export function Conduits({ flows, inputs = {}, onHubPorts, onRoutes }: {
   return (
     <svg ref={svg} className="fof-conduits" aria-hidden="true">
       {drawn.map((entry) => {
-        if (entry === null) {
-          return null;
-        }
         const { key, path, carried, speed, route } = entry;
         const { d, middle, angle } = path;
         const carrying = carried.changes.length > 0;

@@ -90,3 +90,31 @@ test("a Sci-Fi FOF conduit going idle carries the change along it with its waves
   expect(carried.started).toEqual([0]);
   expect(await solar.locator(".fof-conduit-wave").count()).toBeGreaterThan(0);
 });
+
+test("Sci-Fi FOF's conduits take lanes of their own on a screen where they would run together", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "Sci-Fi FOF's layout for a phone held upright is not done yet");
+  const withGenerator = { ...system, generator: { status: "normal", ac_input: 2, running: false, power_w: 0, run_time_s: null } };
+  await page.route("**/api/system/events", (route) =>
+    route.fulfill({
+      status: 200,
+      headers: { "content-type": "text/event-stream", "cache-control": "no-cache" },
+      body: `retry: 60000\nevent: model\ndata: ${JSON.stringify(withGenerator)}\n\n`,
+    }),
+  );
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto("/?skin=sci-fi-fof");
+  const conduit = page.locator("[data-flow='generator-inverter_charger'] .fof-conduit-body");
+  await expect(conduit).toBeAttached();
+
+  // Measured along their center lines, against the widest a conduit ever gets, whatever each carries now.
+  await expect.poll(() => page.evaluate(() => {
+    const along = (flow: string) => {
+      const path = document.querySelector<SVGPathElement>(`[data-flow='${flow}'] .fof-conduit-body`)!;
+      return Array.from({ length: path.getTotalLength() / 2 }, (_, step) => path.getPointAtLength(step * 2));
+    };
+    const others = along("solar-dc_bus");
+    const apart = along("generator-inverter_charger").reduce(
+      (least, { x, y }) => Math.min(least, ...others.map((point) => Math.hypot(point.x - x, point.y - y))), Infinity);
+    return apart / parseFloat(getComputedStyle(document.querySelector(".fof-diagram")!).fontSize);
+  })).toBeGreaterThan(1.8);
+});
