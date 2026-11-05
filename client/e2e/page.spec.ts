@@ -118,3 +118,25 @@ test("Sci-Fi FOF's conduits take lanes of their own on a screen where they would
     return apart / parseFloat(getComputedStyle(document.querySelector(".fof-diagram")!).fontSize);
   })).toBeGreaterThan(1.8);
 });
+
+test("Sci-Fi FOF writes labels and words in capitals and leaves units as they are", async ({ page }) => {
+  const model = { ...system, battery: {
+    ...system.battery!, voltage_v: null, time_left: { toward: "full", seconds: 5760, settled: true },
+  } };
+  await page.route("**/api/system/events", (route) =>
+    route.fulfill({
+      status: 200,
+      headers: { "content-type": "text/event-stream", "cache-control": "no-cache" },
+      body: `retry: 60000\nevent: model\ndata: ${JSON.stringify(model)}\n\n`,
+    }),
+  );
+  await page.goto("/?skin=sci-fi-fof");
+  const row = (part: string, label: string) => page.locator(`[data-part='${part}'] .fof-row`, { hasText: label });
+  // Only innerText shows what the stylesheet does to the case.
+  const shown = { useInnerText: true };
+  await expect(row("battery", "Cell spread").locator("dt")).toHaveText("CELL SPREAD", shown);
+  await expect(row("battery", "Cell spread").locator("dd")).toHaveText("20 mV", shown);
+  await expect(row("battery", "Time to full").locator("dd")).toHaveText("1 h 36 min", shown);
+  await expect(row("battery", "Voltage").locator("dd")).toHaveText("UNKNOWN", shown);
+  await expect(row("inverter_charger", "Mode").locator("dd")).toHaveText("ON", shown);
+});

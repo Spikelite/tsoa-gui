@@ -34,6 +34,10 @@
   text-transform: uppercase;
 }
 
+/* Capitals suit labels and words, but a unit changes its meaning with its
+   case: 7 MV would be megavolts. */
+.fof .reading-value:not(.reading-unknown) { text-transform: none; }
+
 /* On a short, wide screen, such as a small touch panel, the height limits
    the size too, so the whole console fits without scrolling. */
 @media (orientation: landscape) {

@@ -9,7 +9,12 @@ import * as f from "./format";
 /** A measured reading. One the system does not report is left out unless `always`. */
 export type Measured = { label: string; value: number | null; format: f.Format; always?: boolean };
 /** A reading that is a word rather than a number, left out where the system does not report it. */
-export type Worded = { label: string; text: string };
+export type Worded = {
+  label: string;
+  text: string;
+  /** Has a number and its unit in it, which a skin writing words in capitals has to leave as they are. */
+  withUnit?: boolean;
+};
 export type Reading = Measured | Worded;
 
 export type Readings = { headline: Measured; details: Reading[] };
@@ -87,7 +92,8 @@ export function batteryReadings(battery: Battery): Readings {
 export function timeLeftReadings(battery: Battery): Reading[] {
   const estimate = battery.time_left;
   if (estimate !== null) {
-    return [{ label: estimate.toward === "empty" ? "Time to empty" : "Time to full", text: f.timeLeft(estimate) }];
+    const text = f.timeLeft(estimate);
+    return [{ label: estimate.toward === "empty" ? "Time to empty" : "Time to full", text, withUnit: /\d/.test(text) }];
   }
   if (battery.activity === "idle") {
     return [{ label: "Time left", text: "Idle" }];
