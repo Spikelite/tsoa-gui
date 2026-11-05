@@ -990,22 +990,18 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   grid-row: 1 / span 2;
   bottom: 7.4em;
   left: 0.6em;
-  /* As wide as its longest row, running on over the gap after the column, since
-     the next column's name sits well below it. */
-  width: 11.6em;
+  /* As wide as its longest row, however a screen's fonts measure it, running on
+     over the gap after the column, since the next column's name sits well below
+     it. */
+  width: max-content;
+  min-width: 9.4em;
 }
 
 .fof-hub-readings > .fof-state-line { margin: 0 0 0.35em; }
 .fof-hub-readings > .fof-rows { width: 100%; max-width: none; }
 
-/* Beside the hub there is little room on a smaller screen. A number stays
-   level with its label's first line, never breaking, and the label wraps if
-   it must. A value in words that does not fit beside its label goes under
-   it, at the right. */
-.fof-hub-readings .fof-row { align-items: baseline; }
-.fof-hub-readings .fof-row:has(.reading-value) { flex-wrap: nowrap; }
-.fof-hub-readings .fof-row dd { margin-left: auto; text-align: right; }
-.fof-hub-readings .fof-row dd:has(.reading-value) { flex: none; white-space: nowrap; }
+.fof-hub-readings .fof-row { flex-wrap: nowrap; align-items: baseline; }
+.fof-hub-readings .fof-row dd { margin-left: auto; text-align: right; white-space: nowrap; }
 .fof-ring-unit { width: 12em; }
 
 .fof-duty-inverting { --fof-cell-rest: #d9cfa6; --fof-cell-hot: #cfe6ff; --fof-ring: var(--fof-plasma-deep); }
