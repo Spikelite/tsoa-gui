@@ -33,7 +33,7 @@ export function BatteryDeck({ battery }: { battery: Battery }) {
 
   return (
     <Deck part="battery" title="Battery" status={battery.status} state={batteryState(battery)}
-      groups={batteryGroups(battery)} checks={battery.checks}
+      groups={batteryGroups(battery)} checks={battery.checks} drawnWith="Cells"
       aside={(
         <div className="fof-deck-head-charge">
           <p className="fof-deck-figure"><Eased value={battery.soc_percent} format={f.percent} /></p>

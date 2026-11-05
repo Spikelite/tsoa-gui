@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { system } from "../../test/system";
@@ -336,6 +336,87 @@ describe("FofSkin", () => {
       const art = container.querySelector<HTMLElement>(".fof-deck-art")!;
       expect(art.style.getPropertyValue("--fof-roll-solar-dc_bus")).toBe(run()!.getAttribute("style")!.match(/--fof-roll: ([\d.]+s)/)![1]);
     });
+  });
+
+  describe("on a small panel", () => {
+    const sections = () => within(screen.getByRole("navigation", { name: "Sections" })).getAllByRole("button");
+    const page = (part: string) => window.history.replaceState(null, "", `/?part=${part}`);
+
+    beforeEach(() => {
+      vi.stubGlobal("matchMedia", (query: string) => ({ matches: query.includes("max-height") }));
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      window.history.replaceState(null, "", "/");
+    });
+
+    it("puts each part's figure on its block in the sidebar", () => {
+      render(<FofSkin model={{ ...system, inverter_charger: { ...system.inverter_charger!, status: "normal", alarms: [] } }} />);
+      const parts = within(screen.getByRole("navigation", { name: "Parts" }));
+      expect(parts.getByRole("link", { name: /Solar/ })).toHaveTextContent("310 WSolar");
+      expect(parts.getByRole("link", { name: /Inverter/ })).toHaveTextContent("700 WInverter");
+    });
+
+    it("says what a part has raised on its block, in place of its figure", () => {
+      render(<FofSkin model={{ ...system, battery: { ...system.battery!, status: "attention" } }} />);
+      const block = within(screen.getByRole("navigation", { name: "Parts" })).getByRole("link", { name: /Battery/ });
+      expect(block).toHaveTextContent("Cell imbalanceBattery");
+    });
+
+    it("shows one section of a part's page at a time, chosen from the sidebar", () => {
+      page("battery");
+      render(<FofSkin model={system} />);
+      expect(sections().map((section) => section.textContent)).toEqual([
+        "Charge", "Power", "Cells", "Temperature", "Limits", "History", "Device", "1 raised",
+      ]);
+      expect(sections()[0]).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByRole("region", { name: "Charge" })).toBeInTheDocument();
+      expect(screen.queryByRole("region", { name: "Power" })).toBeNull();
+
+      fireEvent.click(sections()[1]!);
+      expect(sections()[1]).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByRole("region", { name: "Power" })).toBeInTheDocument();
+      expect(screen.queryByRole("region", { name: "Charge" })).toBeNull();
+    });
+
+    it("keeps a drawing with the section it goes with", () => {
+      page("battery");
+      render(<FofSkin model={system} />);
+      expect(screen.queryByRole("list", { name: "Cells" })).toBeNull();
+      fireEvent.click(sections()[2]!);
+      expect(screen.getByRole("list", { name: "Cells" })).toBeInTheDocument();
+    });
+
+    it("gives the inverter's lights a section of their own, and shows what a part watches unfolded", () => {
+      page("inverter_charger");
+      render(<FofSkin model={system} />);
+      expect(sections()[0]).toHaveTextContent("Front panel");
+      expect(screen.getByRole("heading", { name: "Front panel" })).toBeInTheDocument();
+      expect(screen.getByRole("list", { name: "Front panel lights" })).toBeInTheDocument();
+      fireEvent.click(sections().at(-1)!);
+      expect(document.querySelector(".fof-deck-clear")).toHaveAttribute("open");
+    });
+
+    it("marks a section that has something raised, and leaves the parts in place of the sections for a part not reporting", () => {
+      page("battery");
+      const { rerender } = render(<FofSkin model={system} />);
+      expect(sections().at(-1)).toHaveClass("fof-side-raised");
+      rerender(<FofSkin model={{ ...system, battery: { ...system.battery!, status: "offline" } }} />);
+      expect(screen.queryByRole("navigation", { name: "Sections" })).toBeNull();
+      expect(screen.getByRole("navigation", { name: "Parts" })).toBeInTheDocument();
+    });
+  });
+
+  it("shows every section at once, and no figures in the sidebar, on any other screen", () => {
+    window.history.replaceState(null, "", "/?part=battery");
+    render(<FofSkin model={system} />);
+    expect(screen.queryByRole("navigation", { name: "Sections" })).toBeNull();
+    expect(screen.getByRole("region", { name: "Charge" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Power" })).toBeInTheDocument();
+    expect(within(screen.getByRole("navigation", { name: "Parts" })).getByRole("link", { name: "Solar" }))
+      .toHaveTextContent(/^Solar$/);
+    window.history.replaceState(null, "", "/");
   });
 
   it("shows each front panel light as lit, blinking or dark, and says which", () => {

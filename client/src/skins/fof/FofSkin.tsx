@@ -30,6 +30,8 @@ import { LoadPanel } from "./LoadPanel";
 import { SolarArray } from "./SolarArray";
 import { NamePill, StatusWords } from "./StatusPill";
 import { withIdleLinks } from "./links";
+import { usePageSections } from "./sections";
+import { SectionContext } from "./smallPanel";
 import { throughHub } from "./throughHub";
 import "./fof.css";
 
@@ -154,6 +156,7 @@ export function FofSkin({ model, connected = true, busy = false }: { model: Syst
   const stopEditing = useCallback(() => setEditing(null), []);
   useEscapeCloses(part !== null && editing === null);
   const from = openedFrom();
+  const sections = usePageSections(part, model);
 
   // Every animation that repeats keeps to the page's clock, so a conduit
   // and what it feeds or is fed by stay in step.
@@ -165,17 +168,19 @@ export function FofSkin({ model, connected = true, busy = false }: { model: Syst
       <OpenControlContext value={setEditing}>
       {editing ? <LimitScreen model={model} link={state} reading={editing} onClose={stopEditing} /> : (
       <>
-      <Frame model={model} part={part} state={state} />
+      <Frame model={model} part={part} state={state} sections={sections} />
 
       <div className="fof-well">
       {part !== null ? (
         // The page grows out of where the part was on the overview.
         <div className="fof-page" style={from ? { transformOrigin: `${from.x * 100}% ${from.y * 100}%` } : undefined}>
-          {part === "battery" && model.battery && <BatteryDeck battery={model.battery} />}
-          {part === "inverter_charger" && model.inverter_charger && (
-            <InverterDeck inverter={model.inverter_charger} model={model} />
-          )}
-          {part !== "battery" && part !== "inverter_charger" && <PartDeck part={part} model={model} />}
+          <SectionContext value={sections?.shown ?? null}>
+            {part === "battery" && model.battery && <BatteryDeck battery={model.battery} />}
+            {part === "inverter_charger" && model.inverter_charger && (
+              <InverterDeck inverter={model.inverter_charger} model={model} />
+            )}
+            {part !== "battery" && part !== "inverter_charger" && <PartDeck part={part} model={model} />}
+          </SectionContext>
         </div>
       ) : (
       <RoutesContext value={routes}>
