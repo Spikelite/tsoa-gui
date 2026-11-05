@@ -217,8 +217,12 @@ describe("FofSkin", () => {
   });
 
   it("leaves a part that is not reporting off the top bar", () => {
+    // With no alarm, which would take the bar's place whatever the part was doing.
+    const calm = { ...system, inverter_charger: { ...system.inverter_charger!, status: "normal" as const, alarms: [] } };
     window.history.replaceState(null, "", "/?part=battery");
-    render(<FofSkin model={{ ...system, battery: { ...system.battery!, status: "offline", alarms: [] } }} />);
+    const { rerender } = render(<FofSkin model={calm} />);
+    expect(document.querySelectorAll(".fof-vital-part").length).toBeGreaterThan(0);
+    rerender(<FofSkin model={{ ...calm, battery: { ...calm.battery!, status: "offline" } }} />);
     expect(document.querySelectorAll(".fof-vital-part")).toHaveLength(0);
     window.history.replaceState(null, "", "/");
   });
