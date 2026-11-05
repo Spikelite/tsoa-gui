@@ -401,7 +401,12 @@ describe("FofSkin", () => {
     it("marks a section that has something raised, and leaves the parts in place of the sections for a part not reporting", () => {
       page("battery");
       const { rerender } = render(<FofSkin model={system} />);
-      expect(sections().at(-1)).toHaveClass("fof-side-raised");
+      expect(sections().at(-1)).toHaveClass("fof-side-raised", "status-warning");
+      rerender(<FofSkin model={{
+        ...system,
+        battery: { ...system.battery!, checks: [...system.battery!.checks, { name: "Low voltage", level: "alarm" }] },
+      }} />);
+      expect(sections().at(-1)).toHaveClass("fof-side-raised", "status-fault");
       rerender(<FofSkin model={{ ...system, battery: { ...system.battery!, status: "offline" } }} />);
       expect(screen.queryByRole("navigation", { name: "Sections" })).toBeNull();
       expect(screen.getByRole("navigation", { name: "Parts" })).toBeInTheDocument();

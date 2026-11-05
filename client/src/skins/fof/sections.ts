@@ -29,12 +29,20 @@ function checksLabel(checks: AlarmCheck[]): string {
   return raised > 0 ? `${raised} raised` : clearWords(checks.length, false);
 }
 
-export type Section = { title: string; label: string; tone: string; raised?: boolean };
+/** The worst a part's checks have raised, as the status it shows in. */
+function worstRaised(checks: AlarmCheck[]): "fault" | "warning" | undefined {
+  if (checks.some((check) => check.level === "alarm")) {
+    return "fault";
+  }
+  return checks.some((check) => check.level === "warning") ? "warning" : undefined;
+}
+
+export type Section = { title: string; label: string; tone: string; raised?: "fault" | "warning" };
 
 const section = (title: string): Section => ({ title, label: title, tone: sectionTone(title) });
 
 const checksSection = (checks: AlarmCheck[]): Section[] => (checks.length === 0 ? [] : [{
-  ...section(CHECKS), label: checksLabel(checks), raised: checks.some((check) => check.level !== "ok"),
+  ...section(CHECKS), label: checksLabel(checks), raised: worstRaised(checks),
 }]);
 
 /** The sections of a part's page, in order. */

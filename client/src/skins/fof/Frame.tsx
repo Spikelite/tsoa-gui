@@ -212,8 +212,8 @@ export function Frame({ model, part = null, state = "live", job, sections }: {
       <nav className="fof-side" aria-label={job ? job.title : sections ? "Sections" : "Parts"}>
         {job?.side}
         {model === null && SIDEBAR.map((name) => <span key={name} data-side={name} />)}
-        {!job && sections?.all.map(({ title, label, tone, raised: anyRaised }) => (
-          <button key={title} type="button" className={anyRaised ? "fof-side-raised status-warning" : `fof-tone-${tone}`}
+        {!job && sections?.all.map(({ title, label, tone, raised: worst }) => (
+          <button key={title} type="button" className={worst ? `fof-side-raised status-${worst}` : `fof-tone-${tone}`}
             aria-pressed={title === sections.shown} onClick={() => sections.choose(title)}>
             {label}
           </button>
