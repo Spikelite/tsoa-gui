@@ -168,3 +168,24 @@ test("Sci-Fi FOF brings its own font from tsoa-gui, and no other skin loads it",
   expect(fonts).toHaveLength(1);
   expect(new URL(fonts[0]!).origin).toBe(new URL(page.url()).origin);
 });
+
+test("Sci-Fi FOF colors a name by what the part is, and a status only when it needs attention", async ({ page }) => {
+  await page.route("**/api/system/events", (route) =>
+    route.fulfill({
+      status: 200,
+      headers: { "content-type": "text/event-stream", "cache-control": "no-cache" },
+      body: `retry: 60000\nevent: model\ndata: ${JSON.stringify(system)}\n\n`,
+    }),
+  );
+  await page.goto("/?skin=sci-fi-fof");
+  const background = (selector: string) => page.locator(selector).evaluate((element) => getComputedStyle(element).backgroundColor);
+  const sand = "rgb(217, 185, 138)";
+  expect(await background("[data-part='grid'] .fof-label-block")).toBe(sand);
+  expect(await background("[data-part='solar'] .fof-label-block")).toBe(sand);
+  expect(await background("[data-part='battery'] .fof-label-block")).toBe("rgb(143, 168, 232)");
+  expect(await background("[data-part='ac_loads'] .fof-label-block")).toBe("rgb(121, 184, 176)");
+  // The inverter/charger needs attention in the fixture, which takes a cap of its own.
+  expect(await background("[data-part='inverter_charger'] .fof-label-block")).toBe("rgb(196, 167, 231)");
+  expect(await background("[data-part='inverter_charger'] .fof-label-block .fof-status-words")).toBe("rgb(240, 136, 62)");
+  await expect(page.locator("[data-part='grid'] .fof-label-block .fof-status-words")).toHaveCount(0);
+});
