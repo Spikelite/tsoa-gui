@@ -36,6 +36,12 @@ describe("where a panel's power goes", () => {
     expect(powerShares(loads(null, circuit("Kitchen", 200))).map(({ label }) => label)).toEqual(["Kitchen"]);
   });
 
+  it("leaves out a circuit drawing nothing, though its meter still says the rest is not on it", () => {
+    expect(powerShares(loads(100, circuit("Kitchen", 100), circuit("Workshop", 0))).map(({ label }) => label))
+      .toEqual(["Kitchen"]);
+    expect(powerShares(loads(100, circuit("Kitchen", 0)))).toEqual([{ label: "Not metered", power_w: 100, metered: false }]);
+  });
+
   it("says nothing with no circuit reporting, since the total alone does not say where it goes", () => {
     expect(powerShares(loads(600))).toEqual([]);
     expect(powerShares(loads(600, circuit("Kitchen", null)))).toEqual([]);

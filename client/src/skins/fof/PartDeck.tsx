@@ -47,7 +47,7 @@ function PowerShares({ loads }: { loads: AcLoads }) {
       <ul className="fof-deck-share">
         {shares.map(({ label, power_w: power, metered }) => (
           <li key={label} className={metered ? undefined : "fof-deck-share-rest"} style={{ flexGrow: power }}>
-            <span>{label}</span> <Eased value={power} format={f.power} />
+            <span className="fof-deck-share-name">{label}</span> <Eased value={power} format={f.power} />
           </li>
         ))}
       </ul>

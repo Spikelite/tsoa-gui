@@ -461,7 +461,8 @@ export function powerShares(loads: AcLoads): { label: string; power_w: number; m
     return [];
   }
   const rest = (loads.power_w ?? 0) - metered.reduce((sum, circuit) => sum + circuit.power_w, 0);
-  return rest > 0 ? [...metered, { label: "Not metered", power_w: rest, metered: false }] : metered;
+  const drawing = metered.filter((circuit) => circuit.power_w > 0);
+  return rest > 0 ? [...drawing, { label: "Not metered", power_w: rest, metered: false }] : drawing;
 }
 
 export function acLoadsGroups(loads: AcLoads, model: System): DetailGroup[] {
