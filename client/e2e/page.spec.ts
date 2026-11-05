@@ -505,3 +505,47 @@ test("Sci-Fi FOF lists the parts on a phone held upright, each opening a page th
     await expect(rows).toHaveCount(6);
   }
 });
+
+test("Sci-Fi FOF draws each share of an AC panel's power to scale, with whole words or none", async ({ page }) => {
+  const circuit = system.ac_loads!.circuits[0]!;
+  await heldStream(page, [{
+    ...system,
+    ac_loads: {
+      ...system.ac_loads!,
+      power_w: 2000,
+      circuits: [
+        { ...circuit, name: "Kitchen", power_w: 1200 },
+        { ...circuit, name: "Workshop", power_w: 300 },
+        { ...circuit, name: "Pump room", power_w: 5 },
+      ],
+    },
+  }, 0]);
+  for (const [width, height] of [[1920, 1080], [1366, 768], [412, 839]]) {
+    await page.setViewportSize({ width: width!, height: height! });
+    await page.goto("/?skin=sci-fi-fof&part=ac_loads");
+    await expect(page.locator(".fof-deck-share")).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+
+    // Measured by layout, since the page is still zooming in.
+    const shares = await page.locator(".fof-deck-share > li").evaluateAll((items) => items.map((item) => {
+      const box = item.getBoundingClientRect();
+      const scale = box.width / (item as HTMLElement).offsetWidth;
+      return {
+        width: (item as HTMLElement).offsetWidth,
+        words: [...item.children].map((word) => {
+          const drawn = word.getBoundingClientRect();
+          const shown = drawn.top < box.bottom - 1;
+          return { shown, whole: !shown || (drawn.left >= box.left - scale && drawn.right <= box.right + scale) };
+        }),
+      };
+    }));
+    expect(shares.map(({ words }) => words.every(({ whole }) => whole)), `${width} x ${height}`).toEqual([true, true, true, true]);
+    expect(shares[0]!.words.every(({ shown }) => shown), `the largest at ${width} x ${height}`).toBe(true);
+    expect(shares[2]!.words.some(({ shown }) => shown), `the smallest at ${width} x ${height}`).toBe(false);
+    // 1200 W against 300 W, and 495 W not metered: the 5 W share is held to a visible sliver.
+    expect(shares[0]!.width / shares[1]!.width, `${width} x ${height}`).toBeCloseTo(4, 0);
+    expect(shares[0]!.width, `${width} x ${height}`).toBeGreaterThan(shares[3]!.width);
+    expect(shares[3]!.width, `${width} x ${height}`).toBeGreaterThan(shares[1]!.width);
+    expect(shares[2]!.width, `${width} x ${height}`).toBeGreaterThan(0);
+  }
+});

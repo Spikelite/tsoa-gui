@@ -1901,7 +1901,7 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 
   /* A panel's drawing with where its power goes beside it, with room to its
      left for the conduit coming in. */
-  .fof-deck-art-shared {
+  .fof-deck-art.fof-deck-art-shared {
     display: grid;
     grid-template-columns: 30em minmax(0, 1fr);
     align-items: center;
@@ -2116,20 +2116,30 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   list-style: none;
 }
 
+/* A share's width goes by its power alone, so the room around its words is on
+   them, and one too narrow for them shows them whole or not at all. Whatever
+   does not fit wraps onto a line the bar does not show: the name first, since
+   the figure comes first in the line, and then the figure, which an empty item
+   ahead of it lets wrap too. */
 .fof-deck-share > li {
   display: flex;
-  flex: 1 1 auto;
-  align-items: center;
-  gap: 0.4em;
-  min-width: 0;
+  flex: 1 1 0;
+  flex-flow: row-reverse wrap;
+  align-content: flex-start;
+  justify-content: flex-end;
+  min-width: 0.5em;
   height: 2.7em;
-  padding: 0 0.8em;
   overflow: hidden;
   color: #000;
   background: var(--fof-sand);
   font-weight: 500;
+  line-height: 2.7em;
   white-space: nowrap;
 }
+
+.fof-deck-share > li::before { content: ""; order: -2; height: 100%; }
+.fof-deck-share .reading-value { order: -1; padding: 0 0.8em; }
+.fof-deck-share-name { margin-right: -0.4em; padding-left: 0.8em; }
 
 .fof-deck-share > :first-child { border-radius: 1.35em 0 0 1.35em; }
 .fof-deck-share > :last-child { border-radius: 0 1.35em 1.35em 0; }
