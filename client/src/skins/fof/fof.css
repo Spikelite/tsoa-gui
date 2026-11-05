@@ -1680,9 +1680,7 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 
 .fof-deck-head .fof-state-line { margin: 0; }
 
-.fof-deck-charge { grid-row: 2; align-self: center; padding-left: 0.9em; }
 .fof-deck-head-charge { margin-left: auto; }
-.fof-deck-celled .fof-deck-head-charge { display: none; }
 
 .fof-deck-figure {
   margin: 0;
@@ -1692,19 +1690,27 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 }
 
 /* The block: end caps spanning the cells, as on the overview, with every
-   cell between them, its number above it and its readings below. */
+   cell between them, and under it the strip, each cell's voltage and its name. */
 .fof-deck-packs { display: grid; gap: 1.2em; }
 
 .fof-deck-pack {
   display: grid;
-  grid-template-columns: 1.6em repeat(var(--cells), minmax(0, 7em)) 1.6em auto;
-  justify-content: start;
-  grid-template-rows: auto 5.6em auto auto;
+  grid-template-columns: 1.6em repeat(var(--cells), minmax(0, 1fr)) 1.6em;
+  grid-template-rows: 2.8em 3em auto auto;
   column-gap: 0.3em;
-  row-gap: 0.35em;
+  row-gap: 0.25em;
 }
 
-.fof-deck-cap { grid-column: 1; grid-row: 2; }
+.fof-deck-cap { grid-column: 1; grid-row: 1; }
+
+/* The mean, which the strip's bars stand on and hang from. */
+.fof-deck-mean {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  align-self: center;
+  height: 0.1em;
+  background: var(--fof-idle);
+}
 
 .fof-deck-cell {
   display: grid;
@@ -1715,19 +1721,15 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   font-variant-numeric: tabular-nums;
 }
 
-.fof-deck-number {
-  padding: 0 0.6em;
-  color: #000;
-  background: var(--fof-dim);
-  border-radius: 1em;
-  font-size: 0.75em;
-  font-weight: 700;
+.fof-deck-name {
+  grid-row: 4;
+  color: var(--fof-dim);
+  font-size: 0.76em;
+  text-align: center;
 }
 
-.fof-deck-lowest .fof-deck-number { background: var(--status-attention); }
-.fof-deck-highest .fof-deck-number { background: var(--fof-teal); }
-
 .fof-deck-pill {
+  grid-row: 1;
   position: relative;
   width: 100%;
   height: 100%;
@@ -1758,8 +1760,36 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   animation: fof-cell-pulse 1.6s ease-in-out infinite;
 }
 
-.fof-deck-volts { font-size: 0.8em; white-space: nowrap; }
-.fof-deck-offset { color: var(--fof-dim); font-size: 0.7em; white-space: nowrap; }
+.fof-deck-volts { grid-row: 3; white-space: nowrap; }
+
+/* A cell's distance from the mean: a bar up or down from it, with the figure
+   on the other side of the line, where the bar is not. */
+.fof-deck-offset {
+  grid-row: 2;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  font-size: 0.86em;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.fof-deck-offset > i {
+  position: absolute;
+  left: calc(50% - 0.9em);
+  width: 1.8em;
+  height: max(2px, calc(var(--distance) * 50%));
+  background: var(--fof-plasma);
+  border-radius: 0.15em;
+}
+
+.fof-deck-offset > .reading-value { position: absolute; right: 0; left: 0; }
+.fof-deck-offset-over > i { bottom: 50%; }
+.fof-deck-offset-over > .reading-value { top: calc(50% + 0.25em); }
+.fof-deck-offset-under > i { top: 50%; }
+.fof-deck-offset-under > .reading-value { bottom: calc(50% + 0.25em); }
+.fof-deck-lowest .fof-deck-offset > i { background: var(--status-attention); }
+.fof-deck-highest .fof-deck-offset > i { background: var(--fof-teal); }
 
 /* Every reading, in groups headed by rounded tags, flowing down balanced
    columns; the conditions the battery watches run across under them. */
@@ -1799,7 +1829,6 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   .fof-deck-group .fof-row { font-size: 1.14em; }
 }
 
-.fof-deck-packs,
 .fof-deck-unit,
 .fof-deck-art { justify-self: center; }
 
@@ -1900,14 +1929,20 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   list-style: none;
 }
 
-/* On a narrow screen the cells' voltages turn on their side, so that a
-   block of many cells keeps every one; their differences go. */
+/* On a narrow screen the cells' voltages turn on their side, so that a block
+   of many cells keeps every one. The strip keeps its bars, and the words go
+   to a screen reader, leaving each cell's number. */
 @container (max-width: 40em) {
-  .fof-deck-offset { display: none; }
-  .fof-deck-volts { writing-mode: vertical-rl; transform: rotate(180deg); }
-  .fof-deck-number { padding: 0 0.15em; font-size: 0.55em; }
-  .fof-deck-charge { display: none; }
-  .fof-deck-celled .fof-deck-head-charge { display: block; }
+  .fof-deck-offset > .reading-value { display: none; }
+  .fof-deck-volts { font-size: 0.8em; writing-mode: vertical-rl; transform: rotate(180deg); }
+  .fof-deck-word {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 
 .fof-deck { container-type: inline-size; }
