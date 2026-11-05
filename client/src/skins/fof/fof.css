@@ -270,7 +270,7 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   grid-template-columns: minmax(0, 1fr) 17.5em;
   gap: 1.6em;
   height: 100%;
-  font-size: 3.4cqh;
+  font-size: min(3.4cqh, 1.9cqw);
   outline: none;
 }
 
@@ -286,7 +286,7 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 
 .fof-limit-readout { display: flex; align-items: flex-end; gap: 1.1em; color: var(--fof-dim); }
 .fof-limit-now,
-.fof-limit-new { display: grid; gap: 0.15em; }
+.fof-limit-new { display: grid; gap: 0.15em; white-space: nowrap; }
 .fof-limit-now b { font-size: 2.6em; font-weight: 300; line-height: 1; text-transform: none; }
 .fof-limit-new b { color: var(--fof-cell); font-size: 6.4em; font-weight: 300; line-height: 0.98; text-transform: none; letter-spacing: 0.02em; }
 .fof-limit-same b { color: var(--fof-dim); }

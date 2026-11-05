@@ -267,7 +267,7 @@ test("Sci-Fi FOF's limit screen fits inside the frame, with keys a finger can hi
   await page.route("**/api/controls", (route) => route.fulfill({
     json: [{ name: "input-1-current-limit", value: 16, adjustable: true, low: 0, high: 100, ceiling: 30 }],
   }));
-  for (const [width, height] of [[800, 480], [1024, 600], [1366, 768], [1920, 1080], [3840, 2160]]) {
+  for (const [width, height] of [[800, 480], [1024, 600], [1024, 768], [1366, 768], [1920, 1080], [3840, 2160]]) {
     await page.setViewportSize({ width: width!, height: height! });
     await page.goto("/?skin=sci-fi-fof&part=inverter_charger");
     await page.locator(".control-value").first().click();
@@ -275,12 +275,15 @@ test("Sci-Fi FOF's limit screen fits inside the frame, with keys a finger can hi
     const measured = await page.evaluate(() => {
       const well = document.querySelector(".fof-well")!;
       const keys = [...document.querySelectorAll(".fof-limit button")].map((key) => key.getBoundingClientRect());
+      const figures = [...document.querySelectorAll(".fof-limit-readout b")].map((figure) => figure.getBoundingClientRect());
       return {
         over: well.scrollHeight - well.clientHeight,
         smallest: Math.min(...keys.flatMap((key) => [key.width, key.height])),
+        reach: Math.max(...figures.map((figure) => figure.right)) - document.querySelector(".fof-limit-main")!.getBoundingClientRect().right,
       };
     });
     expect(measured.over, `${width} x ${height}`).toBe(0);
+    expect(measured.reach, `${width} x ${height}`).toBeLessThanOrEqual(0);
     expect(measured.smallest, `${width} x ${height}`).toBeGreaterThanOrEqual(44);
   }
 });
