@@ -1775,14 +1775,22 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   column-gap: 2.4em;
 }
 
-/* On a landscape screen the frame's top bar names the page, and the sections
-   sit in a fixed grid of up to four columns, in rows larger than the
-   overview's, to use the room there is. */
+/* On a landscape screen the frame's top bar names the page, so its own heading
+   is left to a screen reader, and the sections sit in a fixed grid of up to
+   four columns, in rows larger than the overview's, to use the room there is.
+   A page of few sections keeps them to a width a row can be read across. */
 @media (orientation: landscape) and (min-width: 761px) {
-  .fof-deck-head { display: none; }
+  .fof-deck-head {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 
   .fof-deck-groups {
-    width: 100%;
+    width: min(100%, calc(var(--fof-groups) * 19em + (var(--fof-groups) - 1) * 2.1em));
     columns: min(4, var(--fof-groups));
     column-gap: 2.1em;
   }

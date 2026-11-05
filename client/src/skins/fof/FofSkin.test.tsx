@@ -204,11 +204,15 @@ describe("FofSkin", () => {
     const { rerender } = render(<FofSkin model={calm} />);
     const bar = () => [document.querySelector(".fof-label"), ...document.querySelectorAll(".fof-vital")].map((segment) => segment?.textContent);
     expect(bar()).toEqual(["Battery", "70%Charging", "300 WInto the battery", "1 h 36 minTime to full"]);
+    // A time ends in a unit, whose case means something; a word is set in capitals.
+    const figures = () => [...document.querySelectorAll(".fof-vital b")];
+    expect(figures()[2]).not.toHaveClass("fof-word");
 
     window.history.replaceState(null, "", "/?part=inverter_charger");
     window.dispatchEvent(new PopStateEvent("popstate"));
     rerender(<FofSkin model={calm} />);
     expect(bar()).toEqual(["Inverter", "700 WAC out", "BulkState", "OnMode"]);
+    expect(figures()[1]).toHaveClass("fof-word");
     window.history.replaceState(null, "", "/");
   });
 

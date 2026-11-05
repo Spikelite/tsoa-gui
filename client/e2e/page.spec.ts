@@ -302,3 +302,14 @@ test("Sci-Fi FOF's part pages fit inside the frame with every reading known", as
     }
   }
 });
+
+test("Sci-Fi FOF keeps a page of few sections to a width a row can be read across", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "Sci-Fi FOF's layout for a phone held upright is not done yet");
+  await heldStream(page, [system, 0]);
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto("/?skin=sci-fi-fof&part=dc_loads");
+  await expect(page.locator(".fof-deck-groups")).toBeVisible();
+  const rowInEm = await page.locator(".fof-deck-group .fof-row").first().evaluate((row) =>
+    (row as HTMLElement).offsetWidth / parseFloat(getComputedStyle(row.closest(".fof")!).fontSize));
+  expect(rowInEm).toBeLessThan(20);
+});

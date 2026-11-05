@@ -18,8 +18,8 @@ const SIDEBAR: PartName[] = ["grid", "generator", "solar", "inverter_charger", "
 
 type Vital = {
   kind: "battery" | "solar" | "loads" | "part"; label: string;
-  /** A figure, or else `text` for a value in words. */
-  value?: number; format?: f.Format; text?: string;
+  /** A figure, or else `text` for a value in words, which `withUnit` says ends in a unit to leave as it is. */
+  value?: number; format?: f.Format; text?: string; withUnit?: boolean;
   /** The first to go where the bar is short of room. */
   spare?: boolean;
 };
@@ -101,7 +101,7 @@ function partVitals(part: PartName, model: System): Vital[] {
         kind: "part", value: Math.abs(battery.power_w), format: f.power,
         label: battery.power_w < 0 ? "Out of the battery" : "Into the battery",
       } as const]),
-      ...(left !== undefined && isWorded(left) ? [{ kind: "part", text: left.text, label: left.label } as const] : []),
+      ...(left !== undefined && isWorded(left) ? [{ kind: "part", text: left.text, withUnit: left.withUnit, label: left.label } as const] : []),
     ];
   }
   if (part === "inverter_charger" && inverter !== null) {
@@ -161,10 +161,10 @@ export function Frame({ model, part = null, state = "live", job }: {
           </span>
         ) : (
           <>
-            {model && !job && (part ? partVitals(part, model) : vitals(model)).map(({ kind, value, format, text, label, spare }) => (
+            {model && !job && (part ? partVitals(part, model) : vitals(model)).map(({ kind, value, format, text, withUnit, label, spare }) => (
               <span key={label} data-side={kind === "part" ? part : undefined}
                 className={`fof-vital fof-vital-${kind}${spare ? " fof-vital-spare" : ""}`}>
-                <b className={text === undefined ? undefined : "fof-word"}>
+                <b className={text === undefined || withUnit ? undefined : "fof-word"}>
                   {text ?? <Eased value={value ?? null} format={format ?? f.power} />}
                 </b>
                 <small>{label}</small>
