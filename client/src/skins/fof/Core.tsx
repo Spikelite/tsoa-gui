@@ -129,7 +129,7 @@ export function Rows({ readings }: { readings: Reading[] }) {
       return (
         <div key={keys[index]} className="fof-row">
           <dt>{reading.label}</dt>
-          <dd>{reading.text}</dd>
+          <dd>{reading.withUnit ? <span className="reading-value">{reading.text}</span> : reading.text}</dd>
         </div>
       );
     }

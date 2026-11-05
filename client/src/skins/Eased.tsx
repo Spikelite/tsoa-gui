@@ -39,5 +39,5 @@ export function Eased({ value, format }: { value: number | null; format: Format 
     return () => cancelAnimationFrame(frame);
   }, [value, format]);
 
-  return <span ref={element} className="reading-value" />;
+  return <span ref={element} className={value === null ? "reading-value reading-unknown" : "reading-value"} />;
 }
