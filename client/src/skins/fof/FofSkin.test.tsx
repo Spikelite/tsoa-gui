@@ -195,6 +195,34 @@ describe("FofSkin", () => {
     expect(container.querySelector(".fof")).not.toHaveClass("fof-frozen");
   });
 
+  it("names a part's page on the top bar, with that part's own figures", () => {
+    const calm = {
+      ...system, inverter_charger: { ...system.inverter_charger!, status: "normal" as const, alarms: [] },
+      battery: { ...system.battery!, soc_percent: 70, power_w: 300, time_left: { toward: "full" as const, seconds: 5760, settled: true } },
+    };
+    window.history.replaceState(null, "", "/?part=battery");
+    const { rerender } = render(<FofSkin model={calm} />);
+    const bar = () => [document.querySelector(".fof-label"), ...document.querySelectorAll(".fof-vital")].map((segment) => segment?.textContent);
+    expect(bar()).toEqual(["Battery", "70%Charging", "300 WInto the battery", "1 h 36 minTime to full"]);
+
+    window.history.replaceState(null, "", "/?part=inverter_charger");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    rerender(<FofSkin model={calm} />);
+    expect(bar()).toEqual(["Inverter", "700 WAC out", "BulkState", "OnMode"]);
+    window.history.replaceState(null, "", "/");
+  });
+
+  it("colors a section by what it holds, not by where it falls on the page", () => {
+    window.history.replaceState(null, "", "/?part=battery");
+    render(<FofSkin model={system} />);
+    const head = (name: string) => screen.getByRole("heading", { name });
+    expect(head("Charge")).toHaveClass("fof-tone-sand");
+    expect(head("Limits")).toHaveClass("fof-tone-sand");
+    expect(head("History")).toHaveClass("fof-tone-lavender");
+    expect(head("Device")).toHaveClass("fof-tone-teal");
+    window.history.replaceState(null, "", "/");
+  });
+
   it("quiets the figure of a part doing nothing", () => {
     const idle = { ...system, grid: { ...system.grid!, power_w: 0 }, dc_loads: { ...system.dc_loads!, power_w: null } };
     render(<FofSkin model={idle} />);

@@ -3,12 +3,13 @@ import type { MouseEvent, ReactNode } from "react";
 import { useSignedIn } from "../../account/session";
 import { Clock } from "../../Clock";
 import type { PartName, Status, System } from "../../model/system";
-import { batteryState, partTitle } from "../describe";
-import { alarmingFirst } from "../details";
+import { batteryState, inverterState, MODES, partTitle } from "../describe";
+import { alarmingFirst, partDetail } from "../details";
 import { Eased } from "../Eased";
 import * as f from "../format";
 import { LINK_SENTENCES, LINK_WORDS, type Link } from "../link";
 import { closePart, openPart, partAddress } from "../partView";
+import { isWorded, timeLeftReadings } from "../readings";
 import { STATUS_LABELS } from "../status";
 import { SkinSegment } from "./SkinSegment";
 
@@ -16,7 +17,9 @@ import { SkinSegment } from "./SkinSegment";
 const SIDEBAR: PartName[] = ["grid", "generator", "solar", "inverter_charger", "battery", "ac_loads", "dc_loads"];
 
 type Vital = {
-  kind: "battery" | "solar" | "loads"; value: number; format: f.Format; label: string;
+  kind: "battery" | "solar" | "loads" | "part"; label: string;
+  /** A figure, or else `text` for a value in words. */
+  value?: number; format?: f.Format; text?: string;
   /** The first to go where the bar is short of room. */
   spare?: boolean;
 };
@@ -87,6 +90,33 @@ function alertFor(state: Link, parts: Raised[], model: System): Alert | null {
   };
 }
 
+/** The figures for a part's own page, whose name the bar's title then gives. */
+function partVitals(part: PartName, model: System): Vital[] {
+  const { battery, inverter_charger: inverter } = model;
+  if (part === "battery" && battery !== null) {
+    const left = timeLeftReadings(battery)[0];
+    return [
+      ...(battery.soc_percent === null ? [] : [{ kind: "part", value: battery.soc_percent, format: f.percent, label: batteryState(battery) } as const]),
+      ...(battery.power_w === null ? [] : [{
+        kind: "part", value: Math.abs(battery.power_w), format: f.power,
+        label: battery.power_w < 0 ? "Out of the battery" : "Into the battery",
+      } as const]),
+      ...(left !== undefined && isWorded(left) ? [{ kind: "part", text: left.text, label: left.label } as const] : []),
+    ];
+  }
+  if (part === "inverter_charger" && inverter !== null) {
+    return [
+      ...(inverter.ac_out_power_w === null ? [] : [{ kind: "part", value: inverter.ac_out_power_w, format: f.power, label: "AC out" } as const]),
+      { kind: "part", text: inverterState(inverter), label: "State" },
+      ...(inverter.mode === null ? [] : [{ kind: "part", text: MODES[inverter.mode], label: "Mode" } as const]),
+    ];
+  }
+  const detail = partDetail(part, model);
+  return detail?.headline.value === null || detail === null ? [] : [
+    { kind: "part", value: detail.headline.value, format: detail.headline.format, label: detail.state },
+  ];
+}
+
 // The console's frame, which stays put on every screen while what is inside it
 // changes: one elbow turning a sidebar into a thick top bar, and another
 // turning it into a thin bottom bar. The top bar's segments say what the
@@ -121,7 +151,9 @@ export function Frame({ model, part = null, state = "live", job }: {
       )}
 
       <div className="fof-top">
-        <span className="fof-label" aria-hidden={job ? undefined : true}>{job?.title ?? "Power systems"}</span>
+        <span className="fof-label" aria-hidden={job ? undefined : true}>
+          {job?.title ?? (model && part ? partTitle(part, model) : "Power systems")}
+        </span>
         {alert ? (
           <span className={`fof-alert status-${alert.status}`} role="alert">
             <b>{alert.words}</b>
@@ -129,9 +161,12 @@ export function Frame({ model, part = null, state = "live", job }: {
           </span>
         ) : (
           <>
-            {model && !job && vitals(model).map(({ kind, value, format, label, spare }) => (
-              <span key={label} className={`fof-vital fof-vital-${kind}${spare ? " fof-vital-spare" : ""}`}>
-                <b><Eased value={value} format={format} /></b>
+            {model && !job && (part ? partVitals(part, model) : vitals(model)).map(({ kind, value, format, text, label, spare }) => (
+              <span key={label} data-side={kind === "part" ? part : undefined}
+                className={`fof-vital fof-vital-${kind}${spare ? " fof-vital-spare" : ""}`}>
+                <b className={text === undefined ? undefined : "fof-word"}>
+                  {text ?? <Eased value={value ?? null} format={format ?? f.power} />}
+                </b>
                 <small>{label}</small>
               </span>
             ))}

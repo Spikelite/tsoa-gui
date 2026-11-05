@@ -284,3 +284,18 @@ test("Sci-Fi FOF's limit screen fits inside the frame, with keys a finger can hi
     expect(measured.smallest, `${width} x ${height}`).toBeGreaterThanOrEqual(44);
   }
 });
+
+test("Sci-Fi FOF's part pages fit inside the frame with every reading known", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "Sci-Fi FOF's layout for a phone held upright is not done yet");
+  await heldStream(page, [system, 0]);
+  for (const [width, height] of [[1024, 600], [1366, 768], [1707, 960], [1920, 1080], [2560, 1440], [3840, 2160]]) {
+    await page.setViewportSize({ width: width!, height: height! });
+    for (const part of ["battery", "inverter_charger"]) {
+      await page.goto(`/?skin=sci-fi-fof&part=${part}`);
+      await expect(page.locator(".fof-deck-groups")).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      const over = await page.locator(".fof-well").evaluate((well) => well.scrollHeight - well.clientHeight);
+      expect(over, `${part} at ${width} x ${height}`).toBe(0);
+    }
+  }
+});
