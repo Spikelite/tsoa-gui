@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import type { Generator } from "../../model/system";
 import { useCarried, type Along } from "./carry";
@@ -46,7 +46,7 @@ const FEEDS: Along = { keys: ["generator-inverter_charger", "generator-ac_loads"
 // the dot and pulses there, then runs down the cable, along the pips and into
 // the conduit just as a wave sets off along it, at the conduit's pace;
 // stopped, it is dim and still.
-export function GeneratorCore({ generator }: { generator: Generator }) {
+export function GeneratorCore({ generator, run }: { generator: Generator; run?: ReactNode }) {
   const running = useCarried(generator.status !== "offline" && generator.running === true, FEEDS);
 
   const stack = (top: number, inward: (row: number) => number) =>
@@ -95,7 +95,9 @@ export function GeneratorCore({ generator }: { generator: Generator }) {
         width: `${((ROW_END - PIP.first) / SCHEMATIC.width) * 100}%`,
         top: `${(PIP.top / SCHEMATIC.height) * 100}%`,
         height: `${(PIP.height / SCHEMATIC.height) * 100}%`,
-      }} />
+      }}>
+        {run}
+      </span>
     </div>
   );
 }

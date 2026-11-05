@@ -14,7 +14,7 @@ const CHECK_STATUS = { ok: "good", warning: "warning", alarm: "fault" } as const
 /** A section's color says what it holds, whatever else is on the page. Any other is the part's own, in sand. */
 const SECTION_TONES: Partial<Record<string, string>> = { History: "lavender", Energy: "lavender", Device: "teal" };
 
-const SectionHead = ({ title, tone }: { title: string; tone: string }) => (
+export const SectionHead = ({ title, tone }: { title: ReactNode; tone: string }) => (
   <h3 className={`fof-deck-tag fof-tone-${tone}`}>
     <span>{title}</span>
     <i aria-hidden="true" />

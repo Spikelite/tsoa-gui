@@ -8,20 +8,13 @@ import {
   arrived, latest, nextChange, pageTime, pin, ring, ringSize, send, sourceState, stateAt, steady, type Carried,
   type Route, type Routes,
 } from "./carry";
+import { ConduitWaves } from "./ConduitRun";
 import { fraction } from "./hubGeometry";
 import { HUB_EDGE, HUB_VIEW, portShift, type HubPort, type HubPorts } from "./hubPorts";
 import { HubThreads } from "./HubThreads";
 import { Relay, RELAY, RELAY_CORE, type RelayLink } from "./Relay";
-import { SOFTEN, STROKES, WAVE } from "./waves";
+import { crestPhase, LAUNCH_PHASE, WAVE } from "./waves";
 import { steadyPeriod } from "./wavePeriod";
-
-/** The box round a conduit's route, from the points its path passes through. */
-function extent(d: string) {
-  const points = [...d.matchAll(/(-?[\d.]+),(-?[\d.]+)/g)].map((match) => [Number(match[1]), Number(match[2])] as const);
-  const xs = points.map(([x]) => x);
-  const ys = points.map(([, y]) => y);
-  return { x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) };
-}
 
 /**
  * Each conduit's period, kept from before where its power has not moved far
@@ -306,9 +299,8 @@ export function Conduits({ flows, inputs = {}, onHubPorts, onRoutes }: {
       ? line.speed : flowSpeed(flow.power_w);
     const path = conduitPath(from, to, ELBOW_RADIUS, shifts[index]);
     // How far into its cycle a crest is at the far end when the cycle
-    // starts, or for a conduit launched from its source, at its start,
-    // which with each crest centered in its wave is always half a cycle.
-    const phase = from.launch ? 0.5 : ((((path.length - wave / 2) % wave) + wave) % wave) / wave;
+    // starts, or for a conduit launched from its source, at its start.
+    const phase = from.launch ? LAUNCH_PHASE : crestPhase(path.length, wave);
     const route: Route = {
       period: settled[key] ?? steadyPeriod(undefined, flow.power_w),
       phase: Number(phase.toFixed(3)),
@@ -414,12 +406,6 @@ export function Conduits({ flows, inputs = {}, onHubPorts, onRoutes }: {
         const { d, middle, angle } = path;
         const carrying = carried.changes.length > 0;
         const active = carrying || carried.base;
-        // The blur and the mask that keeps it inside the conduit reach a
-        // little past its route, by as much as the conduit's width and the blur's spread.
-        const box = extent(d);
-        const margin = 3 * em;
-        const region = { x: box.x - margin, y: box.y - margin, width: box.width + 2 * margin, height: box.height + 2 * margin };
-        const mask = `${soften}-${key}`;
         const style = {
           "--fof-phase": route.phase.toFixed(3),
           "--fof-roll": `${route.period}s`,
@@ -430,24 +416,7 @@ export function Conduits({ flows, inputs = {}, onHubPorts, onRoutes }: {
             carrying ? " fof-conduit-carrying" : ""}`} style={style} data-flow={key}>
             <path className="fof-conduit-body" d={d} />
             {carrying && <path className="fof-conduit-carried" d={d} />}
-            {active && (
-              <>
-                <mask id={mask} maskUnits="userSpaceOnUse" {...region}>
-                  <path className="fof-conduit-mask" d={d} />
-                </mask>
-                <filter id={`${mask}-blur`} filterUnits="userSpaceOnUse" {...region}>
-                  <feGaussianBlur stdDeviation={SOFTEN * em} />
-                </filter>
-                <g mask={`url(#${CSS.escape(mask)})`}>
-                  <g filter={`url(#${CSS.escape(mask)}-blur)`}>
-                    {STROKES.map((layer, index) => (
-                      <path key={index} className="fof-conduit-wave" d={d}
-                        style={{ "--length": `${layer.length}em`, "--depth": layer.depth, "--opacity": layer.opacity } as CSSProperties} />
-                    ))}
-                  </g>
-                </g>
-              </>
-            )}
+            {active && <ConduitWaves id={`${soften}-${key}`} d={d} em={em} />}
             <path className="fof-conduit-chevron" d="M-5 -6 L3 0 L-5 6"
               transform={`translate(${middle.x} ${middle.y}) rotate(${angle})`} />
           </g>
