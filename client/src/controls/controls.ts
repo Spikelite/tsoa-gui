@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import type { Role, SessionState } from "../account/api";
+import type { Measured } from "../skins/readings";
 import { getControls, setCeiling, setControl, type ChangeResult, type ControlState } from "./api";
 
 // The controls a signed-in operator or admin can use, shared with every skin
@@ -32,6 +33,9 @@ export interface Controls {
 }
 
 export const ControlsContext = createContext<Controls | null>(null);
+
+/** How a skin with a screen for changing a setting opens it; without one, the setting opens its panel under its row. */
+export const OpenControlContext = createContext<((reading: Measured) => void) | null>(null);
 
 /** The control called name, if the signed-in account may use it and the device has it. */
 export function useControl(name: string | undefined): { state: ControlState; controls: Controls } | null {

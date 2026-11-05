@@ -1,5 +1,7 @@
 import { useCallback, useId, useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 
+import { OpenControlContext } from "../../controls/controls";
+
 import type { PartName, Status, System } from "../../model/system";
 import { generatorState, gridState, inverterState, partTitle, solarState } from "../describe";
 import { DETAILED, detailedPart } from "../details";
@@ -9,6 +11,7 @@ import { openedFrom, openPart, partAddress, useEscapeCloses, usePart } from "../
 import * as f from "../format";
 import {
   acLoadsReadings, dcLoadsReadings, dcLoadsState, generatorReadings, gridReadings, inverterReadings, solarReadings,
+  type Measured,
 } from "../readings";
 import { Title } from "../Title";
 import { BatteryDeck } from "./BatteryDeck";
@@ -18,6 +21,7 @@ import { PartDeck } from "./PartDeck";
 import { Conduits } from "./Conduits";
 import { Core, Glance } from "./Core";
 import { Frame } from "./Frame";
+import { LimitScreen } from "./LimitScreen";
 import { GeneratorCore } from "./GeneratorCore";
 import { GridTower } from "./GridTower";
 import type { HubPorts } from "./hubPorts";
@@ -145,7 +149,10 @@ export function FofSkin({ model, connected = true, busy = false }: { model: Syst
   }, []);
   const state = link(model, connected, busy);
   const part = detailedPart(usePart(), model);
-  useEscapeCloses(part !== null);
+  // A setting being changed takes over the frame, with its own way out.
+  const [editing, setEditing] = useState<Measured | null>(null);
+  const stopEditing = useCallback(() => setEditing(null), []);
+  useEscapeCloses(part !== null && editing === null);
   const from = openedFrom();
 
   // Every animation that repeats keeps to the page's clock, so a conduit
@@ -153,7 +160,11 @@ export function FofSkin({ model, connected = true, busy = false }: { model: Syst
   useLayoutEffect(() => pin(root.current));
 
   return (
-    <div ref={root} className={`fof${part !== null ? " fof-paged" : ""}${state === "live" ? "" : ` fof-frozen fof-frozen-${state}`}`}>
+    <div ref={root} className={`fof${part !== null ? " fof-paged" : ""}${editing ? " fof-job" : ""}${
+      state === "live" ? "" : ` fof-frozen fof-frozen-${state}`}`}>
+      <OpenControlContext value={setEditing}>
+      {editing ? <LimitScreen model={model} link={state} reading={editing} onClose={stopEditing} /> : (
+      <>
       <Frame model={model} part={part} state={state} />
 
       <div className="fof-well">
@@ -243,8 +254,10 @@ export function FofSkin({ model, connected = true, busy = false }: { model: Syst
       </div>
       </RoutesContext>
       )}
-
       </div>
+      </>
+      )}
+      </OpenControlContext>
     </div>
   );
 }

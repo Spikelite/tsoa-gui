@@ -131,9 +131,9 @@ If no admin can sign in any more, start over, on the device: this removes every 
 
 ### AC input current limit
 
-Signed in as an operator or admin, the input limit on the grid and inverter pages, and each AC input's limit in the Controls group on the inverter page, open a panel to change it. A change shows as pending until the inverter/charger reports it, and the panel says so where it set a different value, as it does when asked for less than its own lowest.
+Signed in as an operator or admin, the input limit on the grid and inverter pages, and each AC input's limit in the Controls group on the inverter page, open it to change. The minimal skin opens a panel under the row, and Sci-Fi FOF a screen of its own with keys, so a kiosk needs no keyboard. Choosing a preset or typing a value sends nothing until you press Set. A change shows as pending until the inverter/charger reports it, and you are told where it set a different value, as it does when asked for less than its own lowest.
 
-The inverter/charger allows a limit up to its transfer relay's rating, which is usually far more than the breaker its input is plugged into. So an admin sets each input's breaker size in the same panel, and nobody can set a limit above it. Until an admin has, only an admin can raise a limit, and an operator can only lower it. A limit cannot be changed while a remote panel overrides it.
+The inverter/charger allows a limit up to its transfer relay's rating, which is usually far more than the breaker its input is plugged into. So an admin sets each input's breaker size in the same place, and nobody can set a limit above it. Until an admin has, only an admin can raise a limit, and an operator can only lower it. A limit cannot be changed while a remote panel overrides it.
 
 ### Time to empty
 

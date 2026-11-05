@@ -189,6 +189,9 @@ function energyEnd(end: EnergyEnd, model: System): string {
 /** The name of the server's control for an AC input's current limit. */
 export const inputLimit = (input: 1 | 2) => `input-${input}-current-limit`;
 
+/** The AC input a limit control belongs to. */
+export const inputOfLimit = (name: string): 1 | 2 => (name === inputLimit(2) ? 2 : 1);
+
 /**
  * The inverter/charger's controls: each AC input's current limit the device
  * has, among the controls the signed-in account may use, named by what is
