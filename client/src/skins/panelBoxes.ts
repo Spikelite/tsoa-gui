@@ -157,14 +157,6 @@ function half(box: Rect, axis: Axis): number {
 }
 
 /**
- * A conduit's path from one panel to another, in right angles with rounded
- * elbows, as the console draws its connections. It runs from where flows meet
- * one panel to where they meet the other, ending flush with each, and turns
- * in the middle of the gap between the two panels, so it never crosses either
- * one's readings. Panels side by side are joined across the gap between their
- * columns; panels in one column, down the gap between their rows.
- */
-/**
  * The axis a conduit crosses the gap between two boxes' panels along, and
  * which way it runs on it: across columns where the panels stand apart side
  * to side, or else up or down a column.
@@ -177,14 +169,26 @@ export function approach(from: Box, to: Box): { main: Axis; sign: number } {
   return { main, sign: Math.sign(toPanel[main] - fromPanel[main]) || 1 };
 }
 
-export function conduitPath(from: Box, to: Box, radius: number): Conduit {
-  const fromPanel = from.panel ?? from;
-  const toPanel = to.panel ?? to;
+/** Where two panels face each other along an axis, the first panel's edge first. */
+function facingEdges(from: Rect, to: Rect, main: Axis, sign: number): [number, number] {
+  return [from[main] + sign * half(from, main), to[main] - sign * half(to, main)];
+}
+
+/**
+ * A conduit's path from one panel to another, in right angles with rounded
+ * elbows, as the console draws its connections. It runs from where flows meet
+ * one panel to where they meet the other, ending flush with each, and turns
+ * in the gap between the two panels, so it never crosses either one's
+ * readings: in the gap's middle, or `shift` from there in a lane of its own.
+ * Panels side by side are joined across the gap between their columns; panels
+ * in one column, down the gap between their rows.
+ */
+export function conduitPath(from: Box, to: Box, radius: number, shift = 0): Conduit {
   // The main axis crosses the gap between the panels; the cross axis runs along it.
   const { main, sign: sa } = approach(from, to);
   const cross: Axis = main === "x" ? "y" : "x";
-  const turn =
-    (fromPanel[main] + sa * half(fromPanel, main) + toPanel[main] - sa * half(toPanel, main)) / 2;
+  const [near, far] = facingEdges(from.panel ?? from, to.panel ?? to, main, sa);
+  const turn = (near + far) / 2 + shift;
   const [b1, b2] = levels(from, to, cross, radius);
   const a1 = end(from, main, sa, b1);
   const a2 = end(to, main, -sa, b2);
@@ -215,6 +219,78 @@ export function conduitPath(from: Box, to: Box, radius: number): Conduit {
     middle: at(turn, (b1 + b2) / 2),
     angle: heading(at(0, sb)),
   };
+}
+
+/** A conduit's upright run in a gap between columns, with the levels it comes in and goes out at, left to right. */
+type Run = { index: number; middle: number; width: number; left: number; right: number; low: number; high: number };
+
+/**
+ * How far from the middle of its gap each conduit turns. Every conduit crossing
+ * a gap between columns turns in its middle, which is one lane, so two whose
+ * upright runs meet would lie on top of each other, and which two do depends
+ * on the screen. Those take a lane each, `apart` from the next, or an equal
+ * share of a gap too narrow for that, and the rest stay in the middle.
+ *
+ * Neither a conduit's power nor its place in `routes`, which changes as
+ * conduits go idle, has any say, so a conduit does not jump between lanes as
+ * the power changes.
+ */
+export function lanes(routes: { from: Box; to: Box }[], radius: number, apart: number): number[] {
+  const runs = routes.flatMap(({ from, to }, index): Run[] => {
+    const { main, sign } = approach(from, to);
+    const [start, end] = levels(from, to, "y", radius);
+    // conduitPath draws levels this close as a straight run, with nothing upright to keep apart.
+    if (main !== "x" || Math.abs(end - start) < 2) {
+      return [];
+    }
+    const [near, far] = facingEdges(from.panel ?? from, to.panel ?? to, main, sign);
+    const [left, right] = sign > 0 ? [start, end] : [end, start];
+    return [{
+      index, middle: (near + far) / 2, width: Math.abs(far - near),
+      left, right, low: Math.min(left, right), high: Math.max(left, right),
+    }];
+  });
+  const meet = (a: Run, b: Run) =>
+    Math.abs(a.middle - b.middle) < apart && a.low < b.high + apart && b.low < a.high + apart;
+  const clear = (level: number, run: Run) => level <= run.low - apart || level >= run.high + apart;
+  // To the left of another, a conduit's way out has to pass above or below the
+  // other's upright run, and the other's way in above or below its own.
+  const canGoLeft = (a: Run, b: Run) => clear(a.right, b) && clear(b.left, a);
+
+  const shifts = routes.map(() => 0);
+  const placed = new Set<Run>();
+  for (const run of runs) {
+    if (placed.has(run)) {
+      continue;
+    }
+    const group = [run];
+    for (const member of group) {
+      group.push(...runs.filter((other) => !group.includes(other) && meet(member, other)));
+    }
+    group.forEach((member) => placed.add(member));
+    const middle = group.reduce((sum, member) => sum + member.middle, 0) / group.length;
+    const spacing = Math.min(apart, ...group.map((member) => member.width / group.length));
+    inOrder(group, canGoLeft).forEach((member, place) => {
+      shifts[member.index] = middle + (place - (group.length - 1) / 2) * spacing - member.middle;
+    });
+  }
+  return shifts;
+}
+
+/**
+ * Runs from left to right, each left of those it has to be. Two that would
+ * cross whichever way round they go keep to the order of their levels, so the
+ * order depends only on where they are.
+ */
+function inOrder(group: Run[], canGoLeft: (a: Run, b: Run) => boolean): Run[] {
+  const waiting = [...group].sort((a, b) => a.left - b.left || a.right - b.right);
+  const order: Run[] = [];
+  while (waiting.length > 0) {
+    const free = waiting.findIndex((run) =>
+      !waiting.some((other) => other !== run && canGoLeft(other, run) && !canGoLeft(run, other)));
+    order.push(...waiting.splice(Math.max(free, 0), 1));
+  }
+  return order;
 }
 
 /**
