@@ -6,7 +6,7 @@ import { batteryState } from "../describe";
 import { Eased } from "../Eased";
 import { keysFor } from "../keys";
 import { openPart, partAddress } from "../partView";
-import { batteryReadings, isWorded, type Reading } from "../readings";
+import { batteryReadings, isWorded, type Reading, type Readings } from "../readings";
 import { useCarried, type Along } from "./carry";
 import { StatusWords } from "./StatusPill";
 
@@ -116,10 +116,30 @@ export function Core({ battery }: { battery: Battery }) {
       </div>
       {!offline && (
         <dl className="fof-rows">
-          <Rows readings={readings.details} />
+          <Rows readings={readings.details.filter((reading) => reading.glance)} />
         </dl>
       )}
     </section>
+  );
+}
+
+/**
+ * A part on the overview: its headline as a figure to read from across a room,
+ * which goes quiet while the part is doing nothing, and only what is worth a
+ * glance under it. The part's name says what the figure is, so its label is
+ * left to a screen reader, and the rest of its readings to its own page.
+ */
+export function Glance({ readings: { headline, details } }: { readings: Readings }) {
+  return (
+    <>
+      <div className={`fof-row fof-headline${headline.value ? "" : " fof-headline-idle"}`}>
+        <dt className="fof-quiet">{headline.label}</dt>
+        <dd>
+          <ReadingValue reading={headline} />
+        </dd>
+      </div>
+      <Rows readings={details.filter((reading) => reading.glance)} />
+    </>
   );
 }
 

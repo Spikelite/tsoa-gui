@@ -11,7 +11,6 @@ import { closePart, openedFrom, openPart, partAddress, useEscapeCloses, usePart 
 import * as f from "../format";
 import {
   acLoadsReadings, dcLoadsReadings, dcLoadsState, generatorReadings, gridReadings, inverterReadings, solarReadings,
-  type Readings,
 } from "../readings";
 import { Title } from "../Title";
 import { BatteryDeck } from "./BatteryDeck";
@@ -19,7 +18,7 @@ import { pin, RoutesContext, type Routes } from "./carry";
 import { InverterDeck } from "./InverterDeck";
 import { PartDeck } from "./PartDeck";
 import { Conduits } from "./Conduits";
-import { Core, Rows } from "./Core";
+import { Core, Glance } from "./Core";
 import { GeneratorCore } from "./GeneratorCore";
 import { GridTower } from "./GridTower";
 import type { HubPorts } from "./hubPorts";
@@ -48,9 +47,6 @@ function hubInputs(model: System): Partial<Record<PartName, 1 | 2>> {
   }
   return model.grid && model.generator ? { grid: 1, generator: 2 } : {};
 }
-
-/** A part's readings as rows, its headline first. */
-const all = (readings: Readings) => [readings.headline, ...readings.details];
 
 function Readout(props: {
   part: PartName; title: string; status: Status; state: string; art?: ReactNode;
@@ -190,14 +186,14 @@ export function FofSkin({ model, connected = true, busy = false }: { model: Syst
         {model.grid && (
           <Readout part="grid" title={partTitle("grid", model)} status={model.grid.status} state={gridState(model.grid)}
             art={<GridTower grid={model.grid} />} layout="schematic">
-            <Rows readings={all(gridReadings(model.grid))} />
+            <Glance readings={gridReadings(model.grid)} />
           </Readout>
         )}
 
         {model.generator && (
           <Readout part="generator" title="Generator" status={model.generator.status}
             state={generatorState(model.generator)} art={<GeneratorCore generator={model.generator} />} layout="schematic">
-            <Rows readings={all(generatorReadings(model.generator))} />
+            <Glance readings={generatorReadings(model.generator)} />
           </Readout>
         )}
 
@@ -205,7 +201,7 @@ export function FofSkin({ model, connected = true, busy = false }: { model: Syst
           <Readout part="inverter_charger" title="Inverter" status={model.inverter_charger.status}
             state={inverterState(model.inverter_charger)} art={<InverterCore inverter={model.inverter_charger} hub={hub} />}
             layout="hub">
-            <Rows readings={all(inverterReadings(model.inverter_charger, model))} />
+            <Glance readings={inverterReadings(model.inverter_charger, model)} />
             {model.inverter_charger.alarms.map((alarm) => (
               <div key={alarm.name} className="fof-row fof-alarm">
                 <dt>
@@ -221,7 +217,7 @@ export function FofSkin({ model, connected = true, busy = false }: { model: Syst
         {model.solar && (
           <Readout part="solar" title="Solar" status={model.solar.status} state={solarState(model.solar)}
             art={<SolarArray solar={model.solar} />} layout="schematic">
-            <Rows readings={all(solarReadings(model.solar))} />
+            <Glance readings={solarReadings(model.solar)} />
             {model.solar.chargers.length > 1 &&
               model.solar.chargers.map((charger) => (
                 <div key={charger.name} className="fof-row">
@@ -240,7 +236,7 @@ export function FofSkin({ model, connected = true, busy = false }: { model: Syst
           <Readout part="ac_loads" title="AC loads" status={model.ac_loads.status} state="In use"
             art={<LoadPanel power={model.ac_loads.power_w} status={model.ac_loads.status} feed="inverter_charger-ac_loads" />}
             layout="lead">
-            <Rows readings={all(acLoadsReadings(model.ac_loads))} />
+            <Glance readings={acLoadsReadings(model.ac_loads)} />
             {model.ac_loads.circuits.map((circuit) => (
               <div key={circuit.name} className="fof-row">
                 <dt>
@@ -259,7 +255,7 @@ export function FofSkin({ model, connected = true, busy = false }: { model: Syst
             state={dcLoadsState(model.dc_loads)}
             art={<LoadPanel power={model.dc_loads.power_w} status={model.dc_loads.status} feed="dc_bus-dc_loads" />}
             layout="lead">
-            <Rows readings={all(dcLoadsReadings(model.dc_loads))} />
+            <Glance readings={dcLoadsReadings(model.dc_loads)} />
           </Readout>
         )}
       </div>

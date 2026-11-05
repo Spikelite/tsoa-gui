@@ -134,11 +134,14 @@ test("Sci-Fi FOF writes labels and words in capitals and leaves units as they ar
   const row = (part: string, label: string) => page.locator(`[data-part='${part}'] .fof-row`, { hasText: label });
   // Only innerText shows what the stylesheet does to the case.
   const shown = { useInnerText: true };
-  await expect(row("battery", "Cell spread").locator("dt")).toHaveText("CELL SPREAD", shown);
-  await expect(row("battery", "Cell spread").locator("dd")).toHaveText("20 mV", shown);
+  await expect(row("grid", "Frequency").locator("dt")).toHaveText("FREQUENCY", shown);
+  await expect(row("grid", "Frequency").locator("dd")).toHaveText("50.01 Hz", shown);
   await expect(row("battery", "Time to full").locator("dd")).toHaveText("1 h 36 min", shown);
   await expect(row("battery", "Voltage").locator("dd")).toHaveText("UNKNOWN", shown);
   await expect(row("inverter_charger", "Mode").locator("dd")).toHaveText("ON", shown);
+
+  await page.goto("/?skin=sci-fi-fof&part=battery");
+  await expect(row("battery", "Spread").locator("dd")).toHaveText("20 mV", shown);
 });
 
 test("Sci-Fi FOF brings its own font from tsoa-gui, and no other skin loads it", async ({ page }) => {

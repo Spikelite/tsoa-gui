@@ -14,7 +14,7 @@ One page is both the status board and the data view. Each part of the system has
 | AC loads | power on each output, and each circuit an energy meter of its own measures |
 | DC loads | power, where it is measured |
 
-Every skin shows the same readings for each part, from one list the skins share: a skin changes how they look, never which there are. A part the system does not have is left out. A part that is installed but not reporting is drawn as offline. Readings arrive about once a second, and every displayed value eases from its last reading to the next instead of jumping.
+Every skin shows the same readings for each part, from one list the skins share: a skin changes how they look, never which there are. An overview may keep to a part's headline and the readings that list marks for a glance, since the part's own page always has the rest. A part the system does not have is left out. A part that is installed but not reporting is drawn as offline. Readings arrive about once a second, and every displayed value eases from its last reading to the next instead of jumping.
 
 ## Power flow and the DC bus
 
@@ -87,7 +87,7 @@ The console sits in a frame. Its top bar carries the time, a segment that reads 
 
 #### Parts and conduits
 
-Every part keeps its place from the minimal skin and sits on black with no box of its own, named by a rounded button in its status's color, with the status written after the name when it needs attention.
+Every part keeps its place from the minimal skin and sits on black with no box of its own, named by a rounded button in its status's color, with the status written after the name when it needs attention. Its headline is one large figure that can be read from across a room, which dims while the part is doing nothing, with two or three rows under it and the rest on the part's own page.
 
 Thick conduits with rounded elbows plug into each part's name or its equipment. Conduits that would run together in a gap between columns take a lane each, far enough apart for the widest conduit, so they stay clear of each other on any screen and at any power. Waves of plasma roll along them toward where the power goes, more often and faster the more power each carries. A part that exists but carries nothing just now keeps a dim, still conduit. A conduit changes between the two with its waves, never all at once: going idle, the waves on it roll on to its end with the dim conduit behind the last, and going active, new waves set off from its source and light it as they pass. Each wave carries the state its source was in as it set off. The hub's threads, the DC bus relay and the equipment at either end change as the change reaches them. With reduced motion there are no waves, so the change shows at once.
 
