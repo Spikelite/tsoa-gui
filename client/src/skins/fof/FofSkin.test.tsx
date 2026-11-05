@@ -1,5 +1,5 @@
 import { act, cleanup, render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { system } from "../../test/system";
 import { FofSkin } from "./FofSkin";
@@ -225,6 +225,63 @@ describe("FofSkin", () => {
     rerender(<FofSkin model={{ ...calm, battery: { ...calm.battery!, status: "offline" } }} />);
     expect(document.querySelectorAll(".fof-vital-part")).toHaveLength(0);
     window.history.replaceState(null, "", "/");
+  });
+
+  describe("the battery's cells", () => {
+    const withCells = (volts: (number | null)[]) => ({
+      ...system,
+      battery: { ...system.battery!, cells: volts.map((voltage_v) => ({ voltage_v, balancing: false })) },
+    });
+    const cells = () => within(screen.getByRole("list", { name: "Cells" })).getAllByRole("listitem");
+    const distance = (cell: HTMLElement) => cell.style.getPropertyValue("--distance");
+
+    beforeEach(() => window.history.replaceState(null, "", "/?part=battery"));
+    afterEach(() => window.history.replaceState(null, "", "/"));
+
+    it("draws each cell's distance from the mean, up or down from it, with the widest at full height", () => {
+      render(<FofSkin model={system} />);
+      const [first, , third, fourth] = cells();
+      expect(distance(third!)).toBe("1.000");
+      expect(third!.querySelector(".fof-deck-offset")).toHaveClass("fof-deck-offset-under");
+      expect(distance(fourth!)).toBe("0.778");
+      expect(fourth!.querySelector(".fof-deck-offset")).toHaveClass("fof-deck-offset-over");
+      expect(distance(first!)).toBe("0.111");
+      expect(third).toHaveTextContent("-11 mV");
+    });
+
+    it("does not make cells a millivolt apart look as if they have drifted", () => {
+      render(<FofSkin model={withCells([3.25, 3.251, 3.25, 3.251])} />);
+      expect(cells().map(distance)).toEqual(["0.100", "0.100", "0.100", "0.100"]);
+    });
+
+    it("names the lowest and the highest, and which is being balanced", () => {
+      render(<FofSkin model={system} />);
+      const [, , third, fourth, fifth] = cells();
+      expect(third!.querySelector(".fof-deck-name")).toHaveTextContent(/^Cell 3, lowest$/);
+      expect(fourth!.querySelector(".fof-deck-name")).toHaveTextContent(/^Cell 4, highest, balancing$/);
+      expect(fifth!.querySelector(".fof-deck-name")).toHaveTextContent(/^Cell 5$/);
+    });
+
+    it("draws no bar for a cell with no voltage", () => {
+      render(<FofSkin model={withCells([3.25, null, 3.26])} />);
+      const [first, second] = cells();
+      expect(first!.querySelector(".fof-deck-offset i")).not.toBeNull();
+      expect(second!.querySelector(".fof-deck-offset i")).toBeNull();
+    });
+
+    it("puts more than 16 cells on a second row, at the same scale as the first", () => {
+      const { container } = render(<FofSkin model={withCells([...Array<number>(16).fill(3.3), 3.4])} />);
+      expect([...container.querySelectorAll(".fof-deck-pack")].map((row) => row.querySelectorAll(".fof-deck-cell").length))
+        .toEqual([9, 8]);
+      expect(Number(distance(cells()[0]!))).toBeCloseTo(1 / 16, 2);
+      expect(distance(cells()[16]!)).toBe("1.000");
+    });
+
+    it("leaves the block out for a battery that reports no cells", () => {
+      const { container } = render(<FofSkin model={withCells([])} />);
+      expect(screen.queryByRole("list", { name: "Cells" })).toBeNull();
+      expect(container.querySelector(".fof-deck-pack")).toBeNull();
+    });
   });
 
   it("colors a section by what it holds, not by where it falls on the page", () => {
