@@ -412,10 +412,21 @@ test("Sci-Fi FOF changes shape on a small panel, so that nothing scrolls and eve
     // A part on the diagram opens from anywhere on it, so its name is not the
     // target, and a value in a row reaches past what it draws.
     const targets = [...document.querySelectorAll<HTMLElement>(".fof-side a, .fof-side button, .fof-elbow-top, .fof-deck-control")];
+    // The bottom bar's keys reach past what they draw, so what counts is what a finger lands on.
+    const reach = (key: HTMLElement) => {
+      const { left, width, bottom } = key.getBoundingClientRect();
+      let height = 0;
+      while (key.contains(document.elementFromPoint(left + width / 2, bottom - height - 0.5))) {
+        height += 1;
+      }
+      return height;
+    };
+    const keys = [...document.querySelectorAll<HTMLElement>(".fof-account-segment, .fof-select-button")];
     return {
       over: well.scrollHeight - well.clientHeight,
       across: well.scrollWidth - well.clientWidth,
-      small: targets.filter((target) => target.offsetHeight < 44).map((target) => target.textContent),
+      small: [...targets.filter((target) => target.offsetHeight < 44), ...keys.filter((key) => reach(key) < 44)]
+        .map((target) => target.textContent),
     };
   });
   for (const [width, height] of [[800, 480], [960, 540], [1024, 600], [863, 360], [667, 375]]) {
@@ -424,6 +435,20 @@ test("Sci-Fi FOF changes shape on a small panel, so that nothing scrolls and eve
     await expect(page.locator(".fof-diagram")).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
     expect(await measure(), `the overview at ${width} x ${height}`).toEqual({ over: 0, across: 0, small: [] });
+
+    await page.locator(".fof-select-button").click();
+    const options = page.getByRole("option");
+    await expect(options.last()).toHaveCSS("opacity", "1");
+    const hits = await options.evaluateAll((all) => all.map((option) => {
+      const { left, width: across, top, bottom } = option.getBoundingClientRect();
+      const lands = (y: number) => option.contains(document.elementFromPoint(left + across / 2, y));
+      return { height: Math.round(bottom - top), whole: lands(top + 1) && lands(bottom - 1) };
+    }));
+    for (const hit of hits) {
+      expect(hit.height, `an option at ${width} x ${height}`).toBeGreaterThanOrEqual(44);
+      expect(hit.whole, `an option at ${width} x ${height}`).toBe(true);
+    }
+    await page.keyboard.press("Escape");
 
     for (const part of ["battery", "inverter_charger", "ac_loads", "dc_loads", "grid", "solar"]) {
       await page.goto(`/?skin=sci-fi-fof&part=${part}`);

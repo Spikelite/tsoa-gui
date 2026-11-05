@@ -2207,9 +2207,19 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   .fof-vital { flex-direction: row; align-items: center; gap: 0.5em; padding: 0 0.7em; }
   .fof-vital b { font-size: 1.6em; }
 
-  /* The bottom bar is thin, and its keys reach up past it to a finger's size. */
-  .fof-bottom .fof-segment { position: relative; font-size: 1em; }
-  .fof-bottom .fof-segment::after { content: ""; position: absolute; inset: calc(1.9em - 44px) 0 0; }
+  /* The bottom bar is thin, and its keys reach up past it, over the well, to a
+     finger's size. The account's name is cut off along its length only, since
+     clipping it all round would take the reach with it. The well keeps what it
+     stacks to itself, or a part on the diagram would come out over the keys. */
+  .fof-well { isolation: isolate; }
+  .fof-bottom { position: relative; z-index: 1; }
+  .fof-bottom .fof-segment { font-size: 1em; }
+  .fof-account-segment { overflow: clip visible; }
+  .fof-account-segment,
+  .fof-select-button { position: relative; }
+  .fof-account-segment::after,
+  .fof-select-button::after { content: ""; position: absolute; inset: calc(1.9em - 44px) 0 0; }
+  .fof-select .fof-select-option { min-height: 44px; padding: 0 0.9em; }
 
   .fof-diagram { font-size: 0.85em; }
   .fof-diagram .fof-label-block { font-size: 1.18em; }
