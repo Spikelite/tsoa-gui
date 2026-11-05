@@ -76,6 +76,33 @@ describe("a part's own page", () => {
     }
   });
 
+  it("in Sci-Fi FOF, says what is raised and folds the rest behind one bar", () => {
+    window.history.replaceState(null, "", "/?part=battery");
+    const battery = system.battery!;
+    const fold = () => document.querySelector(".fof-deck-clear")!;
+    const { rerender } = render(<FofSkin model={system} />);
+    expect(document.querySelector(".fof-deck-raised")).toHaveTextContent("Cell imbalance");
+    expect(document.querySelector(".fof-deck-raised li")).toHaveClass("status-warning");
+    expect(fold().querySelector("summary")).toHaveTextContent("2 more clear");
+    expect(fold()).not.toHaveAttribute("open");
+    expect(fold().querySelector("ul")).toHaveTextContent("High cell voltage");
+
+    const clear = battery.checks.map((check) => ({ ...check, level: "ok" as const }));
+    rerender(<FofSkin model={{ ...system, battery: { ...battery, checks: clear } }} />);
+    expect(document.querySelector(".fof-deck-raised")).toBeNull();
+    expect(fold().querySelector("summary")).toHaveTextContent("All 3 checks clear");
+
+    rerender(<FofSkin model={{ ...system, battery: { ...battery, checks: clear.slice(0, 1) } }} />);
+    expect(fold().querySelector("summary")).toHaveTextContent("1 check clear");
+
+    // With nothing clear there is nothing to fold.
+    const raised = battery.checks.map((check) => ({ ...check, level: "alarm" as const }));
+    rerender(<FofSkin model={{ ...system, battery: { ...battery, checks: raised } }} />);
+    expect(document.querySelector(".fof-deck-clear")).toBeNull();
+    expect(document.querySelectorAll(".fof-deck-raised li.status-fault")).toHaveLength(3);
+    cleanup();
+  });
+
   it("opens from the overview and closes again, from the page's own control or Escape", async () => {
     for (const [skin, back] of [[MinimalSkin, "Overview"], [FofSkin, "Overview"]] as const) {
       const Skin = skin;

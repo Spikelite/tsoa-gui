@@ -4,14 +4,56 @@ import type { AlarmCheck, PartName, Status } from "../../model/system";
 import { alarmingFirst, type DetailGroup } from "../details";
 import { keysFor } from "../keys";
 import { Rows } from "./Core";
-import { NamePill, StatusWords } from "./StatusPill";
+import { StatusWords } from "./StatusPill";
 
 const CHECK_STATUS = { ok: "good", warning: "warning", alarm: "fault" } as const;
 
+/** The bar over the checks that are clear, which says all of them are if nothing is raised. */
+function clearWords(count: number, anyRaised: boolean): string {
+  if (anyRaised) {
+    return `${count} more clear`;
+  }
+  return count === 1 ? "1 check clear" : `All ${count} checks clear`;
+}
+
+// What a part watches. A list of every condition reads as that many alarms, so
+// only what is raised takes color, and the rest fold away behind one bar.
+function Checks({ checks }: { checks: AlarmCheck[] }) {
+  const raised = checks.filter((check) => check.level !== "ok");
+  const clear = checks.filter((check) => check.level === "ok");
+  return (
+    <section className="fof-deck-group fof-deck-checks" aria-label="Alarms">
+      <h3 className="fof-deck-tag fof-deck-tag-alarms">Alarms</h3>
+      {raised.length > 0 && (
+        <ul className="fof-deck-raised">
+          {raised.map((check) => (
+            <li key={check.name} className={`status-${CHECK_STATUS[check.level]}`}>
+              {check.name}
+              <StatusWords status={CHECK_STATUS[check.level]} separator />
+            </li>
+          ))}
+        </ul>
+      )}
+      {clear.length > 0 && (
+        <details className="fof-deck-clear">
+          <summary>
+            <span className="fof-deck-clear-words">{clearWords(clear.length, raised.length > 0)}</span>
+            <span className="fof-deck-clear-fill" aria-hidden="true" />
+            <span className="fof-deck-clear-show">Show them</span>
+            <span className="fof-deck-clear-hide">Hide them</span>
+          </summary>
+          <ul>
+            {clear.map((check) => <li key={check.name}>{check.name}</li>)}
+          </ul>
+        </details>
+      )}
+    </section>
+  );
+}
+
 // A part's own page, as the console would show one system in full: its name
 // and state, the part drawn large, then every reading in groups headed by
-// rounded tags flowing down balanced columns, and every condition the part
-// watches as a button in the color of where it stands.
+// rounded tags flowing down balanced columns, and what the part watches.
 export function Deck(props: {
   part: PartName;
   title: string;
@@ -53,18 +95,7 @@ export function Deck(props: {
               </dl>
             </section>
           ))}
-          {checks.length > 0 && (
-            <section className="fof-deck-group fof-deck-checks" aria-label="Alarms">
-              <h3 className="fof-deck-tag fof-deck-tag-alarms">Alarms</h3>
-              <ul>
-                {checks.map((check) => (
-                  <li key={check.name}>
-                    <NamePill name={check.name} status={CHECK_STATUS[check.level]} />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
+          {checks.length > 0 && <Checks checks={checks} />}
         </div>
       )}
     </section>
