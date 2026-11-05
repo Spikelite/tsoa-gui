@@ -4,7 +4,7 @@ import { useSignedIn } from "../../account/session";
 import { Clock } from "../../Clock";
 import type { PartName, Status, System } from "../../model/system";
 import { batteryState, inverterState, MODES, partTitle } from "../describe";
-import { alarmingFirst, partDetail } from "../details";
+import { partDetail } from "../details";
 import { Eased } from "../Eased";
 import * as f from "../format";
 import { LINK_SENTENCES, LINK_WORDS, type Link } from "../link";
@@ -12,11 +12,9 @@ import { closePart, openPart, partAddress } from "../partView";
 import { isWorded, timeLeftReadings } from "../readings";
 import { STATUS_LABELS } from "../status";
 import type { PageSections } from "./sections";
+import { raised, sideFigure, SIDEBAR, URGENCY, type Raised } from "./sidebar";
 import { SkinSegment } from "./SkinSegment";
 import { useSmallPanel } from "./smallPanel";
-
-/** The sidebar, in the order power runs through the system. */
-const SIDEBAR: PartName[] = ["grid", "generator", "solar", "inverter_charger", "battery", "ac_loads", "dc_loads"];
 
 type Vital = {
   kind: "battery" | "solar" | "loads" | "part"; label: string;
@@ -44,25 +42,6 @@ function vitals({ battery, solar, ac_loads: ac, dc_loads: dc }: System): Vital[]
       ? [{ kind: "loads", value: loads.reduce((sum, power) => sum + power, 0), format: f.power, label: "Loads" } as const]
       : []),
   ];
-}
-
-/** The statuses that take over the top bar, the worst highest. */
-const URGENCY: Partial<Record<Status, number>> = { attention: 1, warning: 2, fault: 3 };
-
-type Raised = { part: PartName; status: Status; word: string };
-
-/** Each part that needs attention or is not reporting, with its word for why: its worst alarm, or else its status. */
-function raised(model: System): Raised[] {
-  return SIDEBAR.flatMap((part) => {
-    const shown = model[part];
-    if (shown === null || (shown.status !== "offline" && URGENCY[shown.status] === undefined)) {
-      return [];
-    }
-    const alarms = "alarms" in shown ? shown.alarms : [];
-    const checks = "checks" in shown ? alarmingFirst(shown.checks).filter((check) => check.level !== "ok") : [];
-    const worst = alarms.find((alarm) => alarm.level === "alarm") ?? alarms[0] ?? checks[0];
-    return [{ part, status: shown.status, word: worst?.name ?? STATUS_LABELS[shown.status] }];
-  });
 }
 
 type Alert = { status: Status; words: string; detail?: string };
@@ -121,17 +100,6 @@ function partVitals(part: PartName, model: System): Vital[] {
   return detail?.headline.value === null || detail === null ? [] : [
     { kind: "part", value: detail.headline.value, format: detail.headline.format, label: detail.state },
   ];
-}
-
-/** What a small panel shows on a part's block, in place of the readings it has no room for on the diagram. */
-function sideFigure(part: PartName, model: System): { value: number | null; format: f.Format } {
-  if (part === "battery") {
-    return { value: model.battery?.soc_percent ?? null, format: f.percent };
-  }
-  if (part === "inverter_charger") {
-    return { value: model.inverter_charger?.ac_out_power_w ?? null, format: f.power };
-  }
-  return partDetail(part, model)?.headline ?? { value: null, format: f.power };
 }
 
 // The console's frame, which stays put on every screen while what is inside it

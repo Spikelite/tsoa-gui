@@ -45,6 +45,7 @@ test("the page draws the system and fits the screen", async ({ page }) => {
 });
 
 test("the Sci-Fi FOF skin draws the system and fits the screen", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
   await page.route("**/api/system/events", (route) =>
     route.fulfill({
       status: 200,
@@ -64,6 +65,7 @@ test("the Sci-Fi FOF skin draws the system and fits the screen", async ({ page }
 });
 
 test("the battery opens its own page inside Sci-Fi FOF's frame, and the page fits the screen", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
   await page.route("**/api/system/events", (route) =>
     route.fulfill({
       status: 200,
@@ -85,6 +87,7 @@ test("the battery opens its own page inside Sci-Fi FOF's frame, and the page fit
 });
 
 test("a Sci-Fi FOF conduit going idle carries the change along it with its waves", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
   // Solar producing, then not.
   const idle = { ...system, flows: system.flows.filter((flow) => flow.source !== "solar") };
   await heldStream(page, [system, 0], [idle, 1500]);
@@ -103,8 +106,7 @@ test("a Sci-Fi FOF conduit going idle carries the change along it with its waves
   expect(await solar.locator(".fof-conduit-wave").count()).toBeGreaterThan(0);
 });
 
-test("Sci-Fi FOF's conduits take lanes of their own on a screen where they would run together", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name === "phone", "Sci-Fi FOF's layout for a phone held upright is not done yet");
+test("Sci-Fi FOF's conduits take lanes of their own on a screen where they would run together", async ({ page }) => {
   const withGenerator = { ...system, generator: { status: "normal", ac_input: 2, running: false, power_w: 0, run_time_s: null } };
   await page.route("**/api/system/events", (route) =>
     route.fulfill({
@@ -132,6 +134,7 @@ test("Sci-Fi FOF's conduits take lanes of their own on a screen where they would
 });
 
 test("Sci-Fi FOF writes labels and words in capitals and leaves units as they are", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
   const model = { ...system, battery: {
     ...system.battery!, voltage_v: null, time_left: { toward: "full", seconds: 5760, settled: true },
   } };
@@ -182,6 +185,7 @@ test("Sci-Fi FOF brings its own font from tsoa-gui, and no other skin loads it",
 });
 
 test("Sci-Fi FOF colors a name by what the part is, and a status only when it needs attention", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
   await page.route("**/api/system/events", (route) =>
     route.fulfill({
       status: 200,
@@ -202,8 +206,7 @@ test("Sci-Fi FOF colors a name by what the part is, and a status only when it ne
   await expect(page.locator("[data-part='grid'] .fof-label-block .fof-status-words")).toHaveCount(0);
 });
 
-test("Sci-Fi FOF's frame holds the whole overview on screens of any size, with its menu inside the screen", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name === "phone", "Sci-Fi FOF's layout for a phone held upright is not done yet");
+test("Sci-Fi FOF's frame holds the whole overview on screens of any size, with its menu inside the screen", async ({ page }) => {
   await page.route("**/api/system/events", (route) =>
     route.fulfill({
       status: 200,
@@ -233,6 +236,7 @@ test("Sci-Fi FOF's frame holds the whole overview on screens of any size, with i
 });
 
 test("Sci-Fi FOF stops and dims what its frame holds while the readings are not live", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
   await heldStream(page, [system, 0], [{ ...system, live: false }, 1000]);
   await page.goto("/?skin=sci-fi-fof");
   const well = page.locator(".fof-well");
@@ -258,8 +262,7 @@ test("Sci-Fi FOF comes up in its own frame before the first readings, and the mi
   await expect(page.locator(".fof-boot")).toHaveCount(0);
 });
 
-test("Sci-Fi FOF's limit screen fits inside the frame, with keys a finger can hit", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name === "phone", "Sci-Fi FOF's layout for a phone held upright is not done yet");
+test("Sci-Fi FOF's limit screen fits inside the frame, with keys a finger can hit", async ({ page }) => {
   await heldStream(page, [system, 0]);
   await page.route("**/api/session", (route) => route.fulfill({
     json: { account: { name: "owner", role: "admin" }, setup_needed: false, csrf: "token" },
@@ -322,8 +325,7 @@ test("Sci-Fi FOF's pill on a reading that can be changed stands taller than its 
   expect(measured.row).toBe(measured.plain);
 });
 
-test("Sci-Fi FOF's part pages fit inside the frame with every reading known", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name === "phone", "Sci-Fi FOF's layout for a phone held upright is not done yet");
+test("Sci-Fi FOF's part pages fit inside the frame with every reading known", async ({ page }) => {
   await heldStream(page, [system, 0]);
   for (const [width, height] of [[1093, 614], [1366, 768], [1707, 960], [1920, 1080], [2560, 1440], [3840, 2160]]) {
     await page.setViewportSize({ width: width!, height: height! });
@@ -346,8 +348,7 @@ test("Sci-Fi FOF's part pages fit inside the frame with every reading known", as
   }
 });
 
-test("Sci-Fi FOF keeps a page of few sections to a width a row can be read across", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name === "phone", "Sci-Fi FOF's layout for a phone held upright is not done yet");
+test("Sci-Fi FOF keeps a page of few sections to a width a row can be read across", async ({ page }) => {
   await heldStream(page, [system, 0]);
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto("/?skin=sci-fi-fof&part=dc_loads");
@@ -357,8 +358,7 @@ test("Sci-Fi FOF keeps a page of few sections to a width a row can be read acros
   expect(rowInEm).toBeLessThan(20);
 });
 
-test("Sci-Fi FOF's top bar keeps a unit's case, and sets a word in capitals", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name === "phone", "Sci-Fi FOF's layout for a phone held upright is not done yet");
+test("Sci-Fi FOF's top bar keeps a unit's case, and sets a word in capitals", async ({ page }) => {
   // With no alarm, which would take the bar's place.
   await heldStream(page, [{
     ...system,
@@ -378,8 +378,7 @@ test("Sci-Fi FOF's top bar keeps a unit's case, and sets a word in capitals", as
   expect(await case_(/State/)).toBe("uppercase");
 });
 
-test("Sci-Fi FOF says so on the page of a part that is not reporting", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name === "phone", "Sci-Fi FOF's layout for a phone held upright is not done yet");
+test("Sci-Fi FOF says so on the page of a part that is not reporting", async ({ page }) => {
   await heldStream(page, [{ ...system, solar: { ...system.solar!, status: "offline" } }, 0]);
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto("/?skin=sci-fi-fof&part=solar");
@@ -398,8 +397,7 @@ test("Sci-Fi FOF drops the cells' glow on every small panel, and keeps it on a l
   }
 });
 
-test("Sci-Fi FOF changes shape on a small panel, so that nothing scrolls and every target takes a finger", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name === "phone", "Sci-Fi FOF's layout for a phone held upright is not done yet");
+test("Sci-Fi FOF changes shape on a small panel, so that nothing scrolls and every target takes a finger", async ({ page }) => {
   await heldStream(page, [system, 0]);
   await page.route("**/api/session", (route) => route.fulfill({
     json: { account: { name: "owner", role: "admin" }, setup_needed: false, csrf: "token" },
@@ -461,5 +459,49 @@ test("Sci-Fi FOF changes shape on a small panel, so that nothing scrolls and eve
           .toEqual({ over: 0, across: 0, small: [] });
       }
     }
+  }
+});
+
+test("Sci-Fi FOF lists the parts on a phone held upright, each opening a page that fits", async ({ page }) => {
+  await heldStream(page, [system, 0]);
+  await page.setViewportSize({ width: 412, height: 839 });
+  await page.goto("/?skin=sci-fi-fof");
+  const rows = page.getByRole("navigation", { name: "Parts" }).getByRole("link");
+  await expect(rows).toHaveCount(6);
+  await expect(page.locator(".fof-diagram")).toHaveCount(0);
+  await page.evaluate(() => document.fonts.ready);
+
+  const measured = await page.evaluate(() => {
+    const well = document.querySelector(".fof-well")!;
+    // The key reaches past what it draws, so what counts is what a finger lands on.
+    const key = document.querySelector<HTMLElement>(".fof-select-button")!;
+    const { left, width, bottom } = key.getBoundingClientRect();
+    let reach = 0;
+    while (key.contains(document.elementFromPoint(left + width / 2, bottom - reach - 0.5))) {
+      reach += 1;
+    }
+    return {
+      over: well.scrollHeight - well.clientHeight,
+      across: well.scrollWidth - well.clientWidth,
+      shortest: Math.min(...[...document.querySelectorAll<HTMLElement>(".fof-list > a, .fof-elbow-top")].map((target) => target.offsetHeight)),
+      reach,
+    };
+  });
+  expect(measured.over).toBe(0);
+  expect(measured.across).toBe(0);
+  expect(measured.shortest).toBeGreaterThanOrEqual(44);
+  expect(measured.reach).toBeGreaterThanOrEqual(44);
+
+  // Solar is producing in the fixture, and the DC loads are not known to be drawing anything.
+  await expect(rows.filter({ hasText: "Solar" }).locator(".fof-list-flowing")).toHaveCount(1);
+  await expect(rows.filter({ hasText: "DC loads" }).locator(".fof-list-flowing")).toHaveCount(0);
+
+  for (const name of ["Shore power", "Solar", "Inverter", "Battery", "AC loads", "DC loads"]) {
+    await rows.filter({ hasText: name }).click();
+    await expect(page.locator(".fof-deck")).toBeVisible();
+    const across = await page.locator(".fof-well").evaluate((well) => well.scrollWidth - well.clientWidth);
+    expect(across, name).toBe(0);
+    await page.getByRole("button", { name: "Overview" }).click();
+    await expect(rows).toHaveCount(6);
   }
 });

@@ -1544,42 +1544,19 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 
 /* Phones and upright screens: two columns, as in the main view. */
 @media (orientation: portrait) {
-  .fof-diagram {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-areas:
-      "grid generator"
-      "inverter ac"
-      "battery solar"
-      "dc .";
-    gap: 2em 1.6em;
-  }
-
-  .fof-diagram [data-part] { align-self: center; margin-top: 0; }
-
-  .fof-readout-hub,
-  .fof-readout-schematic { display: flex; flex-direction: column; align-items: flex-start; }
-  .fof-readout-schematic > .fof-unit { order: 1; width: 100%; margin: 0.4em 0 0.3em; }
-  .fof-readout-schematic > .fof-state-line { order: 2; margin: 0.35em 0; }
-  .fof-readout-schematic > .fof-rows { order: 3; }
-  .fof-readout-hub > .fof-unit { margin: 0.8em auto 0; }
-  .fof-readout-lead .fof-headline { position: static; align-self: flex-end; }
-  .fof-hub-readings { position: static; width: 100%; margin: 0; }
-
   .fof {
-    --fof-bar: 2em;
+    --fof-bar: max(2.6em, 44px);
     grid-template-columns: auto minmax(0, 1fr);
     grid-template-rows: var(--fof-bar) minmax(0, 1fr) var(--fof-foot);
-    height: auto;
-    min-height: 100vh;
   }
 
-  .fof-paged { height: 100vh; min-height: 0; }
-
   .fof-side,
-  .fof-label,
   .fof-vital,
+  .fof-top > .fof-bar,
   .fof-elbow::before,
   .fof-elbow::after { display: none; }
+
+  .fof-label { flex: 1; min-width: 0; font-size: 1.3em; }
 
   /* A job needs its sidebar even here, as a row under the top bar. */
   .fof-job { grid-template-rows: var(--fof-bar) auto minmax(0, 1fr) var(--fof-foot); }
@@ -1608,15 +1585,79 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   .fof-alert small { display: none; }
 
   /* Tall enough to tap. */
-  .fof-select .fof-select-option { min-height: 2.75rem; padding: 0 0.9em; }
-  .fof-core { --fof-bank-width: 6.6em; }
+  .fof .fof-deck-art { justify-self: stretch; }
+  .fof .fof-deck-art .fof-schematic-unit { width: 100%; }
+  .fof .fof-deck-clear summary { min-height: 44px; }
   .fof-panel-unit { --fof-panel: 10.5; }
-  .fof-bank { height: 4.4em; grid-template-columns: 0.8em minmax(0, 1fr) 0.8em; }
+
+  /* Nothing may reach past the edge of a screen this narrow. */
   .fof-bank-cap::before { display: none; }
-  .fof-core > .fof-core-row { column-gap: 0.45em; }
-  .fof-bank-cells { gap: 0.35em 0.15em; }
-  .fof-core-figure { font-size: 1em; }
+  .fof .fof-row .control-value::after { right: 0; left: 0; }
 }
+
+/* On a screen a finger works, the bottom bar stays thin, and its keys reach up
+   past it, over the well, to a finger's size. The account's name is cut off
+   along its length only, since clipping it all round would take the reach with
+   it. The well keeps what it stacks to itself, or a part on the diagram would
+   come out over the keys. */
+@media (orientation: portrait), (orientation: landscape) and (max-height: 610px), (orientation: landscape) and (max-width: 900px) {
+  .fof-well { isolation: isolate; }
+  .fof-bottom { position: relative; z-index: 1; }
+  .fof-account-segment { overflow: clip visible; }
+  .fof-account-segment,
+  .fof-select-button { position: relative; }
+  .fof-account-segment::after,
+  .fof-select-button::after { content: ""; position: absolute; inset: calc(var(--fof-foot) - 44px) 0 0; }
+  .fof-select .fof-select-option { min-height: 44px; padding: 0 0.9em; }
+}
+
+/* The overview on a phone held upright: a row for each part. */
+.fof-list {
+  display: grid;
+  grid-auto-rows: minmax(3.6em, 1fr);
+  gap: var(--fof-seam);
+  height: 100%;
+}
+
+.fof-list > a {
+  display: grid;
+  grid-template-columns: 6em minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8em;
+  color: inherit;
+  text-decoration: none;
+}
+
+.fof-list > a:focus-visible { outline: 2px solid var(--fof-ink); outline-offset: -2px; }
+
+.fof-list-name {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  align-self: stretch;
+  padding: 0.3em 0.6em;
+  color: #000;
+  background: var(--fof-name);
+  font-weight: 500;
+  text-align: right;
+}
+
+.fof-list > :first-child .fof-list-name { border-radius: 1.2em 0 0; }
+.fof-list > :last-child .fof-list-name { border-radius: 0 0 0 1.2em; }
+.fof-list-raised .fof-list-name { background: var(--status-color); }
+
+.fof-list-about { display: grid; gap: 0.2em; min-width: 0; }
+.fof-list-about b { overflow: hidden; color: var(--fof-dim); font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.fof-list-about small { overflow: hidden; color: var(--fof-dim); font-size: 0.8em; text-overflow: ellipsis; text-transform: none; white-space: nowrap; }
+.fof-list-raised .fof-list-about b,
+.fof-list-raised .fof-list-about small { color: var(--status-color); }
+
+/* Lit while power flows through the part, in the conduit's colors. */
+.fof-list-about i { height: 0.4em; margin-top: 0.2em; background: #4a4436; border-radius: 0.2em; }
+.fof-list-about i.fof-list-flowing { background: linear-gradient(to right, var(--fof-conduit), var(--fof-plasma)); }
+
+.fof-list-figure { color: var(--fof-cell); font-size: 2.4em; font-weight: 300; font-variant-numeric: tabular-nums; }
+.fof-list-idle { color: var(--fof-idle); }
 
 /* A small panel keeps the motion but drops the cells' glow, the part that
    costs the most to draw. */
@@ -2207,19 +2248,7 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   .fof-vital { flex-direction: row; align-items: center; gap: 0.5em; padding: 0 0.7em; }
   .fof-vital b { font-size: 1.6em; }
 
-  /* The bottom bar is thin, and its keys reach up past it, over the well, to a
-     finger's size. The account's name is cut off along its length only, since
-     clipping it all round would take the reach with it. The well keeps what it
-     stacks to itself, or a part on the diagram would come out over the keys. */
-  .fof-well { isolation: isolate; }
-  .fof-bottom { position: relative; z-index: 1; }
   .fof-bottom .fof-segment { font-size: 1em; }
-  .fof-account-segment { overflow: clip visible; }
-  .fof-account-segment,
-  .fof-select-button { position: relative; }
-  .fof-account-segment::after,
-  .fof-select-button::after { content: ""; position: absolute; inset: calc(1.9em - 44px) 0 0; }
-  .fof-select .fof-select-option { min-height: 44px; padding: 0 0.9em; }
 
   .fof-diagram { font-size: 0.85em; }
   .fof-diagram .fof-label-block { font-size: 1.18em; }
