@@ -175,6 +175,7 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 .fof-side a {
   position: relative;
   display: flex;
+  flex-direction: column;
   align-items: flex-end;
   justify-content: flex-end;
   padding: 0 0.6em 0.3em;
@@ -189,6 +190,10 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 .fof-side a:hover,
 .fof-side a[aria-current] { background: var(--fof-ink); }
 
+/* A part with something to say keeps its status's color, open or not. */
+.fof-side a.fof-side-raised { background: var(--status-color); }
+.fof-side em { font-size: 0.8em; font-style: normal; font-weight: 600; }
+
 .fof-side a[aria-current]::after {
   content: "";
   position: absolute;
@@ -196,7 +201,7 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   bottom: 0;
   left: 100%;
   width: 0.4em;
-  background: var(--fof-ink);
+  background: inherit;
 }
 
 .fof-side a:focus-visible { outline: 2px solid var(--fof-ink); outline-offset: -4px; }
@@ -258,6 +263,34 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 }
 
 .fof-link > span:first-child { font-size: 1.8em; font-weight: 500; }
+
+/* An alarm, or readings that are no longer live, takes over the top bar's
+   segments, so that it can be read from across a room. */
+.fof-alert {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  min-width: 0;
+  padding: 0 1.2em;
+  overflow: hidden;
+  color: #000;
+  background: var(--status-color);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.fof-alert b { flex: none; font-size: 2.2em; font-weight: 500; }
+.fof-alert small { overflow: hidden; font-size: 1.14em; text-overflow: ellipsis; }
+
+/* Old readings can never pass for live ones: what the frame holds stops
+   moving and dims. */
+.fof-frozen .fof-well { filter: saturate(0.25) brightness(0.55); }
+.fof-frozen-lost .fof-well { filter: saturate(0) brightness(0.32); }
+
+.fof-frozen .fof-well *,
+.fof-frozen .fof-well *::before,
+.fof-frozen .fof-well *::after { animation: none !important; }
 
 .fof-link-stale, .fof-link-busy { background: var(--status-attention); }
 .fof-link-lost { background: var(--status-fault); }
@@ -578,11 +611,6 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 
 .fof-headline dd { margin-left: auto; color: var(--fof-cell); }
 .fof-headline-idle dd { color: var(--fof-idle); }
-
-/* An alarm never runs past its block of readings into a neighbour: where its
-   name and status do not fit on one line, the status wraps under the name. */
-.fof-alarm dt { max-width: 100%; }
-.fof-alarm .fof-name-pill { flex-wrap: wrap; row-gap: 0; white-space: normal; }
 
 /* Equipment drawn below a part's readings: the generator's column and the
    inverter/charger's ring, made of the same plates, cells and hub, where the
@@ -1282,7 +1310,10 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   .fof-segment,
   .fof-link { padding: 0 0.5em; }
   .fof-link > span:first-child,
-  .fof-clock-segment .clock { font-size: 0.85em; }
+  .fof-clock-segment .clock,
+  .fof-alert b { font-size: 0.85em; }
+  .fof-alert { padding: 0 0.5em; }
+  .fof-alert small { display: none; }
 
   /* Tall enough to tap. */
   .fof-select .fof-select-option { min-height: 2.75rem; padding: 0 0.9em; }

@@ -137,7 +137,7 @@ export function FofSkin({ model, connected = true, busy = false }: { model: Syst
   useLayoutEffect(() => pin(root.current));
 
   return (
-    <div ref={root} className={`fof${part !== null ? " fof-paged" : ""}`}>
+    <div ref={root} className={`fof${part !== null ? " fof-paged" : ""}${state === "live" ? "" : ` fof-frozen fof-frozen-${state}`}`}>
       <Frame model={model} part={part} state={state} />
 
       <div className="fof-well">
@@ -175,13 +175,6 @@ export function FofSkin({ model, connected = true, busy = false }: { model: Syst
             state={inverterState(model.inverter_charger)} art={<InverterCore inverter={model.inverter_charger} hub={hub} />}
             layout="hub">
             <Glance readings={inverterReadings(model.inverter_charger, model)} />
-            {model.inverter_charger.alarms.map((alarm) => (
-              <div key={alarm.name} className="fof-row fof-alarm">
-                <dt>
-                  <NamePill name={alarm.name} status={alarm.level === "alarm" ? "fault" : "warning"} />
-                </dt>
-              </div>
-            ))}
           </Readout>
         )}
 
