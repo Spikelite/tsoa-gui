@@ -19,6 +19,7 @@
   --fof-dim: #a99fc4;
   --fof-well: #0b0a12;
   --fof-cell: #f0dfa8;
+  --fof-idle: #6e6450;
   --fof-cap: #a8803c;
   --fof-conduit: #f6dc74;
   --fof-plasma: #a6d4ff;
@@ -400,6 +401,20 @@
   margin: 0;
   font-variant-numeric: tabular-nums;
 }
+
+/* The overview keeps few enough rows for them to stand larger than a part
+   page's, under a figure in the same column as their values. */
+.fof-readout .fof-row,
+.fof-core .fof-row { font-size: 1.15em; }
+
+.fof-readout .fof-headline {
+  font-size: 2.5em;
+  font-weight: 300;
+  line-height: 1.08;
+}
+
+.fof-headline dd { margin-left: auto; color: var(--fof-cell); }
+.fof-headline-idle dd { color: var(--fof-idle); }
 
 /* An alarm never runs past its block of readings into a neighbour: where its
    name and status do not fit on one line, the status wraps under the name. */

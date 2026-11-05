@@ -4,18 +4,22 @@ import * as f from "./format";
 
 // What each part shows, shared by every skin so that a skin changes how the
 // readings look and never which of them there are. Each part has a headline,
-// the reading a skin draws largest, and its details.
+// the reading a skin draws largest, and its details, some marked `glance`:
+// those an overview keeps if it leaves the rest to the part's own page.
 
 /**
  * A measured reading. One the system does not report is left out unless
  * `always`. One with a control is a setting the server's control of that
  * name changes, which a skin offers to an account that may change it.
  */
-export type Measured = { label: string; value: number | null; format: f.Format; always?: boolean; control?: string };
+export type Measured = {
+  label: string; value: number | null; format: f.Format; always?: boolean; control?: string; glance?: boolean;
+};
 /** A reading that is a word rather than a number, left out where the system does not report it. */
 export type Worded = {
   label: string;
   text: string;
+  glance?: boolean;
   /** Has a number and its unit in it, which a skin writing words in capitals has to leave as they are. */
   withUnit?: boolean;
 };
@@ -31,8 +35,8 @@ export function gridReadings(grid: Grid): Readings {
     details: [
       { label: "Voltage", value: grid.voltage_v, format: f.volts },
       { label: "Current", value: grid.current_a, format: f.amps },
-      { label: "Frequency", value: grid.frequency_hz, format: f.hertz },
-      { label: "Input limit", value: grid.input_current_limit_a, format: f.amps },
+      { label: "Frequency", value: grid.frequency_hz, format: f.hertz, glance: true },
+      { label: "Input limit", value: grid.input_current_limit_a, format: f.amps, glance: true },
     ],
   };
 }
@@ -40,7 +44,7 @@ export function gridReadings(grid: Grid): Readings {
 export function generatorReadings(generator: Generator): Readings {
   return {
     headline: { label: "Power", value: generator.power_w, format: f.power, always: true },
-    details: [{ label: "Running for", value: generator.run_time_s, format: f.duration }],
+    details: [{ label: "Running for", value: generator.run_time_s, format: f.duration, glance: true }],
   };
 }
 
@@ -60,9 +64,9 @@ export function inverterReadings(inverter: InverterCharger, model: System): Read
   return {
     headline: { label: "AC out", value: inverter.ac_out_power_w, format: f.power, always: true },
     details: [
-      ...(inverter.mode === null ? [] : [{ label: "Mode", text: MODES[inverter.mode] }]),
-      ...(inUse === null ? [] : [{ label: "Input in use", text: inputName(inUse, model) }]),
-      { label: "AC in", value: inverter.ac_in_power_w, format: f.power },
+      ...(inverter.mode === null ? [] : [{ label: "Mode", text: MODES[inverter.mode], glance: true }]),
+      ...(inUse === null ? [] : [{ label: "Input in use", text: inputName(inUse, model), glance: true }]),
+      { label: "AC in", value: inverter.ac_in_power_w, format: f.power, glance: true },
       { label: "Charge current", value: inverter.charge_current_a, format: f.amps },
     ],
   };
@@ -76,9 +80,9 @@ export function batteryReadings(battery: Battery): Readings {
   return {
     headline: { label: "Charge", value: battery.soc_percent, format: f.percent, always: true },
     details: [
-      { label: "Power", value: battery.power_w, format: f.power, always: true },
-      { label: "Voltage", value: battery.voltage_v, format: f.volts, always: true },
-      { label: "Current", value: battery.current_a, format: f.amps },
+      { label: "Power", value: battery.power_w, format: f.power, always: true, glance: true },
+      { label: "Voltage", value: battery.voltage_v, format: f.volts, always: true, glance: true },
+      { label: "Current", value: battery.current_a, format: f.amps, glance: true },
       { label: "Temperature", value: battery.temperature_c, format: f.celsius },
       ...timeLeftReadings(battery),
       { label: "Charge limit", value: battery.max_charge_current_a, format: f.amps },
@@ -97,22 +101,22 @@ export function timeLeftReadings(battery: Battery): Reading[] {
   const estimate = battery.time_left;
   if (estimate !== null) {
     const text = f.timeLeft(estimate);
-    return [{ label: estimate.toward === "empty" ? "Time to empty" : "Time to full", text, withUnit: /\d/.test(text) }];
+    return [{ label: estimate.toward === "empty" ? "Time to empty" : "Time to full", text, withUnit: /\d/.test(text), glance: true }];
   }
   if (battery.activity === "idle") {
-    return [{ label: "Time left", text: "Idle" }];
+    return [{ label: "Time left", text: "Idle", glance: true }];
   }
   if (battery.activity === null) {
     return [];
   }
-  return [{ label: battery.activity === "discharging" ? "Time to empty" : "Time to full", value: null, format: f.duration, always: true }];
+  return [{ label: battery.activity === "discharging" ? "Time to empty" : "Time to full", value: null, format: f.duration, always: true, glance: true }];
 }
 
 /** The solar readings; each charger's own power is listed apart, where there is more than one. */
 export function solarReadings(solar: Solar): Readings {
   return {
     headline: { label: "Power", value: solar.power_w, format: f.power, always: true },
-    details: [{ label: "Today", value: solar.yield_today_kwh, format: f.kilowattHours }],
+    details: [{ label: "Today", value: solar.yield_today_kwh, format: f.kilowattHours, glance: true }],
   };
 }
 

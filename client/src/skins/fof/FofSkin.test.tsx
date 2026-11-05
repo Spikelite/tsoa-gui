@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { system } from "../../test/system";
@@ -121,11 +121,31 @@ describe("FofSkin", () => {
     expect(ring("inverting", "offline")).toContain("fof-duty-idle");
   });
 
-  it("shows the output's voltage and frequency with the AC loads", () => {
+  it("leads a part with one figure on the overview and leaves the rest to its page", () => {
     render(<FofSkin model={system} />);
-    const loads = screen.getByRole("region", { name: "AC loads" });
-    expect(within(loads).getByText("230.4 V")).toBeInTheDocument();
-    expect(within(loads).getByText("50.01 Hz")).toBeInTheDocument();
+    const shore = screen.getByRole("region", { name: "Shore power" });
+    expect(shore.querySelector(".fof-headline")).toHaveTextContent("Power1.25 kW");
+    expect(shore.querySelector(".fof-headline dt")).toHaveClass("fof-quiet");
+    expect(within(shore).queryByText("231.5 V")).toBeNull();
+    expect(within(shore).getByText("16.0 A")).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "AC loads" })).queryByText("230.4 V")).toBeNull();
+    cleanup();
+
+    window.history.replaceState(null, "", "/?part=ac_loads");
+    render(<FofSkin model={system} />);
+    const page = screen.getByRole("region", { name: "AC loads" });
+    expect(within(page).getAllByText("230.4 V").length).toBeGreaterThan(0);
+    expect(within(page).getAllByText("50.01 Hz").length).toBeGreaterThan(0);
+    window.history.replaceState(null, "", "/");
+  });
+
+  it("quiets the figure of a part doing nothing", () => {
+    const idle = { ...system, grid: { ...system.grid!, power_w: 0 }, dc_loads: { ...system.dc_loads!, power_w: null } };
+    render(<FofSkin model={idle} />);
+    const headline = (name: string) => screen.getByRole("region", { name }).querySelector(".fof-headline");
+    expect(headline("Shore power")).toHaveClass("fof-headline-idle");
+    expect(headline("DC loads")).toHaveClass("fof-headline-idle");
+    expect(headline("AC loads")).not.toHaveClass("fof-headline-idle");
   });
 
   it("draws a conduit for every path power is taking", () => {

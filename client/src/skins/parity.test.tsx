@@ -26,26 +26,38 @@ const everything: System = {
   dc_loads: { status: "normal", power_w: 42, measured_by: "meter" },
 };
 
-const PARTS = ["Shore power", "Generator", "Inverter", "Battery", "Solar", "AC loads", "DC loads"];
+const PARTS = {
+  "Shore power": "grid", Generator: "generator", Inverter: "inverter_charger", Battery: "battery", Solar: "solar",
+  "AC loads": "ac_loads", "DC loads": "dc_loads",
+};
 
-/** Every value a skin shows for each part, numbers and words alike, sorted. */
+/** Every value shown in a part, numbers and words alike, sorted. */
+function valuesIn(part: HTMLElement): string[] {
+  const numbers = [...part.querySelectorAll(".reading-value")];
+  const words = [...part.querySelectorAll("dd")].filter((dd) => dd.querySelector(".reading-value") === null);
+  return [...numbers, ...words].map((element) => element.textContent ?? "").sort();
+}
+
+/** What a skin's overview shows for each part. */
 function shown(skin: ReactElement): Record<string, string[]> {
   render(skin);
-  const values = Object.fromEntries(PARTS.map((name) => {
-    const part = screen.getByRole("region", { name });
-    const numbers = [...part.querySelectorAll(".reading-value")];
-    const words = [...part.querySelectorAll("dd")].filter((dd) => dd.querySelector(".reading-value") === null);
-    return [name, [...numbers, ...words].map((element) => element.textContent ?? "").sort()];
-  }));
+  const values = Object.fromEntries(Object.keys(PARTS).map((name) => [name, valuesIn(screen.getByRole("region", { name }))]));
   cleanup();
   return values;
 }
 
 describe("the skins", () => {
-  it("show the same readings for every part", () => {
+  it("show the same readings for every part, Sci-Fi FOF keeping some of them to the part's own page", () => {
     const minimal = shown(<MinimalSkin model={everything} />);
     const fof = shown(<FofSkin model={everything} />);
-    expect(fof).toEqual(minimal);
+    for (const [name, part] of Object.entries(PARTS)) {
+      expect(minimal[name]).toEqual(expect.arrayContaining(fof[name]!));
+      window.history.replaceState(null, "", `/?part=${part}`);
+      render(<FofSkin model={everything} />);
+      expect(valuesIn(screen.getByRole("region", { name }))).toEqual(expect.arrayContaining(minimal[name]!));
+      cleanup();
+      window.history.replaceState(null, "", "/");
+    }
     expect(minimal.Battery).toEqual(expect.arrayContaining(["10 h 0 min", "100.0 A", "150.0 A", "20 mV"]));
     expect(minimal["Inverter"]).toContain("Generator");
     // Each metered circuit's power, under the AC loads.
