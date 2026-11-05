@@ -109,6 +109,22 @@ function Readout(props: {
   );
 }
 
+// Until the first readings arrive: the frame comes up a piece at a time, and
+// the page's message sits inside it, so a kiosk starts up looking like itself.
+export function FofWaiting({ children }: { children: ReactNode }) {
+  return (
+    <div className="fof fof-boot">
+      <Frame model={null} />
+      <div className="fof-well">
+        <div className="fof-boot-message">
+          {children}
+          <div className="fof-boot-dots" aria-hidden="true"><i /><i /><i /><i /></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // The second skin: the main view's layout as an engineering console. Supplies
 // on the left, the inverter/charger's housing and the battery's bank of cells
 // in the middle, loads on the right, with power moving between them through

@@ -95,10 +95,15 @@ function alertFor(state: Link, parts: Raised[], model: System): Alert | null {
 // sidebar is the way round the system, each block saying what its part has
 // raised, and the elbow above it the way back to the whole of it. What a
 // kiosk's viewer rarely needs goes along the bottom.
-export function Frame({ model, part, state }: { model: System; part: PartName | null; state: Link }) {
+export function Frame({ model, part = null, state = "live" }: {
+  /** With none yet, the frame stands empty, waiting for the first readings. */
+  model: System | null;
+  part?: PartName | null;
+  state?: Link;
+}) {
   const signedIn = useSignedIn();
-  const parts = raised(model);
-  const alert = alertFor(state, parts, model);
+  const parts = model ? raised(model) : [];
+  const alert = model ? alertFor(state, parts, model) : null;
   const open = (event: MouseEvent<HTMLAnchorElement>, name: PartName) => {
     event.preventDefault();
     openPart(name, event.currentTarget);
@@ -120,7 +125,7 @@ export function Frame({ model, part, state }: { model: System; part: PartName | 
           </span>
         ) : (
           <>
-            {vitals(model).map(({ kind, value, format, label, spare }) => (
+            {model && vitals(model).map(({ kind, value, format, label, spare }) => (
               <span key={label} className={`fof-vital fof-vital-${kind}${spare ? " fof-vital-spare" : ""}`}>
                 <b><Eased value={value} format={format} /></b>
                 <small>{label}</small>
@@ -132,15 +137,20 @@ export function Frame({ model, part, state }: { model: System; part: PartName | 
         <span className="fof-segment fof-clock-segment">
           <Clock />
         </span>
-        {/* How current the readings are: one word on screen, the whole of it for a screen reader. */}
-        <span className={`fof-link fof-link-${state}`} role="status">
-          <span aria-hidden="true">{LINK_WORDS[state]}</span>
-          <span className="fof-quiet">{LINK_SENTENCES[state]}</span>
-        </span>
+        {model === null ? (
+          <span className="fof-link fof-link-stale"><span aria-hidden="true">Waiting</span></span>
+        ) : (
+          // How current the readings are: one word on screen, the whole of it for a screen reader.
+          <span className={`fof-link fof-link-${state}`} role="status">
+            <span aria-hidden="true">{LINK_WORDS[state]}</span>
+            <span className="fof-quiet">{LINK_SENTENCES[state]}</span>
+          </span>
+        )}
       </div>
 
       <nav className="fof-side" aria-label="Parts">
-        {SIDEBAR.filter((name) => model[name] !== null).map((name) => {
+        {model === null && SIDEBAR.map((name) => <span key={name} data-side={name} />)}
+        {model && SIDEBAR.filter((name) => model[name] !== null).map((name) => {
           const own = parts.find((entry) => entry.part === name);
           return (
             <a key={name} href={partAddress(name)} data-side={name} className={own && `fof-side-raised status-${own.status}`}
