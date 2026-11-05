@@ -108,7 +108,7 @@ describe("a part's own page", () => {
       const Skin = skin;
       render(<Skin model={system} />);
       expect(screen.queryByRole("list", { name: "Cells" })).not.toBeInTheDocument();
-      fireEvent.click(screen.getByRole("link", { name: "Battery" }));
+      fireEvent.click(screen.getAllByRole("link", { name: "Battery" }).at(-1)!);
       expect(window.location.search).toBe("?part=battery");
       expect(screen.getByRole("list", { name: "Cells" })).toBeInTheDocument();
       // Closing goes back over the step opening took in the browser's history.
@@ -116,12 +116,35 @@ describe("a part's own page", () => {
       await waitFor(() => expect(screen.queryByRole("list", { name: "Cells" })).not.toBeInTheDocument());
       expect(window.location.search).toBe("");
 
-      fireEvent.click(screen.getByRole("link", { name: "Battery" }));
+      fireEvent.click(screen.getAllByRole("link", { name: "Battery" }).at(-1)!);
       fireEvent.click(screen.getByRole("button", { name: back }));
       await waitFor(() => expect(screen.queryByRole("list", { name: "Cells" })).not.toBeInTheDocument());
       cleanup();
       window.history.replaceState(null, "", "/");
     }
+  });
+
+  it("in Sci-Fi FOF, goes straight between parts from the sidebar, and back to the overview in one step", async () => {
+    window.history.replaceState(null, "", "/?skin=sci-fi-fof");
+    render(<FofSkin model={system} />);
+    const parts = within(screen.getByRole("navigation", { name: "Parts" }));
+    // The sidebar has the parts this system has, and it has no generator.
+    expect(parts.getAllByRole("link").map((link) => link.textContent)).toEqual([
+      "Shore power", "Solar", "Inverter", "Battery", "AC loads", "DC loads",
+    ]);
+    expect(screen.queryByRole("button", { name: "Overview" })).toBeNull();
+
+    fireEvent.click(parts.getByRole("link", { name: "Battery" }));
+    expect(new URLSearchParams(window.location.search).get("part")).toBe("battery");
+    expect(parts.getByRole("link", { name: "Battery" })).toHaveAttribute("aria-current", "page");
+    fireEvent.click(parts.getByRole("link", { name: "Solar" }));
+    expect(new URLSearchParams(window.location.search).get("part")).toBe("solar");
+    expect(parts.getByRole("link", { name: "Battery" })).not.toHaveAttribute("aria-current");
+
+    fireEvent.click(screen.getByRole("button", { name: "Overview" }));
+    await waitFor(() => expect(window.location.search).toBe("?skin=sci-fi-fof"));
+    cleanup();
+    window.history.replaceState(null, "", "/");
   });
 
   it("opens straight onto a page from the address, as a kiosk does", () => {

@@ -1,13 +1,11 @@
 import { useCallback, useId, useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 
-import { useSignedIn } from "../../account/session";
-import { Clock } from "../../Clock";
 import type { PartName, Status, System } from "../../model/system";
 import { generatorState, gridState, inverterState, partTitle, solarState } from "../describe";
 import { DETAILED, detailedPart } from "../details";
 import { Eased } from "../Eased";
-import { link, LINK_SENTENCES, LINK_WORDS } from "../link";
-import { closePart, openedFrom, openPart, partAddress, useEscapeCloses, usePart } from "../partView";
+import { link } from "../link";
+import { openedFrom, openPart, partAddress, useEscapeCloses, usePart } from "../partView";
 import * as f from "../format";
 import {
   acLoadsReadings, dcLoadsReadings, dcLoadsState, generatorReadings, gridReadings, inverterReadings, solarReadings,
@@ -19,12 +17,12 @@ import { InverterDeck } from "./InverterDeck";
 import { PartDeck } from "./PartDeck";
 import { Conduits } from "./Conduits";
 import { Core, Glance } from "./Core";
+import { Frame } from "./Frame";
 import { GeneratorCore } from "./GeneratorCore";
 import { GridTower } from "./GridTower";
 import type { HubPorts } from "./hubPorts";
 import { InverterCore } from "./InverterCore";
 import { LoadPanel } from "./LoadPanel";
-import { SkinSegment } from "./SkinSegment";
 import { SolarArray } from "./SolarArray";
 import { NamePill, StatusWords } from "./StatusPill";
 import { withIdleLinks } from "./links";
@@ -118,7 +116,6 @@ function Readout(props: {
 // and SVG, with no images.
 export function FofSkin({ model, connected = true, busy = false }: { model: System; connected?: boolean; busy?: boolean }) {
   const root = useRef<HTMLDivElement>(null);
-  const signedIn = useSignedIn();
   // Where the conduits meet the hub, which they work out once laid out and
   // the hub needs to carry them on into its windings.
   const [hub, setHub] = useState<HubPorts>();
@@ -141,33 +138,9 @@ export function FofSkin({ model, connected = true, busy = false }: { model: Syst
 
   return (
     <div ref={root} className={`fof${part !== null ? " fof-paged" : ""}`}>
-      <div className="fof-top">
-        <span className="fof-cap fof-cap-left" aria-hidden="true" />
-        <span className="fof-label" aria-hidden="true">Power systems</span>
-        <span className="fof-bar" aria-hidden="true" />
-        {/* On a part's own page, the way back to the whole system. */}
-        {part !== null && (
-          <button type="button" className="fof-segment fof-back-segment" aria-label="Overview" onClick={closePart}>
-            {/* A phone's top bar has room for only the shorter word. */}
-            <span className="fof-back-long" aria-hidden="true">Overview</span>
-            <span className="fof-back-short" aria-hidden="true">Back</span>
-          </button>
-        )}
-        <span className="fof-segment fof-clock-segment">
-          <Clock />
-        </span>
-        {/* How current the readings are: one word on screen, the whole of it for a screen reader. */}
-        <span className={`fof-link fof-link-${state}`} role="status">
-          <span aria-hidden="true">{LINK_WORDS[state]}</span>
-          <span className="fof-quiet">{LINK_SENTENCES[state]}</span>
-        </span>
-        {signedIn !== null && (
-          <a className="fof-segment fof-account-segment" href="/account" title="Your account">{signedIn.name}</a>
-        )}
-        <SkinSegment />
-        <span className="fof-cap fof-cap-right" aria-hidden="true" />
-      </div>
+      <Frame model={model} part={part} state={state} />
 
+      <div className="fof-well">
       {part !== null ? (
         // The page grows out of where the part was on the overview.
         <div className="fof-page" style={from ? { transformOrigin: `${from.x * 100}% ${from.y * 100}%` } : undefined}>
@@ -262,11 +235,6 @@ export function FofSkin({ model, connected = true, busy = false }: { model: Syst
       </RoutesContext>
       )}
 
-      <div className="fof-bottom">
-        {/* The frame carries the application's name, in place of the page header's. */}
-        <h1 className="fof-cap fof-cap-left fof-app-name">tsoa-gui</h1>
-        <span className="fof-bar" aria-hidden="true" />
-        <span className="fof-cap fof-cap-right" aria-hidden="true" />
       </div>
     </div>
   );

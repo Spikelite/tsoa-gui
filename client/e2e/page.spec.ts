@@ -189,3 +189,33 @@ test("Sci-Fi FOF colors a name by what the part is, and a status only when it ne
   expect(await background("[data-part='inverter_charger'] .fof-label-block .fof-status-words")).toBe("rgb(240, 136, 62)");
   await expect(page.locator("[data-part='grid'] .fof-label-block .fof-status-words")).toHaveCount(0);
 });
+
+test("Sci-Fi FOF's frame holds the whole overview on screens of any size, with its menu inside the screen", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "Sci-Fi FOF's layout for a phone held upright is not done yet");
+  await page.route("**/api/system/events", (route) =>
+    route.fulfill({
+      status: 200,
+      headers: { "content-type": "text/event-stream", "cache-control": "no-cache" },
+      body: `retry: 60000\nevent: model\ndata: ${JSON.stringify(system)}\n\n`,
+    }),
+  );
+  for (const [width, height] of [[800, 480], [1024, 600], [1280, 800], [1366, 768], [1920, 1080], [2560, 1080], [3840, 2160]]) {
+    await page.setViewportSize({ width: width!, height: height! });
+    await page.goto("/?skin=sci-fi-fof");
+    await expect(page.getByRole("navigation", { name: "Parts" })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => {
+      const well = document.querySelector(".fof-well")!;
+      return {
+        page: document.documentElement.scrollHeight - window.innerHeight,
+        across: document.documentElement.scrollWidth - window.innerWidth,
+        well: well.scrollHeight - well.clientHeight,
+      };
+    }), { message: `${width} x ${height}` }).toEqual({ page: 0, across: 0, well: 0 });
+  }
+
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.getByRole("button", { name: "Skin: Sci-Fi FOF" }).click();
+  const list = await page.getByRole("listbox", { name: "Skin" }).boundingBox();
+  expect(list!.y).toBeGreaterThanOrEqual(0);
+  expect(list!.y + list!.height).toBeLessThanOrEqual(768);
+});

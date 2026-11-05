@@ -139,6 +139,20 @@ describe("FofSkin", () => {
     window.history.replaceState(null, "", "/");
   });
 
+  it("carries the figures that say how the system is doing on the top bar", () => {
+    const charging = { ...system, battery: { ...system.battery!, soc_percent: 70, power_w: 300 } };
+    const { rerender } = render(<FofSkin model={charging} />);
+    const vitals = () => [...document.querySelectorAll(".fof-vital")].map((vital) => vital.textContent);
+    expect(vitals()).toEqual(["70%Battery, Charging", "300 WInto the battery", "310 WSolar", "900 WLoads"]);
+
+    rerender(<FofSkin model={{ ...charging, battery: { ...charging.battery, power_w: -300 } }} />);
+    expect(vitals()).toContain("300 WOut of the battery");
+
+    // Only what the system has, and what it knows.
+    rerender(<FofSkin model={{ ...charging, solar: null, battery: { ...charging.battery, power_w: null } }} />);
+    expect(vitals()).toEqual(["70%Battery, Charging", "900 WLoads"]);
+  });
+
   it("quiets the figure of a part doing nothing", () => {
     const idle = { ...system, grid: { ...system.grid!, power_w: 0 }, dc_loads: { ...system.dc_loads!, power_w: null } };
     render(<FofSkin model={idle} />);
