@@ -58,6 +58,7 @@
 }
 
 .fof-paged { --fof-elbow-color: var(--fof-lavender); }
+.fof-job { --fof-elbow-color: var(--fof-ink); }
 
 /* Capitals suit labels and words, but a unit changes its meaning with its
    case: 7 MV would be megavolts. */
@@ -172,7 +173,9 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   margin-top: var(--fof-seam);
 }
 
-.fof-side a {
+.fof-side > a,
+.fof-side > button,
+.fof-side > div {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -181,20 +184,32 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   padding: 0 0.6em 0.3em;
   color: #000;
   background: var(--fof-name);
+  border: 0;
+  font: inherit;
   font-size: 1.1em;
   font-weight: 500;
+  letter-spacing: inherit;
   text-align: right;
   text-decoration: none;
+  text-transform: inherit;
 }
 
-.fof-side a:hover,
-.fof-side a[aria-current] { background: var(--fof-ink); }
+.fof-side > button { cursor: pointer; }
+
+.fof-side b { font-size: 1.5em; font-weight: 400; text-transform: none; }
+.fof-side b.fof-word { text-transform: uppercase; }
+
+.fof-side > a:hover,
+.fof-side > button:hover,
+.fof-side > a[aria-current],
+.fof-side > button[aria-pressed="true"] { background: var(--fof-ink); }
 
 /* A part with something to say keeps its status's color, open or not. */
 .fof-side a.fof-side-raised { background: var(--status-color); }
 .fof-side em { font-size: 0.8em; font-style: normal; font-weight: 600; }
 
-.fof-side a[aria-current]::after {
+.fof-side > a[aria-current]::after,
+.fof-side > button[aria-pressed="true"]::after {
   content: "";
   position: absolute;
   top: 0;
@@ -204,7 +219,166 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   background: inherit;
 }
 
-.fof-side a:focus-visible { outline: 2px solid var(--fof-ink); outline-offset: -4px; }
+.fof-side > a:focus-visible,
+.fof-side > button:focus-visible { outline: 2px solid var(--fof-ink); outline-offset: -4px; }
+
+/* The skin's control parts: flat colors on black, with no outlines or
+   shadows, whose states change in plain steps, so that one set serves every
+   control. Colors come from the tones below. */
+.fof-tone-sand { --fof-name: var(--fof-sand); }
+.fof-tone-lavender { --fof-name: var(--fof-lavender); }
+.fof-tone-periwinkle { --fof-name: var(--fof-periwinkle); }
+.fof-tone-teal { --fof-name: var(--fof-teal); }
+
+.fof-key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: max(44px, 3.2em);
+  padding: 0 0.9em;
+  color: #000;
+  background: var(--fof-name, var(--fof-sand));
+  border: 0;
+  font: inherit;
+  font-weight: 500;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.fof-key-pill { border-radius: 999px; }
+.fof-key:hover:not(:disabled) { filter: brightness(1.12); }
+.fof-key:active:not(:disabled) { filter: brightness(0.78); }
+.fof-key:focus-visible { outline: 2px solid var(--fof-ink); outline-offset: 2px; }
+.fof-key[aria-pressed="true"] { background: var(--fof-ink); }
+
+.fof-key:disabled {
+  color: #76708a;
+  background: #24222e;
+  cursor: not-allowed;
+}
+
+.fof-key.fof-key-waiting { color: var(--fof-ink); background: #3a3a5a; cursor: progress; }
+
+/* A setting's screen, in a size taken from the room inside the frame, so that
+   it fills a small panel and a TV alike. */
+.fof-limit-area { height: 100%; container-type: size; }
+
+.fof-limit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 17.5em;
+  gap: 1.6em;
+  height: 100%;
+  font-size: 3.4cqh;
+  outline: none;
+}
+
+.fof-limit-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.75em;
+  min-width: 0;
+}
+
+.fof-limit-pad { display: flex; flex-direction: column; gap: 0.3em; min-height: 0; }
+
+.fof-limit-readout { display: flex; align-items: flex-end; gap: 1.1em; color: var(--fof-dim); }
+.fof-limit-now,
+.fof-limit-new { display: grid; gap: 0.15em; }
+.fof-limit-now b { font-size: 2.6em; font-weight: 300; line-height: 1; text-transform: none; }
+.fof-limit-new b { color: var(--fof-cell); font-size: 6.4em; font-weight: 300; line-height: 0.98; text-transform: none; letter-spacing: 0.02em; }
+.fof-limit-same b { color: var(--fof-dim); }
+
+.fof-limit-arrow {
+  align-self: center;
+  margin-top: 1.2em;
+  border-top: 0.55em solid transparent;
+  border-bottom: 0.55em solid transparent;
+  border-left: 0.9em solid var(--fof-sand);
+}
+
+.fof-limit-rail {
+  position: relative;
+  height: 1.5em;
+  background: repeating-linear-gradient(90deg, #2a2733 0 0.72em, #000 0.72em 0.9em);
+}
+
+.fof-limit-rail > span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  background: repeating-linear-gradient(90deg, var(--fof-sand) 0 0.72em, #000 0.72em 0.9em);
+}
+
+.fof-limit-rail-pending > span {
+  background-image: repeating-linear-gradient(90deg, var(--fof-plasma) 0 0.72em, #000 0.72em 0.9em);
+  animation: fof-limit-march 0.7s linear infinite;
+}
+
+@keyframes fof-limit-march {
+  to { background-position: 0.9em 0; }
+}
+
+.fof-limit-rail > i {
+  position: absolute;
+  top: -0.25em;
+  bottom: -0.25em;
+  width: 0.28em;
+  background: var(--fof-plasma);
+}
+
+.fof-limit-legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 1em;
+  margin-top: 0.4em;
+  color: var(--fof-dim);
+  font-size: 0.95em;
+}
+
+.fof-limit-legend b { color: var(--fof-plasma); font-weight: 400; text-transform: none; }
+
+.fof-limit-note { min-height: 1.5em; color: var(--fof-dim); font-size: 1.05em; line-height: 1.2; }
+.fof-limit-note-good { color: var(--fof-teal); }
+.fof-limit-note-failed { color: var(--status-fault); }
+.fof-limit-note-unsure { color: var(--status-attention); }
+.fof-limit-note-busy { color: var(--fof-plasma); }
+
+.fof-limit-presets { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.3em; }
+.fof-limit-presets .fof-key { padding: 0; }
+.fof-limit-remove { align-self: flex-start; padding: 0 2em; }
+
+.fof-limit-nudges { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.3em; }
+.fof-limit-nudges .fof-key { padding: 0; }
+
+.fof-limit-keys {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 0.3em;
+  min-height: 0;
+}
+
+.fof-limit-key {
+  min-height: 0;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 0 0.45em 0.1em;
+  font-size: 1.75em;
+  font-weight: 400;
+}
+
+.fof-limit-go {
+  --fof-name: var(--fof-ink);
+  flex: none;
+  min-height: 3em;
+  font-size: 1.4em;
+  border-radius: 0 2em 2em 0;
+}
 
 /* With no readings yet, the frame stands empty and comes up a piece at a time,
    the way round it from the elbow, along the top, then down the side. */
@@ -1383,6 +1557,18 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   .fof-elbow::before,
   .fof-elbow::after { display: none; }
 
+  /* A job needs its sidebar even here, as a row under the top bar. */
+  .fof-job { grid-template-rows: var(--fof-bar) auto minmax(0, 1fr) var(--fof-foot); }
+  .fof-job .fof-side { display: grid; grid-area: 2 / 1 / 3 / 3; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: var(--fof-seam) 0 0; }
+  .fof-job .fof-side > * { min-height: 3em; }
+  .fof-job .fof-well { grid-area: 3 / 1 / 4 / 3; }
+  .fof-job .fof-elbow-foot,
+  .fof-job .fof-bottom { grid-row: 4; }
+  .fof-limit-area { height: auto; container-type: normal; }
+  .fof-limit { grid-template-columns: minmax(0, 1fr); gap: 0.6em; font-size: 1em; }
+  .fof-limit-new b { font-size: 4em; }
+  .fof-limit-keys { grid-auto-rows: 3.4em; }
+
   .fof-elbow-top { grid-area: 1 / 1; padding: 0 0.6em; border-radius: 1em 0 0 1em; }
   .fof-elbow-foot { grid-area: 3 / 1; margin: 0; padding: 0 0.6em; border-radius: 1em 0 0 1em; }
   .fof-elbow > span { position: static; font-size: 0.85em; }
@@ -1429,6 +1615,7 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   .fof-boot .fof-side > *,
   .fof-boot .fof-bottom > *,
   .fof-boot-dots i,
+  .fof-limit-rail-pending > span,
   .fof-deck-led-blinking,
   .fof-page,
   .fof-deck-balancing .fof-deck-pill::before { animation: none; }
@@ -1762,6 +1949,23 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 .fof-relay-idle .fof-relay-core { animation: none; fill-opacity: 0.35; }
 .fof-relay-idle .fof-relay-cell { animation: none; }
 
-/* A setting's panel in the console's colors. */
-.fof-row .control-panel { --control-accent: var(--fof-sand); --panel-border: var(--fof-ring, var(--fof-dim)); }
-.fof-row .control-value { color: var(--fof-conduit); }
+/* A reading that can be changed looks like something to press, and takes more
+   of a finger than its row is tall. */
+.fof-row .control-value {
+  position: relative;
+  padding: 0 0.5em;
+  color: #000;
+  background: var(--fof-sand);
+  border: 0;
+  border-radius: 999px;
+}
+
+.fof-row .control-value::after {
+  content: "";
+  position: absolute;
+  inset: -7px -0.3em;
+}
+
+.fof-row .control-value:hover { filter: brightness(1.12); }
+.fof-row .control-value:active { filter: brightness(0.78); }
+.fof-row .control-value:focus-visible { outline: 2px solid var(--fof-ink); outline-offset: 2px; }

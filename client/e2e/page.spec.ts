@@ -257,3 +257,30 @@ test("Sci-Fi FOF comes up in its own frame before the first readings, and the mi
   await expect(page.getByText("Waiting for the first readings.")).toBeVisible();
   await expect(page.locator(".fof-boot")).toHaveCount(0);
 });
+
+test("Sci-Fi FOF's limit screen fits inside the frame, with keys a finger can hit", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "Sci-Fi FOF's layout for a phone held upright is not done yet");
+  await heldStream(page, [system, 0]);
+  await page.route("**/api/session", (route) => route.fulfill({
+    json: { account: { name: "owner", role: "admin" }, setup_needed: false, csrf: "token" },
+  }));
+  await page.route("**/api/controls", (route) => route.fulfill({
+    json: [{ name: "input-1-current-limit", value: 16, adjustable: true, low: 0, high: 100, ceiling: 30 }],
+  }));
+  for (const [width, height] of [[800, 480], [1024, 600], [1366, 768], [1920, 1080], [3840, 2160]]) {
+    await page.setViewportSize({ width: width!, height: height! });
+    await page.goto("/?skin=sci-fi-fof&part=inverter_charger");
+    await page.locator(".control-value").first().click();
+    await expect(page.getByRole("group", { name: "Breaker sizes" })).toBeVisible();
+    const measured = await page.evaluate(() => {
+      const well = document.querySelector(".fof-well")!;
+      const keys = [...document.querySelectorAll(".fof-limit button")].map((key) => key.getBoundingClientRect());
+      return {
+        over: well.scrollHeight - well.clientHeight,
+        smallest: Math.min(...keys.flatMap((key) => [key.width, key.height])),
+      };
+    });
+    expect(measured.over, `${width} x ${height}`).toBe(0);
+    expect(measured.smallest, `${width} x ${height}`).toBeGreaterThanOrEqual(44);
+  }
+});

@@ -139,7 +139,7 @@ The device's own login grants full control, so roles are enforced by a server be
 
 Every change goes through one route on the server. It refuses a value the device reports it will not take, outside its range or while it cannot be changed, rather than clamping it. It then writes the value to the device and waits up to ten seconds for the device to report it again, so the page can show the change as pending until it is confirmed or not. What the device reports is the result: a device may take a value other than the one written, as an inverter/charger raises an input current limit below its own lowest. Every change a signed-in user asks for is recorded with who asked, the old and new values and how it ended, and the record is kept for good; administrators can read it.
 
-The highest input current limit an inverter/charger reports is its transfer relay's rating, not what its input is plugged into, so an administrator sets each input's breaker size as its ceiling. Until one has, only an administrator can raise the limit.
+The highest input current limit an inverter/charger reports is its transfer relay's rating, not what its input is plugged into, so an administrator sets each input's breaker size as its ceiling. Until one has, only an administrator can raise the limit. Nothing reaches the device until someone presses Set: a preset only chooses a value, in every skin. The minimal skin opens a panel under the row. In Sci-Fi FOF changing a setting takes over the frame: the sidebar becomes what the job needs, and inside the frame are the present and new values, the range, what the input is drawing, the presets, a keypad and a large Set, sized to the room there, so one layout serves a small panel and a TV and a kiosk needs no keyboard.
 
 ## Data
 

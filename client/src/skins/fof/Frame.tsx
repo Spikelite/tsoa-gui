@@ -1,4 +1,4 @@
-import type { MouseEvent } from "react";
+import type { MouseEvent, ReactNode } from "react";
 
 import { useSignedIn } from "../../account/session";
 import { Clock } from "../../Clock";
@@ -95,11 +95,13 @@ function alertFor(state: Link, parts: Raised[], model: System): Alert | null {
 // sidebar is the way round the system, each block saying what its part has
 // raised, and the elbow above it the way back to the whole of it. What a
 // kiosk's viewer rarely needs goes along the bottom.
-export function Frame({ model, part = null, state = "live" }: {
+export function Frame({ model, part = null, state = "live", job }: {
   /** With none yet, the frame stands empty, waiting for the first readings. */
   model: System | null;
   part?: PartName | null;
   state?: Link;
+  /** A job that has taken over the frame: its title, the sidebar it needs, and the way out of it. */
+  job?: { title: string; side: ReactNode; onCancel: () => void };
 }) {
   const signedIn = useSignedIn();
   const parts = model ? raised(model) : [];
@@ -110,14 +112,16 @@ export function Frame({ model, part = null, state = "live" }: {
   };
   return (
     <>
-      {part === null ? (
+      {job ? (
+        <button type="button" className="fof-elbow fof-elbow-top" onClick={job.onCancel}><span>Cancel</span></button>
+      ) : part === null ? (
         <div className="fof-elbow fof-elbow-top"><span>Overview</span></div>
       ) : (
         <button type="button" className="fof-elbow fof-elbow-top" onClick={closePart}><span>Overview</span></button>
       )}
 
       <div className="fof-top">
-        <span className="fof-label" aria-hidden="true">Power systems</span>
+        <span className="fof-label" aria-hidden={job ? undefined : true}>{job?.title ?? "Power systems"}</span>
         {alert ? (
           <span className={`fof-alert status-${alert.status}`} role="alert">
             <b>{alert.words}</b>
@@ -125,7 +129,7 @@ export function Frame({ model, part = null, state = "live" }: {
           </span>
         ) : (
           <>
-            {model && vitals(model).map(({ kind, value, format, label, spare }) => (
+            {model && !job && vitals(model).map(({ kind, value, format, label, spare }) => (
               <span key={label} className={`fof-vital fof-vital-${kind}${spare ? " fof-vital-spare" : ""}`}>
                 <b><Eased value={value} format={format} /></b>
                 <small>{label}</small>
@@ -148,9 +152,10 @@ export function Frame({ model, part = null, state = "live" }: {
         )}
       </div>
 
-      <nav className="fof-side" aria-label="Parts">
+      <nav className="fof-side" aria-label={job ? job.title : "Parts"}>
+        {job?.side}
         {model === null && SIDEBAR.map((name) => <span key={name} data-side={name} />)}
-        {model && SIDEBAR.filter((name) => model[name] !== null).map((name) => {
+        {model && !job && SIDEBAR.filter((name) => model[name] !== null).map((name) => {
           const own = parts.find((entry) => entry.part === name);
           return (
             <a key={name} href={partAddress(name)} data-side={name} className={own && `fof-side-raised status-${own.status}`}
