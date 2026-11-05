@@ -313,3 +313,24 @@ test("Sci-Fi FOF keeps a page of few sections to a width a row can be read acros
     (row as HTMLElement).offsetWidth / parseFloat(getComputedStyle(row.closest(".fof")!).fontSize));
   expect(rowInEm).toBeLessThan(20);
 });
+
+test("Sci-Fi FOF's top bar keeps a unit's case, and sets a word in capitals", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "Sci-Fi FOF's layout for a phone held upright is not done yet");
+  // With no alarm, which would take the bar's place.
+  await heldStream(page, [{
+    ...system,
+    inverter_charger: { ...system.inverter_charger!, status: "normal", alarms: [] },
+    battery: { ...system.battery!, time_left: { toward: "full", seconds: 7200, settled: false } },
+  }, 0]);
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const case_ = async (label: RegExp) => page.locator(".fof-vital", { hasText: label }).locator("b")
+    .evaluate((figure) => getComputedStyle(figure).textTransform);
+
+  await page.goto("/?skin=sci-fi-fof&part=battery");
+  await expect(page.locator(".fof-vital", { hasText: /Time to/ })).toBeVisible();
+  expect(await case_(/Time to/)).toBe("none");
+
+  await page.goto("/?skin=sci-fi-fof&part=inverter_charger");
+  await expect(page.locator(".fof-vital", { hasText: "State" })).toBeVisible();
+  expect(await case_(/State/)).toBe("uppercase");
+});

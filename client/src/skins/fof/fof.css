@@ -498,7 +498,7 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   white-space: nowrap;
 }
 
-.fof-vital b { font-size: 2em; font-weight: 500; }
+.fof-vital b { font-size: 2em; font-weight: 500; text-transform: none; }
 .fof-vital small { margin-top: 0.15em; font-size: 0.76em; }
 .fof-vital-battery { background: var(--fof-periwinkle); }
 .fof-vital-solar { background: var(--fof-sand); }
