@@ -413,6 +413,52 @@ describe("FofSkin", () => {
     });
   });
 
+  describe("on a phone held upright", () => {
+    const list = () => document.querySelector<HTMLElement>(".fof-list")!;
+    const row = (name: RegExp) => within(list()).getByRole("link", { name });
+
+    beforeEach(() => {
+      vi.stubGlobal("matchMedia", (query: string) => ({ matches: query.includes("portrait") }));
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      window.history.replaceState(null, "", "/");
+    });
+
+    it("lists the parts in place of the diagram, each with its state, a note and its figure", () => {
+      const { container } = render(<FofSkin model={{
+        ...system,
+        battery: { ...system.battery!, time_left: { toward: "full", seconds: 5760, settled: true } },
+      }} />);
+      expect(container.querySelector(".fof-diagram")).toBeNull();
+      expect(row(/Solar/)).toHaveTextContent("SolarProducing");
+      expect(row(/Solar/).querySelector(".fof-list-figure")).toHaveTextContent("310 W");
+      expect(row(/Battery/).querySelector(".fof-list-about small")).toHaveTextContent("+480 W, full in 1 h 36 min");
+      expect(row(/AC loads/).querySelector(".fof-list-about small")).toHaveTextContent(/^Kitchen 420 W$/);
+    });
+
+    it("lights a part's line while power flows through it, and quiets the figure of a part doing nothing", () => {
+      render(<FofSkin model={{ ...system, flows: system.flows.filter(({ source }) => source !== "solar"), solar: { ...system.solar!, power_w: 0 } }} />);
+      expect(row(/Battery/).querySelector(".fof-list-flowing")).not.toBeNull();
+      expect(row(/Solar/).querySelector(".fof-list-flowing")).toBeNull();
+      expect(row(/Solar/).querySelector(".fof-list-figure")).toHaveClass("fof-list-idle");
+    });
+
+    it("says what a part has raised, and which is not reporting", () => {
+      render(<FofSkin model={{ ...system, solar: { ...system.solar!, status: "offline" } }} />);
+      expect(row(/Inverter/)).toHaveClass("fof-list-raised", "status-warning");
+      expect(row(/Solar/)).toHaveTextContent("Not reporting");
+    });
+
+    it("opens a part's page from its row", () => {
+      render(<FofSkin model={system} />);
+      fireEvent.click(row(/Battery/));
+      expect(new URLSearchParams(window.location.search).get("part")).toBe("battery");
+      expect(screen.getByRole("list", { name: "Cells" })).toBeInTheDocument();
+    });
+  });
+
   it("shows every section at once, and no figures in the sidebar, on any other screen", () => {
     window.history.replaceState(null, "", "/?part=battery");
     render(<FofSkin model={system} />);

@@ -1,8 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// Every skin has to work on a landscape screen, and every skin but Sci-Fi FOF
-// on a phone held upright too, so every end-to-end test runs on both. Sci-Fi
-// FOF's layout for a phone held upright is not done yet.
+// Every skin has to work on a landscape screen and on a phone held upright, so
+// every end-to-end test runs on both.
 export default defineConfig({
   testDir: "e2e",
   forbidOnly: !!process.env.CI,

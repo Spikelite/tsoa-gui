@@ -30,8 +30,9 @@ import { LoadPanel } from "./LoadPanel";
 import { SolarArray } from "./SolarArray";
 import { NamePill, StatusWords } from "./StatusPill";
 import { withIdleLinks } from "./links";
+import { PartList } from "./PartList";
 import { usePageSections } from "./sections";
-import { SectionContext } from "./smallPanel";
+import { SectionContext, useUpright } from "./smallPanel";
 import { throughHub } from "./throughHub";
 import "./fof.css";
 
@@ -157,6 +158,7 @@ export function FofSkin({ model, connected = true, busy = false }: { model: Syst
   useEscapeCloses(part !== null && editing === null);
   const from = openedFrom();
   const sections = usePageSections(part, model);
+  const upright = useUpright();
 
   // Every animation that repeats keeps to the page's clock, so a conduit
   // and what it feeds or is fed by stay in step.
@@ -182,7 +184,7 @@ export function FofSkin({ model, connected = true, busy = false }: { model: Syst
             {part !== "battery" && part !== "inverter_charger" && <PartDeck part={part} model={model} />}
           </SectionContext>
         </div>
-      ) : (
+      ) : upright ? <PartList model={model} /> : (
       <RoutesContext value={routes}>
       <div className="fof-diagram">
         <Conduits flows={withIdleLinks(model.inverter_charger ? throughHub(model.flows) : model.flows, model)}
