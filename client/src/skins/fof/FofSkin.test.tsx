@@ -284,6 +284,16 @@ describe("FofSkin", () => {
     });
   });
 
+  it("shows each front panel light as lit, blinking or dark, and says which", () => {
+    window.history.replaceState(null, "", "/?part=inverter_charger");
+    render(<FofSkin model={system} />);
+    const lights = within(screen.getByRole("list", { name: "Front panel lights" })).getAllByRole("listitem");
+    expect(lights.map((light) => light.textContent)).toEqual(["Mains, on", "Bulk, blinking", "Inverter, off"]);
+    expect(lights.map((light) => light.className.split(" ").at(-1)))
+      .toEqual(["fof-deck-led-on", "fof-deck-led-blinking", "fof-deck-led-off"]);
+    window.history.replaceState(null, "", "/");
+  });
+
   it("colors a section by what it holds, not by where it falls on the page", () => {
     window.history.replaceState(null, "", "/?part=battery");
     render(<FofSkin model={system} />);

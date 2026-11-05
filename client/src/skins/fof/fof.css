@@ -1827,6 +1827,40 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   }
 
   .fof-deck-group .fof-row { font-size: 1.14em; }
+
+  /* A hub and its lights take a column of their own, with what the part
+     watches under them, beside the sections. */
+  .fof-deck-sided {
+    grid-template-columns: 19em minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    column-gap: 2.1em;
+  }
+
+  .fof-deck-sided .fof-deck-unit {
+    grid-column: 1;
+    grid-row: 1;
+    flex-flow: column nowrap;
+    align-items: stretch;
+    justify-self: stretch;
+  }
+
+  /* The hub's square leaves room for conduits, which do not come here, so it
+     is larger than the room it takes. */
+  .fof-deck-sided .fof-deck-hub {
+    display: grid;
+    flex: none;
+    place-content: center;
+    height: 19em;
+  }
+
+  .fof-deck-sided .fof-deck-hub .fof-ring-unit { width: 28.5em; }
+  .fof-deck-sided .fof-deck-checks { grid-column: 1; grid-row: 2; }
+
+  .fof-deck-sided .fof-deck-groups {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    columns: min(3, var(--fof-groups));
+  }
 }
 
 .fof-deck-unit,
@@ -1839,7 +1873,25 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   break-inside: avoid;
 }
 
-.fof-deck-checks { column-span: all; margin-top: 0.3em; margin-bottom: 0; }
+/* The last section's margin would add to the gap above what follows. */
+.fof-deck-groups { margin-bottom: -1.1em; }
+
+/* A setting that can be changed: a key with its value, big enough to press. */
+.fof-deck-controls { display: grid; gap: 0.3em; }
+
+.fof-deck-control {
+  justify-content: space-between;
+  gap: 1em;
+  width: 100%;
+  padding: 0 1em 0 1.4em;
+  border-radius: 1.6em 0 0 1.6em;
+  text-align: left;
+  white-space: normal;
+}
+
+.fof-deck-control b { flex: none; font-size: 1.7em; font-weight: 400; }
+
+.fof-deck-checks { margin: 0; }
 .fof-deck-group .fof-rows { max-width: none; }
 
 /* A section's head: a cap and a bar in the color of what the section holds. */
@@ -1966,31 +2018,34 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 .fof-deck-art .fof-schematic-unit { width: 39em; }
 .fof-deck-art .fof-panel-unit { --fof-panel: 21; max-width: 100%; }
 
+/* The front panel's lights: lit blocks and dark ones. */
 .fof-deck-leds {
   display: grid;
-  grid-template-columns: repeat(2, auto);
-  gap: 0.45em 0.6em;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.3em;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .fof-deck-led {
-  padding: 0.2em 1em;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 2em;
+  padding: 0 0.7em;
   color: var(--fof-dim);
-  border: 0.12em solid #3d3852;
-  border-radius: 1em;
-  font-size: 0.85em;
-  font-weight: 700;
-  text-align: center;
+  background: #1b1926;
+  font-size: 0.9em;
+  font-weight: 500;
 }
 
 .fof-deck-led-on,
-.fof-deck-led-blinking { color: #000; background: var(--fof-plasma); border-color: var(--fof-plasma); }
+.fof-deck-led-blinking { color: #000; background: var(--fof-plasma); }
 .fof-deck-led-blinking { animation: fof-led-blink 1s steps(1) infinite; }
 
 @keyframes fof-led-blink {
-  50% { color: var(--fof-dim); background: transparent; border-color: #3d3852; }
+  50% { color: var(--fof-dim); background: #1b1926; }
 }
 /* The DC bus's plasma relay, over the corner where its conduits meet: a dark
    body in the hub's rim color, a sand port for each conduit, cells chasing

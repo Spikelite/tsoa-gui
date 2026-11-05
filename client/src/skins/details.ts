@@ -197,8 +197,10 @@ export const inputOfLimit = (name: string): 1 | 2 => (name === inputLimit(2) ? 2
  * has, among the controls the signed-in account may use, named by what is
  * wired to it.
  */
-export function controlsGroup(controls: { name: string; value: number }[], model: System): DetailGroup | null {
-  const readings = ([1, 2] as const).flatMap((input): Reading[] => {
+export function controlsGroup(
+  controls: { name: string; value: number }[], model: System,
+): { title: string; readings: Measured[] } | null {
+  const readings = ([1, 2] as const).flatMap((input): Measured[] => {
     const control = controls.find((candidate) => candidate.name === inputLimit(input));
     return control === undefined ? [] : [
       { label: `${inputName(input, model)} limit`, value: control.value, format: f.amps, control: control.name },

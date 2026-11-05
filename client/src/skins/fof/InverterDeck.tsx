@@ -9,15 +9,16 @@ import { InverterCore } from "./InverterCore";
 
 const LED_WORDS = { on: "on", off: "off", blinking: "blinking" };
 
-// The inverter/charger's own page, drawn large as its hub beside its front
-// panel's lights, each a button lit, blinking or dark as on the unit, with
-// the power it is putting out at the far end of its name's row, and its
-// controls first for an account that may use them.
+// The inverter/charger's own page, drawn large as its hub with its front
+// panel's lights, each a block lit, blinking or dark as on the unit, in a
+// column of their own on a landscape screen, and its controls first among its
+// sections for an account that may use them.
 export function InverterDeck({ inverter, model }: { inverter: InverterCharger; model: System }) {
   const controls = controlsGroup(useControls()?.states ?? [], model);
   return (
     <Deck part="inverter_charger" title="Inverter" status={inverter.status} state={inverterState(inverter)}
-      groups={[...(controls ? [controls] : []), ...inverterGroups(inverter, model)]} checks={inverter.checks}
+      className="fof-deck-sided" controls={controls?.readings} groups={inverterGroups(inverter, model)}
+      checks={inverter.checks}
       aside={
         <p className="fof-deck-figure fof-deck-head-figure">
           <Eased value={inverter.ac_out_power_w} format={f.power} />

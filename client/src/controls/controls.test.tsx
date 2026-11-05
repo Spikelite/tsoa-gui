@@ -197,6 +197,27 @@ describe("the input limit screen in Sci-Fi FOF", () => {
   const button = (name: string | RegExp) => screen.getByRole("button", { name });
   const note = () => screen.getAllByRole("status").find((element) => element.classList.contains("fof-limit-note"))!;
 
+  it("gives each limit a key at the head of the inverter's page, with its value on it", async () => {
+    fakeServer({
+      "GET /api/session": { body: session("operator") },
+      "GET /api/controls": { body: [limit(), limit({ name: "input-2-current-limit", value: 25 })] },
+    });
+    await inverterPage("sci-fi-fof");
+    const controls = await screen.findByRole("region", { name: "Controls" });
+    expect(within(controls).getAllByRole("button").map((key) => key.textContent))
+      .toEqual(["Shore power limit16.0 A", "AC input 2 limit25.0 A"]);
+    expect(document.querySelector(".fof-deck-groups")!.firstElementChild).toBe(controls);
+
+    fireEvent.click(within(controls).getByRole("button", { name: /^AC input 2 limit/ }));
+    expect(await screen.findByRole("navigation", { name: "AC input 2 limit" })).toBeInTheDocument();
+  });
+
+  it("gives an account that may change nothing no keys", async () => {
+    fakeServer({ "GET /api/session": { body: session("viewer") } });
+    await inverterPage("sci-fi-fof");
+    expect(screen.queryByRole("region", { name: "Controls" })).toBeNull();
+  });
+
   it("takes over the frame, and hands it back from Cancel or Escape", async () => {
     fakeServer({ "GET /api/session": { body: session("operator") }, "GET /api/controls": { body: [limit()] } });
     await screenOpen();
