@@ -284,6 +284,60 @@ describe("FofSkin", () => {
     });
   });
 
+  describe("the load and supply pages", () => {
+    const run = () => document.querySelector(".fof-conduit-run");
+    const page = (part: string) => window.history.replaceState(null, "", `/?part=${part}`);
+    afterEach(() => window.history.replaceState(null, "", "/"));
+
+    it("says where an AC panel's power goes, with what no meter accounts for", () => {
+      page("ac_loads");
+      render(<FofSkin model={system} />);
+      const shares = within(screen.getByRole("region", { name: "Where the power goes" })).getAllByRole("listitem");
+      expect(shares.map((share) => share.textContent)).toEqual(["Kitchen 420 W", "Not metered 480 W"]);
+      expect(shares[1]).toHaveClass("fof-deck-share-rest");
+    });
+
+    it("says nothing of where the power goes on a panel with no circuits", () => {
+      page("ac_loads");
+      render(<FofSkin model={{ ...system, ac_loads: { ...system.ac_loads!, circuits: [] } }} />);
+      expect(screen.queryByRole("region", { name: "Where the power goes" })).toBeNull();
+    });
+
+    it("draws the bus with all the power reaching the panel, however many ways it comes", () => {
+      page("ac_loads");
+      render(<FofSkin model={system} />);
+      expect(run()!.parentElement).toHaveClass("fof-panel-bus");
+      // 900 W, from the inverter and the supply side together.
+      expect(run()!.querySelector(".fof-conduit")).toHaveClass("fof-speed-2");
+      expect(run()!.querySelector(".fof-conduit")).not.toHaveClass("fof-conduit-idle");
+      expect(run()!.querySelectorAll(".fof-conduit-wave").length).toBeGreaterThan(0);
+    });
+
+    it("draws a supply's conduit leaving its pips, dim and still with nothing on it", () => {
+      page("solar");
+      render(<FofSkin model={{ ...system, flows: [] }} />);
+      expect(run()!.parentElement).toHaveClass("fof-schematic-launch");
+      expect(run()!.querySelector(".fof-conduit")).toHaveClass("fof-conduit-idle");
+      expect(run()!.querySelector(".fof-conduit-wave")).toBeNull();
+    });
+
+    it("runs a supply's conduit back to it while power goes the other way", () => {
+      page("grid");
+      const { rerender } = render(<FofSkin model={system} />);
+      const start = () => Number(/^M([\d.]+),/.exec(run()!.querySelector(".fof-conduit-body")!.getAttribute("d")!)![1]);
+      expect(start()).toBe(0);
+      rerender(<FofSkin model={{ ...system, flows: [{ source: "inverter_charger", target: "grid", power_w: 400 }] }} />);
+      expect(start()).toBeGreaterThan(0);
+    });
+
+    it("gives the drawing the pace of its conduit, which the overview would have given it", () => {
+      page("solar");
+      const { container } = render(<FofSkin model={system} />);
+      const art = container.querySelector<HTMLElement>(".fof-deck-art")!;
+      expect(art.style.getPropertyValue("--fof-roll-solar-dc_bus")).toBe(run()!.getAttribute("style")!.match(/--fof-roll: ([\d.]+s)/)![1]);
+    });
+  });
+
   it("shows each front panel light as lit, blinking or dark, and says which", () => {
     window.history.replaceState(null, "", "/?part=inverter_charger");
     render(<FofSkin model={system} />);

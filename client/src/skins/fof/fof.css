@@ -1118,6 +1118,28 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   height: 0;
 }
 
+/* A length of conduit on a part's own page, in proportion to the drawing it
+   meets, which is larger there. Along a bus it comes in from outside the
+   panel; from a row of pips it sets off from the far end. */
+.fof-conduit-run {
+  position: absolute;
+  top: calc(50% - 1.5em);
+  left: 100%;
+  width: var(--run);
+  height: 3em;
+  pointer-events: none;
+  mask-image: linear-gradient(to right, #000 45%, transparent);
+}
+
+.fof-schematic-launch > .fof-conduit-run { font-size: 1.5em; }
+
+.fof-panel-bus > .fof-conduit-run {
+  top: -1.5em;
+  left: -2em;
+  width: calc(100% + 2em);
+  mask-image: linear-gradient(to right, transparent, #000 1.7em);
+}
+
 /* The grid's tower, as a schematic: members drawn as pale blue outlines round
    dark navy, thin lattice inside, and the wire as a leader line, as the
    console draws equipment. GridTower.tsx gives each pip its own keyframes,
@@ -1836,6 +1858,19 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
     column-gap: 2.1em;
   }
 
+  /* A panel's drawing with where its power goes beside it, with room to its
+     left for the conduit coming in. */
+  .fof-deck-art-shared {
+    display: grid;
+    grid-template-columns: 30em minmax(0, 1fr);
+    align-items: center;
+    gap: 4em;
+    justify-self: stretch;
+    padding-left: 5em;
+  }
+
+  .fof-deck-art-shared .fof-deck-shares { margin: 0; }
+
   .fof-deck-sided .fof-deck-unit {
     grid-column: 1;
     grid-row: 1;
@@ -1987,6 +2022,11 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   list-style: none;
 }
 
+/* On a narrow screen a supply's drawing already fills the width. */
+@container (max-width: 60em) {
+  .fof-schematic-launch > .fof-conduit-run { display: none; }
+}
+
 /* On a narrow screen the cells' voltages turn on their side, so that a block
    of many cells keeps every one. The strip keeps its bars, and the words go
    to a screen reader, leaving each cell's number. */
@@ -2022,7 +2062,37 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 /* Free to shrink to the page, which a grid's item is not by default. */
 .fof-deck-art { min-width: 0; }
 .fof-deck-art .fof-schematic-unit { width: 39em; }
-.fof-deck-art .fof-panel-unit { --fof-panel: 21; max-width: 100%; }
+.fof-deck-art .fof-panel-unit { max-width: 100%; margin-top: 0.3em; font-size: 2.4em; }
+
+/* Where a panel's power goes: a bar in shares of it, metered in sand. */
+.fof-deck-shares { grid-template-columns: minmax(0, 1fr); margin: 1em 0 0; }
+
+.fof-deck-share {
+  display: flex;
+  gap: 0.2em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fof-deck-share > li {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 0.4em;
+  min-width: 0;
+  height: 2.7em;
+  padding: 0 0.8em;
+  overflow: hidden;
+  color: #000;
+  background: var(--fof-sand);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.fof-deck-share > :first-child { border-radius: 1.35em 0 0 1.35em; }
+.fof-deck-share > :last-child { border-radius: 0 1.35em 1.35em 0; }
+.fof-deck-share > .fof-deck-share-rest { background: var(--fof-periwinkle); }
 
 /* The front panel's lights: lit blocks and dark ones. */
 .fof-deck-leds {

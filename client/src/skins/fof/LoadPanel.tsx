@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import type { Status } from "../../model/system";
 import { useCarried } from "./carry";
@@ -13,6 +13,8 @@ const BREAKERS = 6;
 const BREAKER = { width: 22, height: 26, pitch: 32, first: 22 };
 // The clear band either side of the bus, wide enough for the conduit on it.
 const CLEAR = 16;
+/** How long a conduit drawn along the bus on the panel's own page is, in em: the bus, on a panel as wide as fof.css has it, and 2em outside it. */
+export const BUS_RUN = (BUS_END / WIDTH) * 12.5 + 2;
 
 // A part's loads, AC or DC, drawn as a circuit panel, in the console's way of
 // drawing wiring: a bus that the conduit feeding them runs on along, so
@@ -27,6 +29,8 @@ export function LoadPanel(props: {
   status: Status;
   /** The conduit feeding the panel, as `source-target`, whose pace its breakers keep. */
   feed: string;
+  /** On the panel's own page, a length of conduit to draw along its bus. */
+  run?: ReactNode;
 }) {
   const power = Math.abs(props.power ?? 0);
   // The breakers start and stop with the waves reaching the panel.
@@ -62,7 +66,9 @@ export function LoadPanel(props: {
           rx="10" />
       </svg>
       {/* Where the feeding conduit ends: the length of the bus, at its height. */}
-      <span className="fof-panel-bus" data-anchor="bus" style={{ width: `${(BUS_END / WIDTH) * 100}%` }} />
+      <span className="fof-panel-bus" data-anchor="bus" style={{ width: `${(BUS_END / WIDTH) * 100}%` }}>
+        {props.run}
+      </span>
     </div>
   );
 }

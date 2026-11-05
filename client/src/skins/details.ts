@@ -446,13 +446,33 @@ function circuitGroup(circuit: AcCircuit): DetailGroup {
   };
 }
 
+/**
+ * Where a panel's power goes: each circuit with a meter reading, then what
+ * those meters do not account for. Each meter is apart from the total, so
+ * they can come to more than it, and nothing is then left over. With no
+ * circuit reporting, the total alone says nothing about where it goes.
+ */
+export function powerShares(loads: AcLoads): { label: string; power_w: number; metered: boolean }[] {
+  const metered = loads.circuits.flatMap((circuit) =>
+    circuit.status === "offline" || circuit.power_w === null
+      ? []
+      : [{ label: circuit.name, power_w: Math.abs(circuit.power_w), metered: true }]);
+  if (metered.length === 0) {
+    return [];
+  }
+  const rest = (loads.power_w ?? 0) - metered.reduce((sum, circuit) => sum + circuit.power_w, 0);
+  return rest > 0 ? [...metered, { label: "Not metered", power_w: rest, metered: false }] : metered;
+}
+
 export function acLoadsGroups(loads: AcLoads, model: System): DetailGroup[] {
   const inverter = model.inverter_charger;
+  const rest = powerShares(loads).find((share) => !share.metered);
   const groups: DetailGroup[] = [
     {
       title: "Loads",
       readings: [
         { label: "Power", value: loads.power_w, format: f.power, always: true },
+        { label: "Not metered", value: rest?.power_w ?? null, format: f.power },
         { label: "Voltage", value: loads.voltage_v, format: f.volts },
         { label: "Current", value: loads.current_a, format: f.amps },
         { label: "Frequency", value: loads.frequency_hz, format: f.hertz },

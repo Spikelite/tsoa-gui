@@ -298,7 +298,7 @@ test("Sci-Fi FOF's part pages fit inside the frame with every reading known", as
   await heldStream(page, [system, 0]);
   for (const [width, height] of [[960, 540], [1024, 600], [1093, 614], [1366, 768], [1707, 960], [1920, 1080], [2560, 1440], [3840, 2160]]) {
     await page.setViewportSize({ width: width!, height: height! });
-    for (const part of ["battery", "inverter_charger"]) {
+    for (const part of ["battery", "inverter_charger", "ac_loads", "dc_loads", "grid", "solar"]) {
       await page.goto(`/?skin=sci-fi-fof&part=${part}`);
       await expect(page.locator(".fof-deck-groups")).toBeVisible();
       await page.evaluate(() => document.fonts.ready);
@@ -308,7 +308,7 @@ test("Sci-Fi FOF's part pages fit inside the frame with every reading known", as
         const reach = await page.evaluate(() => document.querySelector(".fof-deck-leds")!.getBoundingClientRect().right
           - document.querySelector(".fof-deck-groups")!.getBoundingClientRect().left);
         expect(reach, `the lights at ${width} x ${height}`).toBeLessThanOrEqual(0);
-      } else {
+      } else if (part === "battery") {
         const clear = await page.evaluate(() => document.querySelector(".fof-deck-checks")!.getBoundingClientRect().top
           - Math.max(...[...document.querySelectorAll(".fof-deck-groups > *")].map((section) => section.getBoundingClientRect().bottom)));
         expect(clear, `the checks at ${width} x ${height}`).toBeGreaterThan(0);

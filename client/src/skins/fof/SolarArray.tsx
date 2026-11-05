@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import type { Solar } from "../../model/system";
 import { useCarried, type Along } from "./carry";
@@ -64,7 +64,7 @@ const CABLE_PATH = `M${ARRAY_RIGHT - 8} ${ARRAY_BOTTOM} V${ROW_MIDDLE - 8} Q${AR
 // them into the conduit, timed to set off along it with a wave, at the
 // conduit's pace as fof.css sets it. With nothing produced, the array is dark
 // and still.
-export function SolarArray({ solar }: { solar: Solar }) {
+export function SolarArray({ solar, run }: { solar: Solar; run?: ReactNode }) {
   const producing = useCarried(solar.status !== "offline" && (solar.power_w ?? 0) > 0, FEEDS);
   const cell = { width: PANEL.width / CELLS, height: PANEL.height / CELLS };
 
@@ -101,7 +101,9 @@ export function SolarArray({ solar }: { solar: Solar }) {
         width: `${((ROW_END - PIP.first) / WIDTH) * 100}%`,
         top: `${(PIP.top / HEIGHT) * 100}%`,
         height: `${(PIP.height / HEIGHT) * 100}%`,
-      }} />
+      }}>
+        {run}
+      </span>
     </div>
   );
 }

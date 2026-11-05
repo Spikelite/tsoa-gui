@@ -13,6 +13,12 @@ export const WAVE = 14;
 /** How far the blur that smooths a wave spreads, in em. */
 export const SOFTEN = 0.55;
 
+/** Where in its cycle a conduit launched from its source starts: with each crest centered in its wave, always half. */
+export const LAUNCH_PHASE = 0.5;
+
+/** How far into its cycle a crest is at the far end of a conduit this long when the cycle starts. */
+export const crestPhase = (length: number, wave: number) => (((length - wave / 2) % wave) + wave) % wave / wave;
+
 const COUNT = 18;
 const REACH = 6;
 

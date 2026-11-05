@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import type { Grid } from "../../model/system";
 import { useCarried, type Along } from "./carry";
@@ -77,7 +77,7 @@ const DRIPS = Array.from({ length: PILLS }, (_, pip) => drip(pip)).join(" ");
 // pips nearest it until the charge sets off down the row and into the
 // conduit, as drip() describes. With nothing coming in, the row is dim and
 // still.
-export function GridTower({ grid }: { grid: Grid }) {
+export function GridTower({ grid, run }: { grid: Grid; run?: ReactNode }) {
   const power = grid.power_w ?? 0;
   const feeding = useCarried(grid.status !== "offline" && grid.connected !== false && power > 0, FEEDS);
 
@@ -110,7 +110,9 @@ export function GridTower({ grid }: { grid: Grid }) {
         width: `${((ROW_END - PILL.first) / WIDTH) * 100}%`,
         top: `${(PILL.top / HEIGHT) * 100}%`,
         height: `${(PILL.height / HEIGHT) * 100}%`,
-      }} />
+      }}>
+        {run}
+      </span>
     </div>
   );
 }
