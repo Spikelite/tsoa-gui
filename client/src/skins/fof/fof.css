@@ -990,9 +990,9 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   grid-row: 1 / span 2;
   bottom: 7.4em;
   left: 0.6em;
-  /* As wide as it reads well, but never past the gap after the column, so
-     it stays clear of the next column's name. The gap is the diagram's own. */
-  width: min(10.4em, calc(100% + var(--fof-column-gap) - 0.8em));
+  /* As wide as its longest row, running on over the gap after the column, since
+     the next column's name sits well below it. */
+  width: 11.6em;
 }
 
 .fof-hub-readings > .fof-state-line { margin: 0 0 0.35em; }
