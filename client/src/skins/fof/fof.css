@@ -2153,10 +2153,13 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 .fof-relay-idle .fof-relay-cell { animation: none; }
 
 /* A reading that can be changed looks like something to press, and takes more
-   of a finger than its row is tall. */
+   of a finger than its row is tall. Its capitals fill the line and sit at the
+   bottom of it, so the pill reaches past the line, further below than above,
+   without moving the row. */
 .fof-row .control-value {
   position: relative;
-  padding: 0 0.5em;
+  margin: -0.03em 0 -0.13em;
+  padding: 0.03em 0.5em 0.13em;
   color: #000;
   background: var(--fof-sand);
   border: 0;

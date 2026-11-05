@@ -293,6 +293,31 @@ test("Sci-Fi FOF's limit screen fits inside the frame, with keys a finger can hi
   }
 });
 
+test("Sci-Fi FOF's pill on a reading that can be changed stands taller than its row, which keeps its height", async ({ page }) => {
+  await heldStream(page, [system, 0]);
+  await page.route("**/api/session", (route) => route.fulfill({
+    json: { account: { name: "owner", role: "admin" }, setup_needed: false, csrf: "token" },
+  }));
+  await page.route("**/api/controls", (route) => route.fulfill({
+    json: [{ name: "input-1-current-limit", value: 16, adjustable: true, low: 0, high: 100, ceiling: 30 }],
+  }));
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto("/?skin=sci-fi-fof&part=inverter_charger");
+  const pill = page.locator(".fof-row .control-value").first();
+  await expect(pill).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  const measured = await pill.evaluate((element) => {
+    const row = element.closest<HTMLElement>(".fof-row")!;
+    return {
+      pill: (element as HTMLElement).offsetHeight,
+      row: row.offsetHeight,
+      plain: (row.previousElementSibling as HTMLElement).offsetHeight,
+    };
+  });
+  expect(measured.pill).toBeGreaterThan(measured.row);
+  expect(measured.row).toBe(measured.plain);
+});
+
 test("Sci-Fi FOF's part pages fit inside the frame with every reading known", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name === "phone", "Sci-Fi FOF's layout for a phone held upright is not done yet");
   await heldStream(page, [system, 0]);
