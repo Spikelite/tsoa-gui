@@ -243,3 +243,17 @@ test("Sci-Fi FOF stops and dims what its frame holds while the readings are not 
   expect(await well.evaluate((element) => element.getAnimations({ subtree: true }).length)).toBe(0);
   expect(await well.evaluate((element) => getComputedStyle(element).filter)).not.toBe("none");
 });
+
+test("Sci-Fi FOF comes up in its own frame before the first readings, and the minimal skin keeps its page", async ({ page }) => {
+  await heldStream(page);
+  await page.goto("/?skin=sci-fi-fof");
+  await expect(page.locator(".fof-boot-message")).toContainText("Waiting for the first readings.");
+  await expect(page.locator(".fof-boot .fof-elbow-top")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "tsoa-gui" })).toHaveCount(1);
+  const background = await page.locator(".skin-sci-fi-fof").evaluate((element) => getComputedStyle(element).backgroundColor);
+  expect(background).toBe("rgb(0, 0, 0)");
+
+  await page.goto("/");
+  await expect(page.getByText("Waiting for the first readings.")).toBeVisible();
+  await expect(page.locator(".fof-boot")).toHaveCount(0);
+});

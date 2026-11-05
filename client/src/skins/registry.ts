@@ -1,4 +1,4 @@
-import { lazy, type ComponentType } from "react";
+import { lazy, type ComponentType, type ReactNode } from "react";
 
 import type { System } from "../model/system";
 import { MinimalSkin } from "./minimal/MinimalSkin";
@@ -16,6 +16,8 @@ export interface Skin {
    * choice in its own frame, in place of the page header's.
    */
   framed?: boolean;
+  /** What holds the page's message until the first readings arrive, for a skin with something of its own to show. */
+  waiting?: ComponentType<{ children: ReactNode }>;
 }
 
 export const DEFAULT_SKIN = "minimal";
@@ -29,6 +31,7 @@ export const SKINS: Skin[] = [
     name: "Sci-Fi FOF",
     framed: true,
     component: lazy(() => import("./fof/FofSkin").then((module) => ({ default: module.FofSkin }))),
+    waiting: lazy(() => import("./fof/FofSkin").then((module) => ({ default: module.FofWaiting }))),
   },
 ];
 

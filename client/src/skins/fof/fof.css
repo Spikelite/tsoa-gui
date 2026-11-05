@@ -206,6 +206,88 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 
 .fof-side a:focus-visible { outline: 2px solid var(--fof-ink); outline-offset: -4px; }
 
+/* With no readings yet, the frame stands empty and comes up a piece at a time,
+   the way round it from the elbow, along the top, then down the side. */
+.fof-side > span { background: var(--fof-name); }
+
+.fof-boot .fof-elbow,
+.fof-boot .fof-top > *,
+.fof-boot .fof-side > *,
+.fof-boot .fof-bottom > * {
+  animation: fof-boot-in 0.28s steps(2) both;
+  animation-delay: calc(var(--fof-piece, 0) * 90ms);
+}
+
+.fof-boot .fof-top > :nth-child(1) { --fof-piece: 1; }
+.fof-boot .fof-top > :nth-child(2) { --fof-piece: 2; }
+.fof-boot .fof-top > :nth-child(3) { --fof-piece: 3; }
+.fof-boot .fof-top > :nth-child(4) { --fof-piece: 4; }
+.fof-boot .fof-side > :nth-child(1) { --fof-piece: 5; }
+.fof-boot .fof-side > :nth-child(2) { --fof-piece: 6; }
+.fof-boot .fof-side > :nth-child(3) { --fof-piece: 7; }
+.fof-boot .fof-side > :nth-child(4) { --fof-piece: 8; }
+.fof-boot .fof-side > :nth-child(5) { --fof-piece: 9; }
+.fof-boot .fof-side > :nth-child(6) { --fof-piece: 10; }
+.fof-boot .fof-side > :nth-child(7) { --fof-piece: 11; }
+.fof-boot .fof-elbow-foot { --fof-piece: 12; }
+.fof-boot .fof-bottom > * { --fof-piece: 13; }
+
+@keyframes fof-boot-in {
+  from { filter: brightness(0.14) saturate(0.3); }
+  to { filter: none; }
+}
+
+.fof-boot .fof-well {
+  display: grid;
+  align-content: center;
+  justify-content: center;
+}
+
+.fof-boot-message {
+  display: grid;
+  gap: 1em;
+  max-width: 44em;
+}
+
+.fof-boot-message .waiting {
+  margin: 0;
+  padding: 0;
+  color: var(--fof-sand);
+  font-size: 2.6em;
+  line-height: 1.1;
+  text-align: left;
+}
+
+.fof-boot-message .waiting p { margin: 0; }
+
+.fof-boot-message .waiting p + p {
+  margin-top: 0.6em;
+  color: var(--fof-dim);
+  font-size: 0.5em;
+  line-height: 1.25;
+}
+
+.fof-boot-message a { color: var(--fof-ink); }
+
+.fof-boot-dots { display: flex; gap: 0.4em; }
+
+.fof-boot-dots i {
+  width: 2.1em;
+  height: 1em;
+  background: var(--fof-periwinkle);
+  border-radius: 0.5em;
+  animation: fof-boot-dot 1.8s steps(1) infinite;
+}
+
+.fof-boot-dots i:nth-child(2) { animation-delay: 0.3s; }
+.fof-boot-dots i:nth-child(3) { animation-delay: 0.6s; }
+.fof-boot-dots i:nth-child(4) { animation-delay: 0.9s; }
+
+@keyframes fof-boot-dot {
+  0%, 60%, 100% { opacity: 0.22; }
+  20% { opacity: 1; }
+}
+
 /* What the frame holds. */
 .fof-well {
   position: relative;
@@ -1342,6 +1424,11 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .fof-boot .fof-elbow,
+  .fof-boot .fof-top > *,
+  .fof-boot .fof-side > *,
+  .fof-boot .fof-bottom > *,
+  .fof-boot-dots i,
   .fof-deck-led-blinking,
   .fof-page,
   .fof-deck-balancing .fof-deck-pill::before { animation: none; }

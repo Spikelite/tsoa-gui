@@ -38,12 +38,13 @@ export function App({ store, reloading }: { store?: SystemStore; reloading?: Rel
   };
 
   const Skin = skin.component;
+  const Holding = skin.waiting;
   const choice = { skins: SKINS.map(({ id, name }) => ({ id, name })), current: skin.id, choose };
   return (
     <div className={`app skin-${skin.id}`}>
       <header className="app-header">
-        {/* A framed skin shows the name, the clock and the skin choice in its own frame, once it is drawn. */}
-        {(!skin.framed || model === null) && <h1>tsoa-gui</h1>}
+        {/* A framed skin shows the name, the clock and the skin choice in its own frame. */}
+        {!skin.framed && <h1>tsoa-gui</h1>}
         {/* A framed skin says how current the readings are in its own frame. */}
         {!skin.framed && <Notice model={model} connected={connected} busy={busy} />}
         {!skin.framed && (
@@ -65,21 +66,23 @@ export function App({ store, reloading }: { store?: SystemStore; reloading?: Rel
         )}
       </header>
       <main>
-        {model === null ? (
-          <Waiting state={state} />
-        ) : (
-          <SkinBoundary reloading={reloading}>
-            <SkinChoiceContext.Provider value={choice}>
-              <SignedInContext.Provider value={signedIn}>
-                <ControlsContext.Provider value={controls}>
-                  <Suspense fallback={<p className="waiting">Loading the skin.</p>}>
+        <SkinBoundary reloading={reloading}>
+          <SkinChoiceContext.Provider value={choice}>
+            <SignedInContext.Provider value={signedIn}>
+              <ControlsContext.Provider value={controls}>
+                <Suspense fallback={model === null ? <Waiting state={state} /> : <p className="waiting">Loading the skin.</p>}>
+                  {model !== null ? (
                     <Skin model={model} connected={connected} busy={busy} />
-                  </Suspense>
-                </ControlsContext.Provider>
-              </SignedInContext.Provider>
-            </SkinChoiceContext.Provider>
-          </SkinBoundary>
-        )}
+                  ) : Holding ? (
+                    <Holding><Waiting state={state} /></Holding>
+                  ) : (
+                    <Waiting state={state} />
+                  )}
+                </Suspense>
+              </ControlsContext.Provider>
+            </SignedInContext.Provider>
+          </SkinChoiceContext.Provider>
+        </SkinBoundary>
       </main>
     </div>
   );
