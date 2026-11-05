@@ -8,6 +8,16 @@ import { StatusWords } from "./StatusPill";
 
 const CHECK_STATUS = { ok: "good", warning: "warning", alarm: "fault" } as const;
 
+/** A section's color says what it holds, whatever else is on the page. Any other is the part's own, in sand. */
+const SECTION_TONES: Partial<Record<string, string>> = { History: "lavender", Energy: "lavender", Device: "teal" };
+
+const SectionHead = ({ title, tone }: { title: string; tone: string }) => (
+  <h3 className={`fof-deck-tag fof-tone-${tone}`}>
+    <span>{title}</span>
+    <i aria-hidden="true" />
+  </h3>
+);
+
 /** The bar over the checks that are clear, which says all of them are if nothing is raised. */
 function clearWords(count: number, anyRaised: boolean): string {
   if (anyRaised) {
@@ -23,7 +33,6 @@ function Checks({ checks }: { checks: AlarmCheck[] }) {
   const clear = checks.filter((check) => check.level === "ok");
   return (
     <section className="fof-deck-group fof-deck-checks" aria-label="Alarms">
-      <h3 className="fof-deck-tag fof-deck-tag-alarms">Alarms</h3>
       {raised.length > 0 && (
         <ul className="fof-deck-raised">
           {raised.map((check) => (
@@ -51,9 +60,10 @@ function Checks({ checks }: { checks: AlarmCheck[] }) {
   );
 }
 
-// A part's own page, as the console would show one system in full: its name
-// and state, the part drawn large, then every reading in groups headed by
-// rounded tags flowing down balanced columns, and what the part watches.
+// A part's own page, as the console would show one system in full: the part
+// drawn large, then every reading in sections flowing down a fixed grid of
+// columns, and what the part watches. Its name, state and figures are on the
+// frame's top bar, or on a phone, where that has no room, in a row at the top.
 export function Deck(props: {
   part: PartName;
   title: string;
@@ -89,7 +99,7 @@ export function Deck(props: {
         <div className="fof-deck-groups" style={{ "--groups": props.groups.length } as CSSProperties}>
           {props.groups.map((group, index) => (
             <section key={keys[index]} className="fof-deck-group" aria-label={group.title}>
-              <h3 className={`fof-deck-tag fof-deck-tag-${index % 3}`}>{group.title}</h3>
+              <SectionHead title={group.title} tone={SECTION_TONES[group.title] ?? "sand"} />
               <dl className="fof-rows">
                 <Rows readings={group.readings} />
               </dl>

@@ -270,7 +270,7 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   grid-template-columns: minmax(0, 1fr) 17.5em;
   gap: 1.6em;
   height: 100%;
-  font-size: 3.4cqh;
+  font-size: min(3.4cqh, 1.9cqw);
   outline: none;
 }
 
@@ -286,7 +286,7 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 
 .fof-limit-readout { display: flex; align-items: flex-end; gap: 1.1em; color: var(--fof-dim); }
 .fof-limit-now,
-.fof-limit-new { display: grid; gap: 0.15em; }
+.fof-limit-new { display: grid; gap: 0.15em; white-space: nowrap; }
 .fof-limit-now b { font-size: 2.6em; font-weight: 300; line-height: 1; text-transform: none; }
 .fof-limit-new b { color: var(--fof-cell); font-size: 6.4em; font-weight: 300; line-height: 0.98; text-transform: none; letter-spacing: 0.02em; }
 .fof-limit-same b { color: var(--fof-dim); }
@@ -498,11 +498,13 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   white-space: nowrap;
 }
 
-.fof-vital b { font-size: 2em; font-weight: 500; }
+.fof-vital b { font-size: 2em; font-weight: 500; text-transform: none; }
 .fof-vital small { margin-top: 0.15em; font-size: 0.76em; }
 .fof-vital-battery { background: var(--fof-periwinkle); }
 .fof-vital-solar { background: var(--fof-sand); }
 .fof-vital-loads { background: var(--fof-teal); }
+.fof-vital-part { background: var(--fof-name); }
+.fof-vital b.fof-word { text-transform: uppercase; }
 
 @container (max-width: 70em) {
   .fof-vital-spare { display: none; }
@@ -1665,7 +1667,7 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 
 .fof-deck {
   display: grid;
-  gap: 1.4em;
+  gap: 1em;
   align-content: start;
 }
 
@@ -1773,6 +1775,30 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   column-gap: 2.4em;
 }
 
+/* On a landscape screen the frame's top bar names the page, so its own heading
+   is left to a screen reader, unless it is all a part not reporting has to
+   say, and the sections sit in a fixed grid of up to four columns, in rows
+   larger than the overview's, to use the room there is. A page of few sections
+   keeps them to a width a row can be read across. */
+@media (orientation: landscape) and (min-width: 761px) {
+  .fof-deck:not(.status-offline) .fof-deck-head {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .fof-deck-groups {
+    width: min(100%, calc(var(--fof-groups) * 19em + (var(--fof-groups) - 1) * 2.1em));
+    columns: min(4, var(--fof-groups));
+    column-gap: 2.1em;
+  }
+
+  .fof-deck-group .fof-row { font-size: 1.14em; }
+}
+
 .fof-deck-packs,
 .fof-deck-unit,
 .fof-deck-art { justify-self: center; }
@@ -1780,28 +1806,39 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 .fof-deck-group {
   display: grid;
   gap: 0.45em;
-  justify-items: start;
-  margin-bottom: 1.3em;
+  margin-bottom: 1.1em;
   break-inside: avoid;
 }
 
-.fof-deck-checks { column-span: all; justify-items: stretch; margin-top: 0.6em; }
-.fof-deck-checks .fof-deck-tag { justify-self: start; }
+.fof-deck-checks { column-span: all; margin-top: 0.3em; margin-bottom: 0; }
 .fof-deck-group .fof-rows { max-width: none; }
 
+/* A section's head: a cap and a bar in the color of what the section holds. */
 .fof-deck-tag {
+  display: flex;
+  gap: 0.25em;
+  min-height: 1.45em;
   margin: 0;
-  padding: 0.15em 0.9em;
   color: #000;
-  border-radius: 1em;
-  font-size: 0.8em;
-  font-weight: 700;
+  font-size: 0.95em;
+  font-weight: 500;
 }
 
-.fof-deck-tag-0 { background: var(--fof-lavender); }
-.fof-deck-tag-1 { background: var(--fof-periwinkle); }
-.fof-deck-tag-2 { background: var(--fof-sand); }
-.fof-deck-tag-alarms { background: var(--fof-teal); }
+.fof-deck-tag > span {
+  display: flex;
+  align-items: center;
+  padding: 0 0.8em 0 1em;
+  background: var(--fof-name);
+  border-radius: 0.75em 0 0 0.75em;
+  white-space: nowrap;
+}
+
+.fof-deck-tag > i {
+  flex: 1;
+  background: var(--fof-name);
+  border-radius: 0 0.75em 0.75em 0;
+  opacity: 0.55;
+}
 
 .fof-deck-raised {
   display: grid;

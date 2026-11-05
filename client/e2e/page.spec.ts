@@ -267,7 +267,7 @@ test("Sci-Fi FOF's limit screen fits inside the frame, with keys a finger can hi
   await page.route("**/api/controls", (route) => route.fulfill({
     json: [{ name: "input-1-current-limit", value: 16, adjustable: true, low: 0, high: 100, ceiling: 30 }],
   }));
-  for (const [width, height] of [[800, 480], [1024, 600], [1366, 768], [1920, 1080], [3840, 2160]]) {
+  for (const [width, height] of [[800, 480], [1024, 600], [1024, 768], [1366, 768], [1920, 1080], [3840, 2160]]) {
     await page.setViewportSize({ width: width!, height: height! });
     await page.goto("/?skin=sci-fi-fof&part=inverter_charger");
     await page.locator(".control-value").first().click();
@@ -275,12 +275,72 @@ test("Sci-Fi FOF's limit screen fits inside the frame, with keys a finger can hi
     const measured = await page.evaluate(() => {
       const well = document.querySelector(".fof-well")!;
       const keys = [...document.querySelectorAll(".fof-limit button")].map((key) => key.getBoundingClientRect());
+      const figures = [...document.querySelectorAll(".fof-limit-readout b")].map((figure) => figure.getBoundingClientRect());
       return {
         over: well.scrollHeight - well.clientHeight,
         smallest: Math.min(...keys.flatMap((key) => [key.width, key.height])),
+        reach: Math.max(...figures.map((figure) => figure.right)) - document.querySelector(".fof-limit-main")!.getBoundingClientRect().right,
       };
     });
     expect(measured.over, `${width} x ${height}`).toBe(0);
+    expect(measured.reach, `${width} x ${height}`).toBeLessThanOrEqual(0);
     expect(measured.smallest, `${width} x ${height}`).toBeGreaterThanOrEqual(44);
   }
+});
+
+test("Sci-Fi FOF's part pages fit inside the frame with every reading known", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "Sci-Fi FOF's layout for a phone held upright is not done yet");
+  await heldStream(page, [system, 0]);
+  for (const [width, height] of [[1024, 600], [1366, 768], [1707, 960], [1920, 1080], [2560, 1440], [3840, 2160]]) {
+    await page.setViewportSize({ width: width!, height: height! });
+    for (const part of ["battery", "inverter_charger"]) {
+      await page.goto(`/?skin=sci-fi-fof&part=${part}`);
+      await expect(page.locator(".fof-deck-groups")).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      const over = await page.locator(".fof-well").evaluate((well) => well.scrollHeight - well.clientHeight);
+      expect(over, `${part} at ${width} x ${height}`).toBe(0);
+    }
+  }
+});
+
+test("Sci-Fi FOF keeps a page of few sections to a width a row can be read across", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "Sci-Fi FOF's layout for a phone held upright is not done yet");
+  await heldStream(page, [system, 0]);
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto("/?skin=sci-fi-fof&part=dc_loads");
+  await expect(page.locator(".fof-deck-groups")).toBeVisible();
+  const rowInEm = await page.locator(".fof-deck-group .fof-row").first().evaluate((row) =>
+    (row as HTMLElement).offsetWidth / parseFloat(getComputedStyle(row.closest(".fof")!).fontSize));
+  expect(rowInEm).toBeLessThan(20);
+});
+
+test("Sci-Fi FOF's top bar keeps a unit's case, and sets a word in capitals", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "Sci-Fi FOF's layout for a phone held upright is not done yet");
+  // With no alarm, which would take the bar's place.
+  await heldStream(page, [{
+    ...system,
+    inverter_charger: { ...system.inverter_charger!, status: "normal", alarms: [] },
+    battery: { ...system.battery!, time_left: { toward: "full", seconds: 7200, settled: false } },
+  }, 0]);
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const case_ = async (label: RegExp) => page.locator(".fof-vital", { hasText: label }).locator("b")
+    .evaluate((figure) => getComputedStyle(figure).textTransform);
+
+  await page.goto("/?skin=sci-fi-fof&part=battery");
+  await expect(page.locator(".fof-vital", { hasText: /Time to/ })).toBeVisible();
+  expect(await case_(/Time to/)).toBe("none");
+
+  await page.goto("/?skin=sci-fi-fof&part=inverter_charger");
+  await expect(page.locator(".fof-vital", { hasText: "State" })).toBeVisible();
+  expect(await case_(/State/)).toBe("uppercase");
+});
+
+test("Sci-Fi FOF says so on the page of a part that is not reporting", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "Sci-Fi FOF's layout for a phone held upright is not done yet");
+  await heldStream(page, [{ ...system, solar: { ...system.solar!, status: "offline" } }, 0]);
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto("/?skin=sci-fi-fof&part=solar");
+  await expect(page.locator(".fof-deck-head").getByText("Not reporting")).toBeVisible();
+  // Measured by layout, since the page is still zooming in; hidden, the head is a pixel wide.
+  expect(await page.locator(".fof-deck-head").evaluate((head) => (head as HTMLElement).offsetWidth)).toBeGreaterThan(100);
 });
