@@ -30,7 +30,7 @@ export class Refused extends Error {
   }
 }
 
-async function call<T>(method: string, path: string, csrf: string | null, body?: unknown): Promise<T> {
+export async function call<T>(method: string, path: string, csrf: string | null, body?: unknown): Promise<T> {
   const headers: Record<string, string> = {};
   if (body !== undefined) {
     headers["Content-Type"] = "application/json";

@@ -6,8 +6,12 @@ import * as f from "./format";
 // readings look and never which of them there are. Each part has a headline,
 // the reading a skin draws largest, and its details.
 
-/** A measured reading. One the system does not report is left out unless `always`. */
-export type Measured = { label: string; value: number | null; format: f.Format; always?: boolean };
+/**
+ * A measured reading. One the system does not report is left out unless
+ * `always`. One with a control is a setting the server's control of that
+ * name changes, which a skin offers to an account that may change it.
+ */
+export type Measured = { label: string; value: number | null; format: f.Format; always?: boolean; control?: string };
 /** A reading that is a word rather than a number, left out where the system does not report it. */
 export type Worded = {
   label: string;

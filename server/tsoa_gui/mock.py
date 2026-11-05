@@ -14,8 +14,11 @@ follows the compressed day, so the battery's charge moves visibly, and the
 day starts over at midnight.
 
 snapshot(t) depends only on t, in seconds, so a test can pin any moment.
+device() is an inverter/charger whose AC input current limits can be changed
+through the controls, and run() shows the limits it holds.
 """
 import asyncio
+import json
 import math
 import time
 from dataclasses import dataclass
@@ -27,6 +30,7 @@ from .model import (
     AcCircuit, AcLoads, AcPhase, Alarm, AlarmCheck, Battery, BatteryHistory, Cell, DcLoads, EnergyCounter, Generator, Grid,
     InverterCharger, Led, Solar, SolarCharger, System, TemperatureSensor,
 )
+from .venus import Device, Key
 
 CYCLE_S = 600
 TIME_SCALE = 24 * 3600 / CYCLE_S  # each real second covers this many seconds of the day
@@ -37,6 +41,14 @@ SHORE_V = 230.0
 INVERTER_V = 230.0
 SHORE_HZ = 50.0
 SHORE_LIMIT_A = 16.0
+GENERATOR_LIMIT_A = 25.0
+# For the controls: the instance the inverter/charger is found at, the most
+# its transfer relay carries, which it publishes as the limits' highest, the
+# lowest limit it takes, raising anything below, and how long a change takes.
+VEBUS_INSTANCE = 276
+RELAY_RATING_A = 100.0
+LOWEST_LIMIT_A = 4.0
+TAKES_EFFECT_S = 0.5
 GENERATOR_W = 3000.0
 CHARGER_MAX_W = 1600.0
 CHARGER_EFFICIENCY = 0.94
@@ -174,7 +186,8 @@ def _charge_state(soc: float) -> str:
     return "bulk" if soc < 85 else "absorption" if soc < 98 else "float"
 
 
-def snapshot(t: float) -> System:
+def snapshot(t: float, limits: tuple[float, float] = (SHORE_LIMIT_A, GENERATOR_LIMIT_A)) -> System:
+    """The system at t, with limits as its two AC inputs' current limits, which only change what it shows."""
     soc, east_wh, west_wh = _day_so_far(t)
     m = _moment(t, soc)
 
@@ -277,7 +290,7 @@ def snapshot(t: float) -> System:
         units=1,
         uptime_s=round(t % CYCLE_S * TIME_SCALE + 86400),
         input_connected=m.ac_source is not None,
-        input_current_limit_a=SHORE_LIMIT_A,
+        input_current_limit_a=limits[1] if m.ac_source == "generator" else limits[0],
         input_phases=[AcPhase(
             phase="L1", voltage_v=out_v, current_a=round(ac_in / out_v, 1), power_w=round(ac_in),
             apparent_power_va=round(ac_in * 1.04), frequency_hz=out_hz,
@@ -325,7 +338,7 @@ def snapshot(t: float) -> System:
         voltage_v=round(_shore_voltage(t % CYCLE_S), 1) if _shore_connected(m.phase) else 0.0,
         current_a=round(((ac_in if shore else 0.0) + m.on_input_w) / SHORE_V, 1),
         frequency_hz=round(_shore_frequency(t % CYCLE_S), 2) if _shore_connected(m.phase) else None,
-        input_current_limit_a=SHORE_LIMIT_A,
+        input_current_limit_a=limits[0],
     )
 
     running = m.ac_source == "generator"
@@ -411,9 +424,35 @@ def _charger(name: str, power_w: float, yield_wh: float, soc: float, peak_w: flo
     )
 
 
-async def run(feed: Feed, interval_s: float = 1.0) -> None:
-    """Publish the invented system every interval, starting at midnight of its day."""
+def _limit_key(n: int) -> Key:
+    return "vebus", VEBUS_INSTANCE, f"Ac/In/{n}/CurrentLimit"
+
+
+def device() -> Device:
+    """An inverter/charger that takes each written limit after a moment, raised to its lowest, and reports it."""
+    made = Device()
+    readings = made.readings
+    readings.update(("system", 0, "VebusInstance"), VEBUS_INSTANCE)
+    for n, limit in ((1, SHORE_LIMIT_A), (2, GENERATOR_LIMIT_A)):
+        readings.update(_limit_key(n), limit, (None, RELAY_RATING_A))
+        readings.update(("vebus", VEBUS_INSTANCE, f"Ac/In/{n}/CurrentLimitIsAdjustable"), 1)
+
+    async def send(where: str, payload: str) -> None:
+        service, instance, path = where.split("/", 2)
+        key = (service, int(instance), path)
+        value = max(LOWEST_LIMIT_A, json.loads(payload)["value"])
+        asyncio.get_running_loop().call_later(TAKES_EFFECT_S, readings.update, key, value, readings.bounds[key])
+
+    made.attach(send)
+    return made
+
+
+async def run(feed: Feed, interval_s: float = 1.0, device: Device | None = None) -> None:
+    """Publish the invented system every interval, starting at midnight of its day, with device's limits."""
     start = time.monotonic()
     while True:
-        feed.publish(snapshot(time.monotonic() - start))
+        limits = (SHORE_LIMIT_A, GENERATOR_LIMIT_A)
+        if device is not None:
+            limits = (device.readings.get(*_limit_key(1)), device.readings.get(*_limit_key(2)))
+        feed.publish(snapshot(time.monotonic() - start, limits))
         await asyncio.sleep(interval_s)

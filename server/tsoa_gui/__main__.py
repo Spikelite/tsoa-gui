@@ -93,10 +93,11 @@ def main(argv: list[str] | None = None) -> None:
     from .feed import Feed
     from .time_left import TimeLeftEstimator
 
-    device = venus.Device()
     if args.mock:
-        jobs = [mock.run]
+        device = mock.device()
+        jobs = [lambda feed: mock.run(feed, device=device)]
     else:
+        device = venus.Device()
         jobs = [lambda feed: venus.run(feed, args.mqtt_host, args.mqtt_port, device)]
     # The app's event streams end once the server, made below, starts to stop.
     server: uvicorn.Server | None = None

@@ -1387,3 +1387,7 @@
 
 .fof-relay-idle .fof-relay-core { animation: none; fill-opacity: 0.35; }
 .fof-relay-idle .fof-relay-cell { animation: none; }
+
+/* A setting's panel in the console's colors. */
+.fof-row .control-panel { --control-accent: var(--fof-sand); --panel-border: var(--fof-ring, var(--fof-dim)); }
+.fof-row .control-value { color: var(--fof-conduit); }
