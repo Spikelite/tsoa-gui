@@ -311,15 +311,25 @@
 .fof-label-block {
   display: inline-flex;
   align-items: center;
-  gap: 0.4em;
   margin: 0;
-  padding: 0.25em 0.95em;
+  padding: 0.22em 1em;
   color: #000;
-  background: var(--status-color, var(--fof-sand));
+  background: var(--fof-name, var(--fof-sand));
   border-radius: 1em;
-  font-size: 0.95em;
-  font-weight: 600;
+  font-size: 1em;
+  font-weight: 500;
+  letter-spacing: 0.07em;
 }
+
+/* A name takes the color of what it is, so that the color of a status beside
+   it always means something is up. */
+[data-part="grid"],
+[data-part="generator"],
+[data-part="solar"] { --fof-name: var(--fof-sand); }
+[data-part="inverter_charger"] { --fof-name: var(--fof-lavender); }
+[data-part="battery"] { --fof-name: var(--fof-periwinkle); }
+[data-part="ac_loads"],
+[data-part="dc_loads"] { --fof-name: var(--fof-teal); }
 
 /* A part's name and its status, side by side, standing free of each other. */
 .fof-name-row {
@@ -340,7 +350,18 @@
   white-space: nowrap;
 }
 
-.fof-label-block .fof-status-words::before { content: "·"; margin-right: 0.4em; }
+.fof-label-block:has(.fof-status-words) { padding-right: 0; }
+
+.fof-label-block .fof-status-words {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  margin: -0.22em 0 -0.22em 0.6em;
+  padding: 0 1em;
+  background: var(--status-color);
+  border-left: 0.25em solid #000;
+  border-radius: 0 1em 1em 0;
+}
 
 /* A name within a part's readings, such as a solar array's or an alarm's: a
    rounded button in the color of its status. */
@@ -358,6 +379,16 @@
 }
 
 .fof-name-pill .fof-status-words::before { content: "·"; margin-right: 0.4em; }
+
+/* A circuit or an array with nothing wrong is a row like any other. */
+.fof-name-pill.status-good,
+.fof-name-pill.status-normal {
+  padding: 0;
+  color: var(--fof-dim);
+  background: none;
+  font-size: 1em;
+  font-weight: 400;
+}
 
 .fof-state-line {
   margin: 0.35em 0 0.35em;
