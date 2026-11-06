@@ -2,7 +2,7 @@ import { useCallback, useId, useLayoutEffect, useRef, useState, type MouseEvent,
 
 import { OpenControlContext } from "../../controls/controls";
 
-import type { PartName, Status, System } from "../../model/system";
+import type { AcCircuit, DcCircuit, PartName, Status, System } from "../../model/system";
 import { generatorState, gridState, inverterState, partTitle, solarState } from "../describe";
 import { DETAILED, detailedPart } from "../details";
 import { Eased } from "../Eased";
@@ -114,6 +114,18 @@ function Readout(props: {
       {props.art}
     </section>
   );
+}
+
+/** Each circuit its own meter measures, among its panel's readings. */
+function CircuitRows({ circuits, format }: { circuits: (AcCircuit | DcCircuit)[]; format: f.Format }) {
+  return circuits.map((circuit) => (
+    <div key={circuit.name} className="fof-row">
+      <dt>
+        <NamePill name={circuit.name} status={circuit.status} />
+      </dt>
+      <dd>{circuit.status === "offline" ? "Not reporting" : <Eased value={circuit.power_w} format={format} />}</dd>
+    </div>
+  ));
 }
 
 // Until the first readings arrive: the frame comes up a piece at a time, and
@@ -237,16 +249,7 @@ export function FofSkin({ model, connected = true, busy = false }: { model: Syst
             art={<LoadPanel power={model.ac_loads.power_w} status={model.ac_loads.status} feed="inverter_charger-ac_loads" />}
             layout="lead">
             <Glance readings={acLoadsReadings(model.ac_loads)} />
-            {model.ac_loads.circuits.map((circuit) => (
-              <div key={circuit.name} className="fof-row">
-                <dt>
-                  <NamePill name={circuit.name} status={circuit.status} />
-                </dt>
-                <dd>
-                  {circuit.status === "offline" ? "Not reporting" : <Eased value={circuit.power_w} format={f.power} />}
-                </dd>
-              </div>
-            ))}
+            <CircuitRows circuits={model.ac_loads.circuits} format={f.power} />
           </Readout>
         )}
 
@@ -256,6 +259,7 @@ export function FofSkin({ model, connected = true, busy = false }: { model: Syst
             art={<LoadPanel power={model.dc_loads.power_w} status={model.dc_loads.status} feed="dc_bus-dc_loads" />}
             layout="lead">
             <Glance readings={dcLoadsReadings(model.dc_loads)} />
+            <CircuitRows circuits={model.dc_loads.circuits} format={f.smallPower} />
           </Readout>
         )}
       </div>

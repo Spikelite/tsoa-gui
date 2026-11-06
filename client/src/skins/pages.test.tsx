@@ -159,7 +159,7 @@ describe("a part's own page", () => {
       ["solar", "Solar", ["68.9 V", "455 W", "812.40 kWh", "None", "Not reporting", "Bulk"]],
       ["ac_loads", "AC loads", ["900 W", "700 W", "200 W", "480 W", "120.50 kWh", "88.90 kWh", "420 W", "0.96",
         "182.40 kWh", "Not reporting"]],
-      ["dc_loads", "DC loads", ["Worked out from the others"]],
+      ["dc_loads", "DC loads", ["Worked out from the others", "6.3 W", "13.2 V", "0.48 A", "14.80 kWh", "Not reporting"]],
     ] as const;
     for (const [part, name, values] of parts) {
       const minimal = shownOnPage(<MinimalSkin model={system} />, part, name);

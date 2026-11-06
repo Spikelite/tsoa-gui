@@ -1062,6 +1062,82 @@
       ],
       "type": "string"
     },
+    "DcCircuit": {
+      "additionalProperties": false,
+      "description": "One circuit of DC loads that a meter of its own measures.",
+      "properties": {
+        "status": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Status"
+            }
+          ],
+          "description": "How this part is doing. Every skin gives each level the same color: good green, normal blue, attention yellow, warning orange, fault red, offline black, always paired with an icon or a label so color is never the only signal."
+        },
+        "name": {
+          "description": "The circuit's name, as its meter reports it.",
+          "type": "string"
+        },
+        "power_w": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Power the circuit draws."
+        },
+        "voltage_v": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Voltage on the circuit, which a converter can set apart from the battery's."
+        },
+        "current_a": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Current the circuit draws."
+        },
+        "energy_kwh": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Energy the circuit has used, since its meter began counting."
+        }
+      },
+      "required": [
+        "status",
+        "name",
+        "power_w",
+        "voltage_v",
+        "current_a",
+        "energy_kwh"
+      ],
+      "title": "DcCircuit",
+      "type": "object"
+    },
     "DcLoads": {
       "additionalProperties": false,
       "properties": {
@@ -1090,6 +1166,7 @@
             {
               "enum": [
                 "meter",
+                "circuits",
                 "calculation"
               ],
               "type": "string"
@@ -1099,13 +1176,21 @@
             }
           ],
           "default": null,
-          "description": "Whether a DC meter measures the loads or the device works them out from other readings."
+          "description": "How the total is known: a DC meter measures it, it is the circuits' own meters added up, or the device works it out from other readings."
+        },
+        "circuits": {
+          "description": "Each circuit a meter of its own measures. Unless measured_by says circuits, they come from other meters than the total, so their sum need not match power_w.",
+          "items": {
+            "$ref": "#/$defs/DcCircuit"
+          },
+          "type": "array"
         }
       },
       "required": [
         "status",
         "power_w",
-        "measured_by"
+        "measured_by",
+        "circuits"
       ],
       "title": "DcLoads",
       "type": "object"

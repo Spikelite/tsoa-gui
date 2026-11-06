@@ -20,6 +20,13 @@ def test_a_day_shows_every_status_level():
     assert set(levels) == {"good", "normal", "attention", "warning", "fault", "offline"}
 
 
+def test_the_dc_loads_have_meters_on_some_of_what_they_draw():
+    for second in (0, 40):
+        loads = snapshot(second).dc_loads
+        assert [circuit.name for circuit in loads.circuits] == ["Fridge", "Cabin lights"]
+        assert 0 < sum(circuit.power_w for circuit in loads.circuits) < loads.power_w
+
+
 def test_a_day_covers_the_ways_power_is_supplied():
     inputs = set()
     for second in range(0, CYCLE_S, 5):

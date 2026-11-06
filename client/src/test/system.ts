@@ -155,7 +155,15 @@ export const system: System = {
       },
     ],
   },
-  dc_loads: { status: "normal", power_w: null, measured_by: "calculation" },
+  dc_loads: {
+    status: "normal",
+    power_w: null,
+    measured_by: "calculation",
+    circuits: [
+      { status: "normal", name: "12V cabin lighting", power_w: 6.3, voltage_v: 13.2, current_a: 0.48, energy_kwh: 14.8 },
+      { status: "offline", name: "24V bilge pump", power_w: null, voltage_v: null, current_a: null, energy_kwh: null },
+    ],
+  },
   flows: [
     { source: "grid", target: "inverter_charger", power_w: 1050 },
     { source: "grid", target: "ac_loads", power_w: 200 },

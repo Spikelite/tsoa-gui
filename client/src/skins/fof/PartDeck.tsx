@@ -1,6 +1,6 @@
 import { useState, type CSSProperties, type ReactNode } from "react";
 
-import type { AcLoads, PartName, System } from "../../model/system";
+import type { PartName, System } from "../../model/system";
 import { partDetail, powerShares } from "../details";
 import { Eased } from "../Eased";
 import * as f from "../format";
@@ -39,15 +39,18 @@ function Art({ part, model, run }: { part: PartName; model: System; run: ReactNo
 }
 
 /** Where a panel's power goes, as a bar shared out among its circuits. */
-function PowerShares({ loads }: { loads: AcLoads }) {
-  const shares = powerShares(loads);
+function PowerShares({ total, shares, format }: {
+  total: number | null;
+  shares: ReturnType<typeof powerShares>;
+  format: f.Format;
+}) {
   return (
     <section className="fof-deck-group fof-deck-shares" aria-label="Where the power goes">
-      <SectionHead tone="teal" title={<span>Where <Eased value={loads.power_w} format={f.power} /> goes</span>} />
+      <SectionHead tone="teal" title={<span>Where <Eased value={total} format={format} /> goes</span>} />
       <ul className="fof-deck-share">
         {shares.map(({ label, power_w: power, metered }) => (
           <li key={label} className={metered ? undefined : "fof-deck-share-rest"} style={{ flexGrow: power }}>
-            <span className="fof-deck-share-name">{label}</span> <Eased value={power} format={f.power} />
+            <span className="fof-deck-share-name">{label}</span> <Eased value={power} format={format} />
           </li>
         ))}
       </ul>
@@ -80,7 +83,9 @@ export function PartDeck({ part, model }: { part: PartName; model: System }) {
     return null;
   }
   const load = part === "ac_loads" || part === "dc_loads";
-  const shared = part === "ac_loads" && model.ac_loads !== null && powerShares(model.ac_loads).length > 0;
+  const panel = part === "ac_loads" ? model.ac_loads : part === "dc_loads" ? model.dc_loads : null;
+  const shares = panel === null ? [] : powerShares(panel);
+  const shared = shares.length > 0;
   // What the drawing times itself to, which Conduits.tsx gives it on the overview.
   const pace = Object.fromEntries(flows.map((flow) => [`--fof-roll-${flow.source}-${flow.target}`, `${period}s`])) as CSSProperties;
   return (
@@ -96,7 +101,7 @@ export function PartDeck({ part, model }: { part: PartName; model: System }) {
           <ConduitRun length={load ? BUS_RUN : SUPPLY_RUN} power={power} period={period}
             phase={load ? crestPhase(BUS_RUN, WAVE) : LAUNCH_PHASE} reversed={!load && outward < 0} />
         )} />
-        {shared && <PowerShares loads={model.ac_loads!} />}
+        {shared && <PowerShares total={panel!.power_w} shares={shares} format={detail.headline.format} />}
       </div>
     </Deck>
   );

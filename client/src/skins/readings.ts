@@ -135,12 +135,12 @@ export function acLoadsReadings(loads: AcLoads): Readings {
 
 export function dcLoadsReadings(loads: DcLoads): Readings {
   return {
-    headline: { label: "Power", value: loads.power_w, format: f.power, always: true },
+    headline: { label: "Power", value: loads.power_w, format: f.smallPower, always: true },
     details: [],
   };
 }
 
 /** How the DC loads' power is known. */
 export function dcLoadsState(loads: DcLoads): string {
-  return loads.measured_by === "meter" ? "Metered" : loads.measured_by === "calculation" ? "Calculated" : "In use";
+  return loads.measured_by === null ? "In use" : loads.measured_by === "calculation" ? "Calculated" : "Metered";
 }

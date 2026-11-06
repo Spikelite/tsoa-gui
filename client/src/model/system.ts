@@ -700,9 +700,45 @@ export interface DcLoads {
    */
   power_w: number | null;
   /**
-   * Whether a DC meter measures the loads or the device works them out from other readings.
+   * How the total is known: a DC meter measures it, it is the circuits' own meters added up, or the device works it out from other readings.
    */
-  measured_by: ("meter" | "calculation") | null;
+  measured_by: ("meter" | "circuits" | "calculation") | null;
+  /**
+   * Each circuit a meter of its own measures. Unless measured_by says circuits, they come from other meters than the total, so their sum need not match power_w.
+   */
+  circuits: DcCircuit[];
+}
+/**
+ * One circuit of DC loads that a meter of its own measures.
+ *
+ * This interface was referenced by `System`'s JSON-Schema
+ * via the `definition` "DcCircuit".
+ */
+export interface DcCircuit {
+  /**
+   * How this part is doing. Every skin gives each level the same color: good green, normal blue, attention yellow, warning orange, fault red, offline black, always paired with an icon or a label so color is never the only signal.
+   */
+  status: Status;
+  /**
+   * The circuit's name, as its meter reports it.
+   */
+  name: string;
+  /**
+   * Power the circuit draws.
+   */
+  power_w: number | null;
+  /**
+   * Voltage on the circuit, which a converter can set apart from the battery's.
+   */
+  voltage_v: number | null;
+  /**
+   * Current the circuit draws.
+   */
+  current_a: number | null;
+  /**
+   * Energy the circuit has used, since its meter began counting.
+   */
+  energy_kwh: number | null;
 }
 /**
  * Power moving from one part to another, drawn as animated flow between their panels.

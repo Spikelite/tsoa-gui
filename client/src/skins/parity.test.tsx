@@ -23,7 +23,12 @@ const everything: System = {
     ...system.ac_loads!,
     circuits: system.ac_loads!.circuits.map((circuit) => ({ ...circuit, status: "normal", power_w: 130 })),
   },
-  dc_loads: { status: "normal", power_w: 42, measured_by: "meter" },
+  dc_loads: {
+    ...system.dc_loads!,
+    power_w: 42,
+    measured_by: "meter",
+    circuits: system.dc_loads!.circuits.map((circuit) => ({ ...circuit, status: "normal", power_w: 13 })),
+  },
 };
 
 const PARTS = {

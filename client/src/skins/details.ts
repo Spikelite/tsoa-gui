@@ -1,5 +1,6 @@
 import type {
-  AcCircuit, AcLoads, AcPhase, AlarmCheck, Battery, Cell, ChargerState, DcLoads, EnergyCounter, EnergyEnd, Generator,
+  AcCircuit, AcLoads, AcPhase, AlarmCheck, Battery, Cell, ChargerState, DcCircuit, DcLoads, EnergyCounter, EnergyEnd,
+  Generator,
   Grid, InverterCharger, PartName, Solar, SolarCharger, Status, System,
 } from "../model/system";
 import { batteryState, generatorState, gridState, inverterState, MODES, partTitle, solarState } from "./describe";
@@ -446,13 +447,33 @@ function circuitGroup(circuit: AcCircuit): DetailGroup {
   };
 }
 
+/** A DC circuit its own meter measures, as a group of its readings. */
+function dcCircuitGroup(circuit: DcCircuit): DetailGroup {
+  if (circuit.status === "offline") {
+    return { title: circuit.name, readings: worded("State", ["Not reporting"]) };
+  }
+  return {
+    title: circuit.name,
+    readings: [
+      { label: "Power", value: circuit.power_w, format: f.smallPower, always: true },
+      { label: "Voltage", value: circuit.voltage_v, format: f.volts },
+      { label: "Current", value: circuit.current_a, format: f.smallAmps },
+      { label: "Energy used", value: circuit.energy_kwh, format: f.kilowattHours },
+    ],
+  };
+}
+
+/** Less left over than this is only the meters' figures being rounded. */
+const NOTHING_LEFT_W = 0.05;
+
 /**
  * Where a panel's power goes: each circuit with a meter reading, then what
  * those meters do not account for. Each meter is apart from the total, so
  * they can come to more than it, and nothing is then left over. With no
  * circuit reporting, the total alone says nothing about where it goes.
  */
-export function powerShares(loads: AcLoads): { label: string; power_w: number; metered: boolean }[] {
+export function powerShares(loads: { power_w: number | null; circuits: Pick<AcCircuit, "name" | "status" | "power_w">[] }):
+  { label: string; power_w: number; metered: boolean }[] {
   const metered = loads.circuits.flatMap((circuit) =>
     circuit.status === "offline" || circuit.power_w === null
       ? []
@@ -462,7 +483,7 @@ export function powerShares(loads: AcLoads): { label: string; power_w: number; m
   }
   const rest = (loads.power_w ?? 0) - metered.reduce((sum, circuit) => sum + circuit.power_w, 0);
   const drawing = metered.filter((circuit) => circuit.power_w > 0);
-  return rest > 0 ? [...drawing, { label: "Not metered", power_w: rest, metered: false }] : drawing;
+  return rest >= NOTHING_LEFT_W ? [...drawing, { label: "Not metered", power_w: rest, metered: false }] : drawing;
 }
 
 export function acLoadsGroups(loads: AcLoads, model: System): DetailGroup[] {
@@ -497,22 +518,26 @@ export function acLoadsGroups(loads: AcLoads, model: System): DetailGroup[] {
   return groups.filter((group) => shown(group.readings));
 }
 
-const MEASURED_BY = { meter: "A meter", calculation: "Worked out from the others" };
+const MEASURED_BY = { meter: "A meter", circuits: "The circuits' meters", calculation: "Worked out from the others" };
 
 export function dcLoadsGroups(loads: DcLoads, model: System): DetailGroup[] {
-  // The loads hang on the battery, so they draw their power at its voltage.
-  const voltage = model.battery?.voltage_v ?? null;
+  // The loads hang on the battery, so they draw their power at its voltage,
+  // though circuits added up can each be behind a converter of their own.
+  const voltage = loads.measured_by === "circuits" ? null : model.battery?.voltage_v ?? null;
   const current = loads.power_w !== null && voltage ? loads.power_w / voltage : null;
+  const rest = powerShares(loads).find((share) => !share.metered);
   const groups: DetailGroup[] = [
     {
       title: "Loads",
       readings: [
-        { label: "Power", value: loads.power_w, format: f.power, always: true },
+        { label: "Power", value: loads.power_w, format: f.smallPower, always: true },
+        { label: "Not metered", value: rest?.power_w ?? null, format: f.smallPower },
         { label: "Current", value: current, format: f.amps },
         { label: "Voltage", value: voltage, format: f.volts },
         ...worded("Measured by", loads.measured_by === null ? [] : [MEASURED_BY[loads.measured_by]]),
       ],
     },
+    ...loads.circuits.map(dcCircuitGroup),
   ];
   return groups.filter((group) => shown(group.readings));
 }
@@ -547,7 +572,8 @@ export function partDetail(part: PartName, model: System): PartDetail | null {
     case "dc_loads":
       return model.dc_loads && {
         title, status: model.dc_loads.status, state: dcLoadsState(model.dc_loads),
-        headline: power(model.dc_loads.power_w), groups: dcLoadsGroups(model.dc_loads, model),
+        headline: { ...power(model.dc_loads.power_w), format: f.smallPower },
+        groups: dcLoadsGroups(model.dc_loads, model),
       };
     default:
       return null;

@@ -8,10 +8,16 @@ export type Format = (value: number) => string;
 
 export const power: Format = (w) =>
   Math.abs(w) >= 1000 ? `${(w / 1000).toFixed(Math.abs(w) >= 10000 ? 1 : 2)} kW` : `${Math.round(w)} W`;
+/** To so many places, without the minus sign a reading just under zero would keep. */
+const fixed = (value: number, places: number) => (Number(value.toFixed(places)) === 0 ? 0 : value).toFixed(places);
+// A DC circuit can run on a few watts and a fraction of an amp, which whole
+// watts and tenths of an amp would show as nothing at all.
+export const smallPower: Format = (w) => (Math.abs(w) < 10 ? `${fixed(w, 1)} W` : power(w));
 export const volts: Format = (v) => `${v.toFixed(1)} V`;
 export const cellVolts: Format = (v) => `${v.toFixed(3)} V`;
 export const millivolts: Format = (v) => `${Math.round(v * 1000)} mV`;
 export const amps: Format = (a) => `${a.toFixed(1)} A`;
+export const smallAmps: Format = (a) => (Math.abs(a) < 10 ? `${fixed(a, 2)} A` : amps(a));
 export const hertz: Format = (f) => `${f.toFixed(2)} Hz`;
 export const percent: Format = (p) => `${Math.round(p)}%`;
 export const celsius: Format = (c) => `${c.toFixed(1)} °C`;

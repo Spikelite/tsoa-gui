@@ -1,6 +1,6 @@
 import type { MouseEvent } from "react";
 
-import type { PartName, System } from "../../model/system";
+import type { AcCircuit, DcCircuit, PartName, System } from "../../model/system";
 import { batteryState, generatorState, gridState, inverterState, MODES, partTitle, solarState } from "../describe";
 import { Eased } from "../Eased";
 import * as f from "../format";
@@ -29,9 +29,16 @@ function stateOf(part: PartName, model: System): string {
   }
 }
 
+/** What each circuit with a meter of its own is drawing, where any is reporting. */
+function circuitsNote(circuits: (AcCircuit | DcCircuit)[], format: f.Format): string | null {
+  const metered = circuits.flatMap((circuit) =>
+    circuit.power_w === null || circuit.status === "offline" ? [] : [`${circuit.name} ${format(Math.abs(circuit.power_w))}`]);
+  return metered.length > 0 ? metered.join(", ") : null;
+}
+
 /** The one line that says most about a part after its state, where it has one. */
 function noteOn(part: PartName, model: System): string | null {
-  const { grid, generator, solar, inverter_charger: inverter, battery, ac_loads: ac } = model;
+  const { grid, generator, solar, inverter_charger: inverter, battery, ac_loads: ac, dc_loads: dc } = model;
   if (part === "grid" && grid?.input_current_limit_a != null) {
     return `Limit ${f.amps(grid.input_current_limit_a)}`;
   }
@@ -50,9 +57,10 @@ function noteOn(part: PartName, model: System): string | null {
     return left ? `${power}, ${left.toward} in ${f.timeLeft(left).toLowerCase()}` : power;
   }
   if (part === "ac_loads" && ac) {
-    const metered = ac.circuits.flatMap((circuit) =>
-      circuit.power_w === null || circuit.status === "offline" ? [] : [`${circuit.name} ${f.power(Math.abs(circuit.power_w))}`]);
-    return metered.length > 0 ? metered.join(", ") : null;
+    return circuitsNote(ac.circuits, f.power);
+  }
+  if (part === "dc_loads" && dc) {
+    return circuitsNote(dc.circuits, f.smallPower);
   }
   return null;
 }
