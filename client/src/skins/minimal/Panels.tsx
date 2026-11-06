@@ -2,7 +2,8 @@ import { useId, type MouseEvent, type ReactNode } from "react";
 
 import { ReadingValue } from "../../controls/ReadingValue";
 import type {
-  AcLoads, Alarm, Battery, DcLoads, Generator, Grid, InverterCharger, PartName, Solar, Status, System,
+  AcCircuit, AcLoads, Alarm, Battery, DcCircuit, DcLoads, Generator, Grid, InverterCharger, PartName, Solar, Status,
+  System,
 } from "../../model/system";
 import { batteryState, generatorState, gridState, inverterState, partTitle, solarState } from "../describe";
 import { DETAILED } from "../details";
@@ -176,28 +177,28 @@ export function SolarPanel({ solar }: { solar: Solar }) {
   );
 }
 
+/** Each circuit its own meter measures, listed as solar lists its chargers. */
+function CircuitList({ circuits, format }: { circuits: (AcCircuit | DcCircuit)[]; format: f.Format }) {
+  return circuits.length > 0 && (
+    <ul className="chargers">
+      {circuits.map((circuit) => (
+        <li key={circuit.name}>
+          <StatusIcon status={circuit.status} />
+          <span className="charger-name">{circuit.name}</span>
+          {circuit.status === "offline" ? <span>Not reporting</span> : <Eased value={circuit.power_w} format={format} />}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function AcLoadsPanel({ loads }: { loads: AcLoads }) {
   const readings = acLoadsReadings(loads);
   return (
     <Panel part="ac_loads" title="AC loads" status={loads.status} state="In use">
       <Headline reading={readings.headline} />
       <Details readings={readings} />
-      {/* Each circuit its own meter measures, listed as solar lists its chargers. */}
-      {loads.circuits.length > 0 && (
-        <ul className="chargers">
-          {loads.circuits.map((circuit) => (
-            <li key={circuit.name}>
-              <StatusIcon status={circuit.status} />
-              <span className="charger-name">{circuit.name}</span>
-              {circuit.status === "offline" ? (
-                <span>Not reporting</span>
-              ) : (
-                <Eased value={circuit.power_w} format={f.power} />
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      <CircuitList circuits={loads.circuits} format={f.power} />
     </Panel>
   );
 }
@@ -208,6 +209,7 @@ export function DcLoadsPanel({ loads }: { loads: DcLoads }) {
     <Panel part="dc_loads" title="DC loads" status={loads.status} state={dcLoadsState(loads)}>
       <Headline reading={readings.headline} />
       <Details readings={readings} />
+      <CircuitList circuits={loads.circuits} format={f.smallPower} />
     </Panel>
   );
 }

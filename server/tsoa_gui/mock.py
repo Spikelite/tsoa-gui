@@ -27,8 +27,8 @@ from . import status
 from .feed import Feed
 from .flows import derive_flows
 from .model import (
-    AcCircuit, AcLoads, AcPhase, Alarm, AlarmCheck, Battery, BatteryHistory, Cell, DcLoads, EnergyCounter, Generator, Grid,
-    InverterCharger, Led, Solar, SolarCharger, System, TemperatureSensor,
+    AcCircuit, AcLoads, AcPhase, Alarm, AlarmCheck, Battery, BatteryHistory, Cell, DcCircuit, DcLoads, EnergyCounter,
+    Generator, Grid, InverterCharger, Led, Solar, SolarCharger, System, TemperatureSensor,
 )
 from .venus import Device, Key
 
@@ -167,6 +167,17 @@ def _circuits(on_output_w: float, volts: float, phase: float) -> list[AcCircuit]
         )
 
     return [circuit("Kitchen", 0.45, 0.97, 182.4, 3.6), circuit("Workshop", 0.2, 0.88, 61.7, 1.1)]
+
+
+def _dc_circuits(dc_w: float, battery_v: float, phase: float) -> list[DcCircuit]:
+    """Two invented metered circuits, one at the battery's voltage and one behind a converter of its own."""
+    def circuit(name: str, power: float, volts: float, kwh_at_midnight: float, kwh_a_day: float) -> DcCircuit:
+        return DcCircuit(
+            status="normal", name=name, power_w=round(power, 1), voltage_v=round(volts, 1),
+            current_a=round(power / volts, 2), energy_kwh=round(kwh_at_midnight + kwh_a_day * phase, 3),
+        )
+
+    return [circuit("Fridge", dc_w - 30.0, battery_v, 96.2, 1.2), circuit("Cabin lights", 8.4, 13.2, 14.8, 0.2)]
 
 
 def _day_so_far(t: float) -> tuple[float, float, float]:
@@ -392,7 +403,8 @@ def snapshot(t: float, limits: tuple[float, float] = (SHORE_LIMIT_A, GENERATOR_L
             frequency_hz=round(out_hz, 2),
             circuits=_circuits(m.on_output_w, out_v, m.phase),
         ),
-        dc_loads=DcLoads(status="normal", power_w=round(m.dc_w), measured_by="calculation"),
+        dc_loads=DcLoads(status="normal", power_w=round(m.dc_w), measured_by="calculation",
+                         circuits=_dc_circuits(m.dc_w, voltage, m.phase)),
     )
     system.flows = derive_flows(system)
     return system

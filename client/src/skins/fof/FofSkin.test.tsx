@@ -297,6 +297,13 @@ describe("FofSkin", () => {
       expect(shares[1]).toHaveClass("fof-deck-share-rest");
     });
 
+    it("says where a DC panel's power goes too, in the small figures its circuits run on", () => {
+      page("dc_loads");
+      render(<FofSkin model={{ ...system, dc_loads: { ...system.dc_loads!, power_w: 20 } }} />);
+      const shares = within(screen.getByRole("region", { name: "Where the power goes" })).getAllByRole("listitem");
+      expect(shares.map((share) => share.textContent)).toEqual(["12V cabin lighting 6.3 W", "Not metered 14 W"]);
+    });
+
     it("says nothing of where the power goes on a panel with no circuits", () => {
       page("ac_loads");
       render(<FofSkin model={{ ...system, ac_loads: { ...system.ac_loads!, circuits: [] } }} />);

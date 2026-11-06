@@ -331,10 +331,26 @@ class AcLoads(Part):
                     "totals above, so their sum need not match power_w.")
 
 
+class DcCircuit(Part):
+    """One circuit of DC loads that a meter of its own measures."""
+
+    name: str = Field(description="The circuit's name, as its meter reports it.")
+    power_w: float | None = Field(None, description="Power the circuit draws.")
+    voltage_v: float | None = Field(
+        None, description="Voltage on the circuit, which a converter can set apart from the battery's.")
+    current_a: float | None = Field(None, description="Current the circuit draws.")
+    energy_kwh: float | None = Field(None, description="Energy the circuit has used, since its meter began counting.")
+
+
 class DcLoads(Part):
     power_w: float | None = Field(None, description="Total power used by DC loads.")
-    measured_by: Literal["meter", "calculation"] | None = Field(
-        None, description="Whether a DC meter measures the loads or the device works them out from other readings.")
+    measured_by: Literal["meter", "circuits", "calculation"] | None = Field(
+        None, description="How the total is known: a DC meter measures it, it is the circuits' own meters added "
+                          "up, or the device works it out from other readings.")
+    circuits: list[DcCircuit] = Field(
+        default_factory=list,
+        description="Each circuit a meter of its own measures. Unless measured_by says circuits, they come from "
+                    "other meters than the total, so their sum need not match power_w.")
 
 
 class Flow(_Model):

@@ -350,6 +350,66 @@ def test_an_installation_without_ac_load_meters_has_no_circuits():
     assert build(readings(DEVICE), live=True).ac_loads.circuits == []
 
 
+DC_METERS = {
+    ("dcload", 60, "CustomName"): "Cabin lights",
+    ("dcload", 60, "ProductName"): "DC meter",
+    ("dcload", 60, "Connected"): 1,
+    ("dcload", 60, "Dc/0/Voltage"): 13.2,
+    ("dcload", 60, "Dc/0/Current"): 0.49,
+    ("dcload", 60, "Dc/0/Power"): 6.5,
+    ("dcload", 60, "History/EnergyIn"): 3.2,
+    ("dcload", 61, "ProductName"): "DC meter",
+    ("dcload", 61, "Connected"): 1,
+    ("dcload", 61, "Dc/0/Voltage"): 26.4,
+    ("dcload", 61, "Dc/0/Current"): 2.5,
+    ("dcload", 61, "Dc/0/Power"): 66.0,
+}
+NO_DC_TOTAL = {key: value for key, value in DEVICE.items() if key != ("system", 0, "Dc/System/Power")}
+
+
+def test_each_dc_load_meter_is_a_circuit():
+    values = {**DEVICE, **DC_METERS, ("dcload", 62, "ProductName"): "DC meter", ("dcload", 62, "Connected"): 0}
+    lights, unnamed, offline = build(readings(values), live=True).dc_loads.circuits
+    assert (lights.name, lights.status, lights.power_w, lights.voltage_v, lights.current_a, lights.energy_kwh) == (
+        "Cabin lights", "normal", 6.5, 13.2, 0.49, 3.2)
+    assert (unnamed.name, unnamed.power_w, unnamed.energy_kwh) == ("DC meter 61", 66.0, None)
+    assert (offline.name, offline.status, offline.power_w) == ("DC meter 62", "offline", None)
+
+
+def test_dc_load_meters_leave_the_devices_own_total_worked_out():
+    loads = build(readings({**DEVICE, **DC_METERS}), live=True).dc_loads
+    assert (loads.power_w, loads.measured_by) == (45.0, "calculation")
+
+
+def test_a_dc_system_meter_measures_the_devices_own_total():
+    values = {**DEVICE, ("dcsystem", 70, "Dc/0/Power"): 45.0}
+    loads = build(readings(values), live=True).dc_loads
+    assert (loads.power_w, loads.measured_by, loads.circuits) == (45.0, "meter", [])
+
+
+def test_dc_load_meters_stand_in_for_a_total_the_device_does_not_have():
+    system = build(readings({**NO_DC_TOTAL, **DC_METERS}), live=True)
+    assert (system.dc_loads.status, system.dc_loads.power_w, system.dc_loads.measured_by) == (
+        "normal", 72.5, "circuits")
+    assert ("dc_bus", "dc_loads") in {(f.source, f.target) for f in system.flows}
+
+
+def test_a_meter_that_stops_reporting_leaves_the_others_to_add_up():
+    values = {**NO_DC_TOTAL, **DC_METERS, ("dcload", 61, "Connected"): 0}
+    assert build(readings(values), live=True).dc_loads.power_w == 6.5
+
+
+def test_dc_loads_are_offline_when_none_of_their_meters_reports():
+    values = {**NO_DC_TOTAL, **DC_METERS, ("dcload", 60, "Connected"): 0, ("dcload", 61, "Connected"): 0}
+    loads = build(readings(values), live=True).dc_loads
+    assert (loads.status, loads.power_w, loads.measured_by) == ("offline", None, None)
+    assert [circuit.status for circuit in loads.circuits] == ["offline", "offline"]
+
+
+def test_an_installation_with_neither_a_dc_total_nor_meters_has_no_dc_loads():
+    assert build(readings(NO_DC_TOTAL), live=True).dc_loads is None
+
+
 def test_a_battery_that_reports_no_detail_has_none():
     battery = build(readings(DEVICE), live=True).battery
     assert (battery.cells, battery.temperatures, battery.checks, battery.history) == ([], [], [], None)

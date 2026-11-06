@@ -518,6 +518,7 @@ test("Sci-Fi FOF lists the parts on a phone held upright, each opening a page th
   // Solar is producing in the fixture, and the DC loads are not known to be drawing anything.
   await expect(rows.filter({ hasText: "Solar" }).locator(".fof-list-flowing")).toHaveCount(1);
   await expect(rows.filter({ hasText: "DC loads" }).locator(".fof-list-flowing")).toHaveCount(0);
+  await expect(rows.filter({ hasText: "DC loads" })).toContainText("12V cabin lighting 6.3 W");
 
   for (const name of ["Shore power", "Solar", "Inverter", "Battery", "AC loads", "DC loads"]) {
     await rows.filter({ hasText: name }).click();

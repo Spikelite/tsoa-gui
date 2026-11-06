@@ -28,9 +28,9 @@ from . import status
 from .feed import Feed
 from .flows import derive_flows
 from .model import (
-    AcCircuit, AcLoads, AcPhase, Alarm, AlarmCheck, Battery, BatteryHistory, Cell, ChargerState, DcLoads, EnergyCounter,
-    EnergyEnd, Generator, Grid, InverterCharger, InverterMode, InverterState, Led, Solar, SolarCharger, System,
-    TemperatureSensor,
+    AcCircuit, AcLoads, AcPhase, Alarm, AlarmCheck, Battery, BatteryHistory, Cell, ChargerState, DcCircuit, DcLoads,
+    EnergyCounter, EnergyEnd, Generator, Grid, InverterCharger, InverterMode, InverterState, Led, Solar, SolarCharger,
+    System, TemperatureSensor,
 )
 
 log = logging.getLogger(__name__)
@@ -630,12 +630,41 @@ def _ac_loads(r: Readings) -> AcLoads | None:
     )
 
 
+def _dc_circuits(r: Readings) -> list[DcCircuit]:
+    """Each meter in a DC load role, which Venus keeps out of its own total."""
+    circuits = []
+    names = _names(r, "dcload", "DC load")
+    for instance in r.instances("dcload"):
+        name = names[instance]
+        if r.get("dcload", instance, "Connected") == 0:
+            circuits.append(DcCircuit(status="offline", name=name))
+            continue
+        circuits.append(DcCircuit(
+            status="normal",
+            name=name,
+            power_w=r.number("dcload", instance, "Dc/0/Power"),
+            voltage_v=r.number("dcload", instance, "Dc/0/Voltage"),
+            current_a=r.number("dcload", instance, "Dc/0/Current"),
+            energy_kwh=r.number("dcload", instance, "History/EnergyIn"),
+        ))
+    return circuits
+
+
 def _dc_loads(r: Readings) -> DcLoads | None:
-    power = r.number("system", 0, "Dc/System/Power")
-    if power is None:
+    circuits = _dc_circuits(r)
+    total = r.number("system", 0, "Dc/System/Power")
+    if total is not None:
+        # Venus measures its total only with DC system meters, and works it out
+        # from the other readings however many DC load meters there are.
+        measured_by = "meter" if r.instances("dcsystem") else "calculation"
+        return DcLoads(status="normal", power_w=total, measured_by=measured_by, circuits=circuits)
+    if not circuits:
         return None
-    metered = any(r.instances(service) for service in ("dcload", "dcsystem"))
-    return DcLoads(status="normal", power_w=power, measured_by="meter" if metered else "calculation")
+    # A system set up with no DC total has only its meters to go on.
+    reporting = [circuit.power_w for circuit in circuits if circuit.power_w is not None]
+    if not reporting:
+        return DcLoads(status="offline", circuits=circuits)
+    return DcLoads(status="normal", power_w=sum(reporting), measured_by="circuits", circuits=circuits)
 
 
 async def run(feed: Feed, host: str = "127.0.0.1", port: int = 1883, device: Device | None = None) -> None:
