@@ -371,6 +371,85 @@ test("Sci-Fi FOF's part pages fit inside the frame with every reading known", as
   }
 });
 
+test("Sci-Fi FOF spreads a page over a window wider than 16:9, and grows its text into the height that frees", async ({ page }) => {
+  test.slow();
+  await heldStream(page, [system, 0]);
+  const measured = () => page.evaluate(() => {
+    const deck = document.querySelector<HTMLElement>(".fof-deck")!;
+    const well = document.querySelector<HTMLElement>(".fof-well")!;
+    const groups = document.querySelector<HTMLElement>(".fof-deck-groups")!;
+    const sections = [...groups.children] as HTMLElement[];
+    const { paddingTop, paddingBottom } = getComputedStyle(well);
+    const checks = document.querySelector<HTMLElement>(".fof-deck-groups + .fof-deck-checks");
+    // By layout, since the page is still zooming in.
+    return {
+      scale: parseFloat(getComputedStyle(deck).fontSize) / parseFloat(getComputedStyle(well).fontSize),
+      columns: new Set(sections.map((section) => section.offsetLeft)).size,
+      filled: groups.offsetWidth / well.clientWidth,
+      over: deck.offsetHeight - (well.clientHeight - parseFloat(paddingTop) - parseFloat(paddingBottom)),
+      across: well.scrollWidth - well.clientWidth,
+      clear: checks === null ? 1 : checks.offsetTop - Math.max(...sections.map((section) => section.offsetTop + section.offsetHeight)),
+    };
+  });
+  const open = async (part: string, width: number, height: number) => {
+    await page.setViewportSize({ width, height });
+    await page.goto(`/?skin=sci-fi-fof&part=${part}`);
+    await expect(page.locator(".fof-deck-groups")).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+  };
+
+  for (const [width, height] of [[1366, 768], [1920, 1080]]) {
+    await open("battery", width!, height!);
+    expect(await measured(), `the usual shape at ${width} x ${height}`).toMatchObject({ scale: 1, columns: 4 });
+  }
+
+  for (const [width, height] of [[1920, 1000], [2560, 1080], [3440, 1440], [5120, 1440], [3840, 714]]) {
+    for (const part of ["battery", "inverter_charger", "ac_loads", "dc_loads", "grid", "solar"]) {
+      await open(part, width!, height!);
+      const { scale, over, across, clear } = await measured();
+      expect(scale, `${part} at ${width} x ${height}`).toBeGreaterThan(1);
+      expect(over, `${part} at ${width} x ${height}`).toBeLessThanOrEqual(0);
+      expect(across, `${part} at ${width} x ${height}`).toBe(0);
+      expect(clear, `the checks on ${part} at ${width} x ${height}`).toBeGreaterThan(0);
+    }
+  }
+
+  await open("battery", 3840, 714);
+  const strip = await measured();
+  expect(strip.columns).toBeGreaterThanOrEqual(6);
+  expect(strip.scale).toBeGreaterThan(1.4);
+  expect(strip.filled).toBeGreaterThan(0.8);
+});
+
+test("Sci-Fi FOF fits a page afresh when another follows it, and when a window changes shape", async ({ page }) => {
+  await heldStream(page, [system, 0]);
+  const scale = () => page.evaluate(() =>
+    parseFloat(getComputedStyle(document.querySelector(".fof-deck")!).fontSize) / parseFloat(getComputedStyle(document.querySelector(".fof-well")!).fontSize));
+  await page.setViewportSize({ width: 3840, height: 714 });
+  await page.goto("/?skin=sci-fi-fof&part=grid");
+  await expect(page.locator(".fof-deck-groups")).toBeVisible();
+  await expect.poll(scale).toBeGreaterThan(1);
+  const grid = await scale();
+
+  await page.getByRole("navigation", { name: "Parts" }).getByRole("link", { name: "DC loads" }).click();
+  await expect(page.locator(".fof-deck[data-part='dc_loads']")).toBeVisible();
+  await expect.poll(scale).toBeGreaterThan(grid);
+
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await expect.poll(scale).toBe(1);
+});
+
+test("Sci-Fi FOF's text keeps following the screen past 4K", async ({ page }) => {
+  await heldStream(page, [system, 0]);
+  const em = async (width: number, height: number) => {
+    await page.setViewportSize({ width, height });
+    await page.goto("/?skin=sci-fi-fof");
+    await expect(page.locator(".fof-diagram")).toBeVisible();
+    return page.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".fof")!).fontSize));
+  };
+  expect(await em(7680, 4320)).toBeCloseTo(4 * await em(1920, 1080), 0);
+});
+
 test("Sci-Fi FOF keeps a page of few sections to a width a row can be read across", async ({ page }) => {
   await heldStream(page, [system, 0]);
   await page.setViewportSize({ width: 1920, height: 1080 });

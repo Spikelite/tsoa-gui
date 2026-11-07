@@ -6,7 +6,7 @@ import { batteryGroups, controlsGroup, inverterGroups, partDetail } from "../det
 import { useSmallPanel } from "./smallPanel";
 
 /** A section's color says what it holds, whatever else is on the page. Any other is the part's own, in sand. */
-const TONES: Partial<Record<string, string>> = { History: "lavender", Energy: "lavender", Device: "teal", Checks: "teal" };
+const TONES: Partial<Record<string, string>> = { History: "lavender", Extremes: "lavender", Energy: "lavender", Device: "teal", Checks: "teal" };
 
 export const sectionTone = (title: string) => TONES[title] ?? "sand";
 

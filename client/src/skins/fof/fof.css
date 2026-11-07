@@ -67,7 +67,7 @@
 /* On a landscape screen the text's size follows the screen, by whichever of
    its width and height is shorter for its shape, so the whole console fits. */
 @media (orientation: landscape) {
-  .fof { font-size: clamp(0.65rem, min(1.094vw, 1.944vh), 2.7rem); }
+  .fof { font-size: max(0.65rem, min(1.094vw, 1.944vh)); }
 }
 
 /* The frame: an elbow at each end of a sidebar, turning it into the top bar
@@ -1866,10 +1866,13 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 
 /* On a landscape screen the frame's top bar names the page, so its own heading
    is left to a screen reader, unless it is all a part not reporting has to
-   say, and the sections sit in a fixed grid of up to four columns, in rows
-   larger than the overview's, to use the room there is. A page of few sections
-   keeps them to a width a row can be read across. */
+   say, and the sections sit in a grid of up to four columns, in rows larger
+   than the overview's, to use the room there is. A page of few sections keeps
+   them to a width a row can be read across. In a window wider than that grid
+   needs, fit.ts sets the columns and the size of the page's text. */
 @media (orientation: landscape) {
+  .fof-deck { font-size: calc(var(--fof-fit, 1) * 1em); }
+
   .fof-deck:not(.status-offline) .fof-deck-head {
     position: absolute;
     width: 1px;
@@ -1881,7 +1884,7 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
 
   .fof-deck-groups {
     width: min(100%, calc(var(--fof-groups) * 19em + (var(--fof-groups) - 1) * 2.1em));
-    columns: min(4, var(--fof-groups));
+    columns: var(--fof-columns, min(4, var(--fof-groups)));
     column-gap: 2.1em;
   }
 
@@ -1931,7 +1934,7 @@ button.fof-elbow-top:focus-visible { outline: 2px solid var(--fof-ink); outline-
   .fof-deck-sided .fof-deck-groups {
     grid-column: 2;
     grid-row: 1 / span 2;
-    columns: min(3, var(--fof-groups));
+    columns: var(--fof-columns, min(3, var(--fof-groups)));
   }
 }
 
