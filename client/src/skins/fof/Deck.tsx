@@ -1,4 +1,4 @@
-import { useContext, useId, type CSSProperties, type ReactNode } from "react";
+import { useContext, useId, useRef, type CSSProperties, type ReactNode } from "react";
 
 import { OpenControlContext } from "../../controls/controls";
 import type { AlarmCheck, PartName, Status } from "../../model/system";
@@ -7,8 +7,9 @@ import { Eased } from "../Eased";
 import { keysFor } from "../keys";
 import type { Measured } from "../readings";
 import { Rows } from "./Core";
+import { useFittedPage } from "./fit";
 import { CHECKS, clearWords, CONTROLS, sectionTone } from "./sections";
-import { SectionContext } from "./smallPanel";
+import { SectionContext, useSmallPanel, useUpright } from "./smallPanel";
 import { StatusWords } from "./StatusPill";
 
 const CHECK_STATUS = { ok: "good", warning: "warning", alarm: "fault" } as const;
@@ -67,8 +68,8 @@ function Checks({ checks, open }: { checks: AlarmCheck[]; open: boolean }) {
 }
 
 // A part's own page, as the console would show one system in full: the part
-// drawn large, then every reading in sections flowing down a fixed grid of
-// columns, and what the part watches. Its name, state and figures are on the
+// drawn large, then every reading in sections flowing down a grid of columns,
+// and what the part watches. Its name, state and figures are on the
 // frame's top bar, or on a phone, where that has no room, in a row at the top.
 export function Deck(props: {
   part: PartName;
@@ -96,8 +97,12 @@ export function Deck(props: {
   const controls = shows(CONTROLS) ? props.controls : undefined;
   const keys = keysFor(groups.map((group) => group.title));
   const look = only === null ? props.className : "fof-deck-one";
+  const page = useRef<HTMLElement>(null);
+  const small = useSmallPanel();
+  const upright = useUpright();
+  useFittedPage(page, !small && !upright, props.part);
   return (
-    <section className={`fof-deck status-${props.status}${look ? ` ${look}` : ""}`}
+    <section ref={page} className={`fof-deck status-${props.status}${look ? ` ${look}` : ""}`}
       data-part={props.part} aria-labelledby={heading}>
       <div className="fof-deck-head">
         <h2 className="fof-label-block">

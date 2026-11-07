@@ -138,6 +138,12 @@ export function batteryGroups(battery: Battery): DetailGroup[] {
         { label: "Total drawn", value: history.total_drawn_ah, format: f.ampHours },
         { label: "Energy charged", value: history.charged_kwh, format: f.kilowattHours },
         { label: "Energy discharged", value: history.discharged_kwh, format: f.kilowattHours },
+        { label: "Since full charge", value: history.since_full_charge_s, format: f.duration },
+      ],
+    },
+    {
+      title: "Extremes",
+      readings: history === null ? [] : [
         { label: "Lowest voltage", value: history.min_voltage_v, format: f.volts },
         { label: "Highest voltage", value: history.max_voltage_v, format: f.volts },
         { label: "Lowest cell", value: history.min_cell_voltage_v, format: f.cellVolts },
@@ -146,7 +152,6 @@ export function batteryGroups(battery: Battery): DetailGroup[] {
         { label: "Hottest", value: history.max_temperature_c, format: f.celsius },
         { label: "Low voltage alarms", value: history.low_voltage_alarms, format: f.count },
         { label: "High voltage alarms", value: history.high_voltage_alarms, format: f.count },
-        { label: "Since full charge", value: history.since_full_charge_s, format: f.duration },
       ],
     },
     {

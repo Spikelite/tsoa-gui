@@ -375,7 +375,7 @@ describe("FofSkin", () => {
       page("battery");
       render(<FofSkin model={system} />);
       expect(sections().map((section) => section.textContent)).toEqual([
-        "Charge", "Power", "Cells", "Temperature", "Limits", "History", "Device", "1 raised",
+        "Charge", "Power", "Cells", "Temperature", "Limits", "History", "Extremes", "Device", "1 raised",
       ]);
       expect(sections()[0]).toHaveAttribute("aria-pressed", "true");
       expect(screen.getByRole("region", { name: "Charge" })).toBeInTheDocument();
@@ -494,6 +494,7 @@ describe("FofSkin", () => {
     expect(head("Charge")).toHaveClass("fof-tone-sand");
     expect(head("Limits")).toHaveClass("fof-tone-sand");
     expect(head("History")).toHaveClass("fof-tone-lavender");
+    expect(head("Extremes")).toHaveClass("fof-tone-lavender");
     expect(head("Device")).toHaveClass("fof-tone-teal");
     window.history.replaceState(null, "", "/");
   });
